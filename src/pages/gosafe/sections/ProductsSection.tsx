@@ -574,6 +574,7 @@ const ProductRow = ({
                       key={currentImageIndex}
                       src={product.images[currentImageIndex]}
                       alt={product.name}
+                      loading="lazy"
                       initial={{ opacity: 0, scale: 1.1 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0 }}
@@ -731,6 +732,7 @@ const ProductRow = ({
                         component="img"
                         src={detail.image || product.images[0]}
                         alt={detail.title}
+                        loading="lazy"
                         sx={{
                           width: '100%',
                           height: '100%',

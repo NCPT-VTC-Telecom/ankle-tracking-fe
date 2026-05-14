@@ -27,7 +27,6 @@ const LandingPage = () => {
   const { onChangeMode, mode, onChangeLocalization, i18n } = useConfig();
   const [isDark, setIsDark] = useState(mode === ThemeMode.DARK);
 
-  console.log(onChangeMode, onChangeLocalization);
   useEffect(() => {
     setIsDark(mode === ThemeMode.DARK);
   }, [mode]);

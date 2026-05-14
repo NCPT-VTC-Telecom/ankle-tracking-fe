@@ -2239,5 +2239,19 @@
   "gosafe-solution-group-4-title": "Management & Analytics",
   "gosafe-solution-group-4-desc": "Centralized dashboard for profiles, devices, and deep insights into offender behavior.",
   "gosafe-solution-group-5-title": "Multi-Platform Offender Tracking System",
-  "gosafe-solution-group-5-desc": "The mobile application is dedicated to the offender, facilitating compliance and communication. It enables biometric check-ins, secure messaging with authorities, and access to rehabilitation resources. This tool ensures offenders remain connected and adherent to their supervision conditions."
+  "gosafe-solution-group-5-desc": "The mobile application is dedicated to the offender, facilitating compliance and communication. It enables biometric check-ins, secure messaging with authorities, and access to rehabilitation resources. This tool ensures offenders remain connected and adherent to their supervision conditions.",
+  "gosafe-solution-group-alerts-title": "Comprehensive Alerts & Notifications",
+  "gosafe-solution-group-alerts-desc": "Proactive monitoring with real-time alerts across multiple channels — web popup, SMS, and email — ensuring no violation goes undetected.",
+  "gosafe-solutions-alert-sos-title": "SOS & Tamper Detection",
+  "gosafe-solutions-alert-sos-desc": "Instant alerts when the SOS button is pressed or the fiber optic strap is cut/tampered. 3 SOS events and 15 fiber disconnect events have been recorded.",
+  "gosafe-solutions-alert-sms-title": "Multi-channel Notifications",
+  "gosafe-solutions-alert-sms-desc": "Alerts delivered via web popup, SMS, and email. Configure multiple recipients per alert type and independently toggle each notification on or off.",
+  "gosafe-solutions-alert-beacon-title": "iBeacon Indoor Detection",
+  "gosafe-solutions-alert-beacon-desc": "Detects when a device enters or leaves Bluetooth beacon range for reliable indoor monitoring beyond GPS. Over 100 in/out events tracked.",
+  "gosafe-solutions-alert-fiber-title": "Motion & Status Alerts",
+  "gosafe-solutions-alert-fiber-desc": "Detects movement, prolonged stillness, battery charge status, and signal loss. Over 80 motion and stationary events recorded automatically.",
+  "gosafe-solutions-alert-raw-title": "Raw Data & Message Log",
+  "gosafe-solutions-alert-raw-desc": "Full access to all device data packets, sent commands, SMS history, and system logs for evidence archiving and audit trails.",
+  "gosafe-solutions-mgmt-jobs-title": "Automation & Scheduled Jobs",
+  "gosafe-solutions-mgmt-jobs-desc": "Create automated jobs to schedule reports, notifications, and tasks — reducing manual workload for supervisors."
 }

@@ -42,7 +42,6 @@ const GosafeLanding = () => {
   const [isDark, setIsDark] = useState(mode === ThemeMode.DARK);
   const primaryColor = '#2772ed';
   const secondaryColor = '#4a90e2';
-  console.log(onChangeMode, onChangeLocalization);
   useEffect(() => {
     setIsDark(mode === ThemeMode.DARK);
   }, [mode]);
