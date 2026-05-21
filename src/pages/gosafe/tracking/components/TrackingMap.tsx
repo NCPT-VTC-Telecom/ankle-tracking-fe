@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
-import { MapContainer, TileLayer, Polygon, Polyline, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Polygon, Polyline, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
   createDeviceIcon, createVertexIcon, createCenterMoveIcon, createHistoryMarkerIcon,
@@ -19,11 +19,6 @@ function MapViewUpdater({ center, zoom, follow, target }: {
   return null;
 }
 
-function MapClickHandler({ onClick }: { onClick: (e: any) => void }) {
-  useMapEvents({ click: onClick });
-  return null;
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
 
 interface Props { store: TrackingStore }
@@ -36,36 +31,31 @@ export default function TrackingMap({ store }: Props) {
     editingGeofenceId, mapCenter, mapZoom,
     followDevice, followTarget,
     geofenceDevicesMap, gfMetrics,
-    handleManualPosition, handleDragVertexEnd, handleCenterDragStart, handleCenterDragEnd,
+    handleDragVertexEnd, handleCenterDragStart, handleCenterDragEnd,
     setSelectedDeviceId, setActiveTab,
   } = store;
 
   return (
     <>
-      {/* Floating hint */}
-      <Box
-        className="gs-map-hint"
-        sx={{
-          bgcolor: isDark ? 'rgba(9,13,31,0.88)' : 'rgba(255,255,255,0.88)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-          border: '1px solid',
-          borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-        }}
-      >
-        <Typography variant="caption" sx={{ fontWeight: 700 }} color="text.secondary">
-          614 Điện Biên Phủ, Q.Bình Thạnh, TP.HCM
-        </Typography>
-        <Typography variant="body2" sx={{ fontWeight: 500, mt: 0.5, lineHeight: 1.7 }}>
-          • Click bản đồ để dời <b>{devices.find((d) => d.id === selectedDeviceId)?.name ?? '—'}</b>.<br />
-          {editingGeofenceId ? (
-            <span style={{ color: '#f59e0b', fontWeight: 700 }}>
-              • Kéo ○ (đỉnh) hoặc ✛ (trung tâm) để sửa vùng.
-            </span>
-          ) : (
-            `• Đang theo dõi ${devices.filter((d) => d.isSimulating).length} thiết bị mô phỏng.`
-          )}
-        </Typography>
-      </Box>
+      {/* Floating hint — chỉ hiện khi đang chỉnh sửa geofence */}
+      {editingGeofenceId && (
+        <Box
+          className="gs-map-hint"
+          sx={{
+            bgcolor: isDark ? 'rgba(9,13,31,0.88)' : 'rgba(255,255,255,0.88)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+            border: '1px solid',
+            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+          }}
+        >
+          <Typography variant="caption" sx={{ fontWeight: 700 }} color="text.secondary">
+            614 Điện Biên Phủ, P.Vườn Lài, Q.Phú Nhuận, TP.HCM
+          </Typography>
+          <Typography variant="body2" sx={{ fontWeight: 500, mt: 0.5, lineHeight: 1.7, color: '#f59e0b' }}>
+            Kéo ○ (đỉnh) hoặc ✛ (trung tâm) để sửa ranh giới vùng.
+          </Typography>
+        </Box>
+      )}
 
       <MapContainer
         center={mapCenter}
@@ -73,9 +63,6 @@ export default function TrackingMap({ store }: Props) {
         attributionControl={false}
         style={{ width: '100%', height: '100%' }}
       >
-        <MapClickHandler
-          onClick={(e: any) => { if (!editingGeofenceId) handleManualPosition(e.latlng.lat, e.latlng.lng); }}
-        />
         {isDark
           ? <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
           : <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
@@ -176,7 +163,7 @@ export default function TrackingMap({ store }: Props) {
                 <Popup>
                   <Typography variant="caption">
                     Bắt đầu: {new Date(first.timestamp).toLocaleString('vi-VN')}
-                    {first.battery != null && ` · Pin: ${first.battery}%`}
+                    {(first.batteryVoltage != null || first.externalVoltage != null) && ` · ${(first.batteryVoltage ?? first.externalVoltage)?.toFixed(2)}V`}
                   </Typography>
                 </Popup>
               </Marker>,
@@ -187,7 +174,7 @@ export default function TrackingMap({ store }: Props) {
               <Popup>
                 <Typography variant="caption">
                   Kết thúc: {new Date(last.timestamp).toLocaleString('vi-VN')}
-                  {last.battery != null && ` · Pin: ${last.battery}%`}
+                  {(last.batteryVoltage != null || last.externalVoltage != null) && ` · ${(last.batteryVoltage ?? last.externalVoltage)?.toFixed(2)}V`}
                 </Typography>
               </Popup>
             </Marker>,

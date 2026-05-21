@@ -50,7 +50,15 @@ export default defineConfig(({ mode }) => {
         },
         server: {
             port: 3000,
-            open: true
+            open: true,
+            proxy: {
+                // Proxy /api/gosafe → gosafe.vtctelecom.com.vn in dev to avoid CORS
+                '/api/gosafe': {
+                    target: 'https://gosafe.vtctelecom.com.vn',
+                    changeOrigin: true,
+                    secure: true,
+                },
+            },
         },
         build: {
             outDir: 'build',

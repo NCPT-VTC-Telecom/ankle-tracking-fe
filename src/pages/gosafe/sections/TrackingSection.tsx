@@ -14,13 +14,29 @@ interface TrackingSectionProps {
   secondaryColor: string;
 }
 
-export default function TrackingSection({ isDark, primaryColor, secondaryColor }: TrackingSectionProps) {
+export default function TrackingSection({
+  isDark,
+  primaryColor,
+  secondaryColor
+}: TrackingSectionProps) {
   const store = useTracking(isDark, primaryColor, secondaryColor);
-  const { showAlertOverlay, devices, geofences, deviceViolations, activeTab, setActiveTab, searchQuery, setSearchQuery, statusAlertCount } =
-    store;
+  const {
+    showAlertOverlay,
+    devices,
+    geofences,
+    deviceViolations,
+    activeTab,
+    setActiveTab,
+    searchQuery,
+    setSearchQuery,
+    statusAlertCount
+  } = store;
 
   return (
-    <Box className="gs-tracking" sx={{ flexGrow: 1, height: 0, bgcolor: isDark ? '#020617' : '#f8fafc' }}>
+    <Box
+      className="gs-tracking"
+      sx={{ flexGrow: 1, height: 0, bgcolor: isDark ? '#020617' : '#f8fafc' }}
+    >
       {/* Pulsing alarm border */}
       {showAlertOverlay && <Box className="gs-alert-border" />}
 
@@ -28,7 +44,16 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
       {devices
         .filter((d) => deviceViolations[d.id])
         .map((dev) => (
-          <Box key={dev.id} sx={{ px: 3, py: 1, bgcolor: '#fef2f2', borderBottom: '1px solid #fee2e2', zIndex: 1000 }}>
+          <Box
+            key={dev.id}
+            sx={{
+              px: 3,
+              py: 1,
+              bgcolor: '#fef2f2',
+              borderBottom: '1px solid #fee2e2',
+              zIndex: 1000
+            }}
+          >
             <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
               <Stack direction="row" spacing={1.5} alignItems="center">
                 <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: dev.color }} />
@@ -38,7 +63,13 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
                   {geofences.find((g) => g.id === dev.assignedGeofenceId)?.name}"
                 </Typography>
               </Stack>
-              <Chip label="CẢNH BÁO" color="error" size="small" className="gs-blink" sx={{ fontWeight: 'bold' }} />
+              <Chip
+                label="CẢNH BÁO"
+                color="error"
+                size="small"
+                className="gs-blink"
+                sx={{ fontWeight: 'bold' }}
+              />
             </Stack>
           </Box>
         ))}
@@ -67,20 +98,32 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               InputProps={{
-                startAdornment: <SearchNormal1 size="18" style={{ marginRight: 8, color: '#94a3b8' }} />,
+                startAdornment: (
+                  <SearchNormal1 size="18" style={{ marginRight: 8, color: '#94a3b8' }} />
+                ),
                 sx: { borderRadius: 3 }
               }}
             />
           </Box>
 
           {/* Tabs */}
-          <Box sx={{ borderBottom: 1, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
+          <Box
+            sx={{
+              borderBottom: 1,
+              borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
+            }}
+          >
             <Tabs
               value={activeTab}
               onChange={(_, v) => setActiveTab(v)}
               variant="fullWidth"
               sx={{
-                '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, fontSize: '0.85rem', minHeight: 46 },
+                '& .MuiTab-root': {
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  minHeight: 46
+                },
                 '& .Mui-selected': { color: primaryColor }
               }}
             >
@@ -88,7 +131,13 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
               <Tab icon={<MapIcon size="16" />} label="Geofence" iconPosition="start" />
               <Tab
                 icon={
-                  <Badge badgeContent={statusAlertCount + Object.values(deviceViolations).filter(Boolean).length} color="error" max={9}>
+                  <Badge
+                    badgeContent={
+                      statusAlertCount + Object.values(deviceViolations).filter(Boolean).length
+                    }
+                    color="error"
+                    max={9}
+                  >
                     <Notification size="16" />
                   </Badge>
                 }

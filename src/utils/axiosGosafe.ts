@@ -7,8 +7,14 @@ import axios from 'axios';
  * This is a separate instance from the main WiFi management API because
  * GoSafe runs on a different service and may use different auth in the future.
  */
+// In dev Vite proxies /api/gosafe → gosafe.vtctelecom.com.vn (no CORS).
+// In production the full URL is used (same-domain deployment = no CORS).
+const baseURL = import.meta.env.DEV
+  ? '/api/gosafe'
+  : (import.meta.env.VITE_APP_BACKEND_API_GOSAFE ?? 'https://gosafe.vtctelecom.com.vn/api/gosafe');
+
 const axiosGosafe = axios.create({
-  baseURL: import.meta.env.VITE_APP_BACKEND_API_GOSAFE || 'https://gosafe.vtctelecom.com.vn/api/gosafe',
+  baseURL,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',

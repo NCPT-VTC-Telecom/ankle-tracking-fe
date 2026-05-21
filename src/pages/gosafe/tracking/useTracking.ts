@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import L from 'leaflet';
-import { gosafeTrackingApi, normaliseHistoryResponse } from 'api/gosafe.tracking.api';
+import { gosafeTrackingApi, normaliseHistoryResponse, type ApiDevice } from 'api/gosafe.tracking.api';
 import {
   Device, Geofence, EventLog, DeviceFormState, GfFormState,
   DeviceHistoryState, HistoryFilters,
@@ -11,10 +11,71 @@ import {
 } from './constants';
 import {
   isPointInPolygon, getPolygonArea, getPolygonPerimeter, getAngle,
-  generateDevicePath, fmtArea, fmtPerimeter, toIsoDate,
+  fmtArea, fmtPerimeter, toIsoDate,
 } from './utils';
 
 const EMPTY_HISTORY: DeviceHistoryState = { loading: false, error: null, data: null };
+
+// ─── API HELPERS ──────────────────────────────────────────────────────────────
+
+/** Chuyển điện áp Li-ion → % pin (3.0V = 0%, 4.2V = 100%) */
+function voltageToPercent(v: number | null, fallback = 50): number {
+  if (v == null || v <= 0) return fallback;
+  return Math.max(0, Math.min(100, Math.round((v - 3.0) / 1.2 * 100)));
+}
+
+function mapApiDeviceToDevice(api: ApiDevice, existing: Device | undefined, fallbackColor: string): Device {
+  const lastSeen = new Date(api.last_seen);
+  const lastDeviceTime = new Date(api.last_device_time);
+  const minutesSinceSync = (Date.now() - lastSeen.getTime()) / 60000;
+  const voltage = api.battery_voltage ?? api.external_voltage;
+  const battery = voltageToPercent(voltage, existing?.status.battery ?? 50);
+  return {
+    id: existing?.id ?? `api-${api.id}`,
+    name: existing?.name ?? api.device_imei,
+    type: existing?.type ?? 'Person',
+    deviceType: api.device_model,
+    uniqueId: api.device_imei,
+    phoneNumber: existing?.phoneNumber ?? '',
+    color: existing?.color ?? fallbackColor,
+    subject: existing?.subject ?? null,
+    status: {
+      battery,
+      batteryVoltage: api.battery_voltage,
+      externalVoltage: api.external_voltage,
+      signalStrength: Math.min(4, Math.max(0, api.gsm_signal - 1)),
+      connectionStatus: minutesSinceSync > 10 ? 'offline' : minutesSinceSync > 2 ? 'unstable' : 'online',
+      lastGpsUpdate: lastDeviceTime,
+      lastServerSync: lastSeen,
+      gpsAccuracy: 5,
+      gpsFix: api.gps_fixed,
+      satelliteCount: api.satellite_count,
+      speed: api.speed,
+      altitude: api.altitude,
+      eventId: api.event_id,
+      eventName: api.event_name,
+      deviceModel: api.device_model,
+      firmwareVersion: api.firmware_version,
+    },
+    coords: [api.latitude, api.longitude] as [number, number],
+    angle: (() => {
+      const prev = existing?.coords;
+      const next: [number, number] = [api.latitude, api.longitude];
+      return prev && (prev[0] !== api.latitude || prev[1] !== api.longitude)
+        ? getAngle(prev, next)
+        : (existing?.angle ?? 0);
+    })(),
+    pathHistory: (() => {
+      const next: [number, number] = [api.latitude, api.longitude];
+      const prev = existing?.coords;
+      if (!prev || prev[0] !== api.latitude || prev[1] !== api.longitude) {
+        return [...(existing?.pathHistory ?? []), next].slice(-50);
+      }
+      return existing?.pathHistory ?? [];
+    })(),
+    assignedGeofenceId: existing?.assignedGeofenceId ?? null,
+  };
+}
 
 // ─── HOOK ─────────────────────────────────────────────────────────────────────
 
@@ -26,14 +87,13 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
   const [geofences, setGeofences] = useState<Geofence[]>(INITIAL_GEOFENCES);
   const [editingGeofenceId, setEditingGeofenceId] = useState<string | null>(null);
   const [logs, setLogs] = useState<EventLog[]>([
-    { id: '1', time: '08:50:00', message: 'Hệ thống GoSafe khởi động tại 614 Điện Biên Phủ.', type: 'info' },
-    { id: '2', time: '08:50:05', message: 'Phát hiện 2 thiết bị. Tín hiệu GPS tốt.', type: 'success' },
+    { id: '1', time: '08:50:00', message: 'Hệ thống GoSafe khởi động tại 614 Điện Biên Phủ, P.Vườn Lài, Q.Phú Nhuận.', type: 'info' },
+    { id: '2', time: '08:50:05', message: 'Phát hiện 1 thiết bị. Tín hiệu GPS bình thường.', type: 'success' },
   ]);
 
   // ── UI ──
   const [activeTab, setActiveTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [simSpeed, setSimSpeed] = useState(1);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [followDevice, setFollowDevice] = useState(true);
   const [showAlertOverlay, setShowAlertOverlay] = useState(false);
@@ -59,16 +119,9 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
   const [addGfForm, setAddGfForm] = useState<GfFormState>(EMPTY_GF_FORM);
 
   // ── REFS ──
-  const deviceSimPathsRef = useRef<Record<string, [number, number][]>>({});
   const centerDragStartRef = useRef<{ startLat: number; startLng: number } | null>(null);
   const prevViolationsRef = useRef<Record<string, boolean>>({});
   const deviceColorIdxRef = useRef(INITIAL_DEVICES.length);
-
-  // ── INIT SIM PATHS ──
-  useEffect(() => {
-    deviceSimPathsRef.current['dev-001'] = generateDevicePath(BASE_CENTER, 0);
-    deviceSimPathsRef.current['dev-002'] = generateDevicePath(BASE_CENTER, 1);
-  }, []);
 
   // Tick for time-ago labels
   useEffect(() => {
@@ -173,34 +226,6 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
 
   // ── EFFECTS ───────────────────────────────────────────────────────────────────
 
-  // Simulation interval
-  useEffect(() => {
-    const ms = Math.max(100, 1000 / simSpeed);
-    const id = setInterval(() => {
-      setDevices((prev) => {
-        if (!prev.some((d) => d.isSimulating)) return prev;
-        return prev.map((dev) => {
-          if (!dev.isSimulating) return dev;
-          const path = deviceSimPathsRef.current[dev.id];
-          if (!path?.length) return dev;
-          const nextIdx = (dev.simIndex + 1) % path.length;
-          const next = path[nextIdx], cur = path[dev.simIndex];
-          const hist = [...dev.pathHistory, next];
-          if (hist.length > 50) hist.shift();
-          return {
-            ...dev,
-            simIndex: nextIdx,
-            coords: next,
-            angle: getAngle(cur, next),
-            pathHistory: hist,
-            status: { ...dev.status, lastGpsUpdate: new Date(), lastServerSync: new Date() },
-          };
-        });
-      });
-    }, ms);
-    return () => clearInterval(id);
-  }, [simSpeed]);
-
   // Violation detection
   useEffect(() => {
     let hasViolation = false;
@@ -268,34 +293,6 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
 
   // ── DEVICE HANDLERS ───────────────────────────────────────────────────────────
 
-  const handleManualPosition = (lat: number, lng: number) => {
-    if (!selectedDeviceId) return;
-    setDevices((prev) =>
-      prev.map((d) => {
-        if (d.id !== selectedDeviceId) return d;
-        const hist = [...d.pathHistory, [lat, lng] as [number, number]];
-        if (hist.length > 50) hist.shift();
-        return { ...d, coords: [lat, lng], pathHistory: hist, status: { ...d.status, lastGpsUpdate: new Date() } };
-      }),
-    );
-    addLog(`Định vị thủ công ${selectedDevice?.name} tại [${lat.toFixed(5)}, ${lng.toFixed(5)}].`, 'info');
-  };
-
-  const handleToggleSimulate = (devId: string) =>
-    setDevices((prev) => prev.map((d) => (d.id === devId ? { ...d, isSimulating: !d.isSimulating } : d)));
-
-  const handleResetDevice = (devId: string) => {
-    const path = deviceSimPathsRef.current[devId];
-    if (!path?.length) return;
-    setDevices((prev) =>
-      prev.map((d) => {
-        if (d.id !== devId) return d;
-        return { ...d, isSimulating: false, simIndex: 0, coords: path[0], pathHistory: [path[0]] };
-      }),
-    );
-    addLog(`Đặt lại vị trí ${devices.find((d) => d.id === devId)?.name}.`, 'info');
-  };
-
   const handleAddDevice = () => {
     const f = addDeviceForm;
     if (!f.name || !f.uniqueId) return;
@@ -310,12 +307,16 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
             sentence: f.subjectSentence, startDate: f.subjectStartDate, releaseDate: f.subjectReleaseDate,
             notes: f.subjectNotes }
         : null,
-      status: { battery: 100, signalStrength: 4, connectionStatus: 'online',
-                lastGpsUpdate: new Date(), lastServerSync: new Date(), gpsAccuracy: 5 },
+      status: {
+        battery: 100, batteryVoltage: null, externalVoltage: null,
+        signalStrength: 4, connectionStatus: 'online',
+        lastGpsUpdate: new Date(), lastServerSync: new Date(), gpsAccuracy: 5,
+        gpsFix: false, satelliteCount: 0, speed: 0, altitude: 0,
+        eventId: 0, eventName: 'Normal', deviceModel: f.deviceType, firmwareVersion: '',
+      },
       coords: [...BASE_CENTER] as [number, number],
-      angle: 0, pathHistory: [], isSimulating: false, simIndex: 0, assignedGeofenceId: null,
+      angle: 0, pathHistory: [], assignedGeofenceId: null,
     };
-    deviceSimPathsRef.current[newId] = generateDevicePath(BASE_CENTER, Object.keys(deviceSimPathsRef.current).length);
     setDevices((prev) => [...prev, newDev]);
     setSelectedDeviceId(newId);
     addLog(`Đã thêm thiết bị: ${f.name}${f.subjectFullName ? ` — ${f.subjectFullName}` : ''}.`, 'success');
@@ -396,6 +397,37 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     setAddGfForm(EMPTY_GF_FORM);
   };
 
+  // ── LIVE DEVICE FETCH ─────────────────────────────────────────────────────────
+
+  const fetchLiveDevices = useCallback(async () => {
+    try {
+      const res = await gosafeTrackingApi.getDevices();
+      const apiData = res.data;
+      if (apiData?.code !== 0 || !Array.isArray(apiData?.data)) return;
+      setDevices((prev) => {
+        const prevByImei: Record<string, Device> = {};
+        prev.forEach((d) => { prevByImei[d.uniqueId] = d; });
+        const updatedImeis = new Set<string>();
+        const apiDevices = apiData.data.map((api: ApiDevice, idx: number) => {
+          updatedImeis.add(api.device_imei);
+          const existing = prevByImei[api.device_imei];
+          return mapApiDeviceToDevice(api, existing, DEVICE_PALETTE[idx % DEVICE_PALETTE.length]);
+        });
+        const manualDevices = prev.filter((d) => !updatedImeis.has(d.uniqueId));
+        return [...apiDevices, ...manualDevices];
+      });
+    } catch {
+      // silently ignore polling errors
+    }
+  }, []);
+
+  // Poll live device positions every 30 s
+  useEffect(() => {
+    fetchLiveDevices();
+    const id = setInterval(fetchLiveDevices, 30000);
+    return () => clearInterval(id);
+  }, [fetchLiveDevices]);
+
   // ── GPS HISTORY ───────────────────────────────────────────────────────────────
 
   const loadDeviceHistory = useCallback(async (device: Device, page = 1) => {
@@ -432,7 +464,6 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     // UI state
     activeTab, setActiveTab,
     searchQuery, setSearchQuery,
-    simSpeed, setSimSpeed,
     soundEnabled, setSoundEnabled,
     followDevice, setFollowDevice,
     showAlertOverlay,
@@ -457,8 +488,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     geofenceDevicesMap, filteredDevices, syncMinutesMap,
     statusAlertCount, gfMetrics, followTarget,
     // Handlers
-    addLog, loadDeviceHistory, handleManualPosition,
-    handleToggleSimulate, handleResetDevice,
+    addLog, loadDeviceHistory, fetchLiveDevices,
     handleAddDevice, handleRemoveDevice, handleSaveEditDevice, openEditDevice,
     handleAssignDeviceToGeofence,
     handleToggleGeofenceActive,

@@ -13,12 +13,22 @@ export interface SubjectInfo {
 }
 
 export interface DeviceStatus {
-  battery: number;
-  signalStrength: number;       // 0–4 GSM bars
+  battery: number;              // ước tính % (0–100) từ điện áp
+  batteryVoltage: number | null; // điện áp pin (V), null nếu dùng nguồn ngoài
+  externalVoltage: number | null; // điện áp nguồn ngoài (V)
+  signalStrength: number;       // 0–4 thanh (map từ gsm_signal 1–5)
   connectionStatus: 'online' | 'offline' | 'unstable';
-  lastGpsUpdate: Date | null;
-  lastServerSync: Date | null;
+  lastGpsUpdate: Date | null;   // last_device_time
+  lastServerSync: Date | null;  // last_seen (server nhận)
   gpsAccuracy: number;          // metres
+  gpsFix: boolean;              // gps_fixed
+  satelliteCount: number;       // số vệ tinh
+  speed: number;                // km/h
+  altitude: number;             // độ cao (m)
+  eventId: number;
+  eventName: string;            // Normal / SOS / ...
+  deviceModel: string;          // G737-4G
+  firmwareVersion: string;      // V1.18d0609
 }
 
 export interface Device {
@@ -34,8 +44,6 @@ export interface Device {
   coords: [number, number];
   angle: number;
   pathHistory: [number, number][];
-  isSimulating: boolean;
-  simIndex: number;
   assignedGeofenceId: string | null;
 }
 

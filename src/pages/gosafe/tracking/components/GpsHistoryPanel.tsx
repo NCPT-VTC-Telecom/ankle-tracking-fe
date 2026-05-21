@@ -5,7 +5,6 @@ import {
 } from '@mui/material';
 import { Clock, ArrowLeft2, ArrowRight2, ReceiptSearch } from 'iconsax-react';
 import { CircularProgress } from '@mui/material';
-import { getBatteryColor } from '../utils';
 import type { Device } from '../types';
 import type { TrackingStore } from '../useTracking';
 
@@ -124,11 +123,13 @@ export default function GpsHistoryPanel({ dev, store }: Props) {
                       <Typography variant="caption" sx={{ fontWeight: 600 }}>{value}</Typography>
                     </Stack>
                   ))}
-                  {first.battery != null && (
+                  {(first.batteryVoltage != null || first.externalVoltage != null) && (
                     <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="caption" color="text.secondary">Pin (đầu):</Typography>
-                      <Typography variant="caption" sx={{ fontWeight: 600, color: getBatteryColor(first.battery!) }}>
-                        {first.battery}%
+                      <Typography variant="caption" color="text.secondary">Điện áp (đầu):</Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                        {first.batteryVoltage != null
+                          ? `${first.batteryVoltage.toFixed(2)}V`
+                          : `${first.externalVoltage?.toFixed(2)}V`}
                       </Typography>
                     </Stack>
                   )}

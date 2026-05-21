@@ -1,51 +1,84 @@
 import { AxiosPromise } from 'axios';
 import axiosGosafe from 'utils/axiosGosafe';
 
-// ─── REQUEST PARAMS ───────────────────────────────────────────────────────────
+// ─── DEVICE LIST ──────────────────────────────────────────────────────────────
+
+/** Thiết bị trả về từ GET /v1/gps_tracking/devices */
+export interface ApiDevice {
+  id: string;
+  device_imei: string;
+  latitude: number;
+  longitude: number;
+  speed: number;
+  altitude: number;
+  gps_fixed: boolean;
+  satellite_count: number;
+  gsm_signal: number;
+  battery_voltage: number | null;
+  external_voltage: number;
+  device_model: string;
+  firmware_version: string;
+  event_id: number;
+  event_name: string;
+  last_device_time: string;
+  last_seen: string;
+}
+
+export interface ApiDevicesResponse {
+  code: number;
+  message?: string;
+  data: ApiDevice[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+// ─── HISTORY PARAMS ───────────────────────────────────────────────────────────
 
 /** GET /v1/gps_tracking/history — Lịch sử di chuyển theo IMEI */
 export interface GpsHistoryParams {
-  /** IMEI thiết bị G737 (required) — ví dụ: "869487063154339" */
   imei: string;
-  /** Trang hiện tại, mặc định 1 */
   page?: number;
-  /** Số bản ghi mỗi trang, mặc định 50 */
   limit?: number;
-  /** Thời điểm bắt đầu — ISO 8601, ví dụ "2026-05-01T00:00:00Z" */
   from?: string;
-  /** Thời điểm kết thúc — ISO 8601, ví dụ "2026-05-31T23:59:59Z" */
   to?: string;
 }
 
-// ─── RESPONSE TYPES ───────────────────────────────────────────────────────────
+// ─── HISTORY POINT ────────────────────────────────────────────────────────────
 
-/** Một điểm GPS trong lịch sử di chuyển */
+/** Một điểm GPS trong lịch sử di chuyển (đã chuẩn hoá) */
 export interface GpsTrackingPoint {
-  /** IMEI thiết bị */
+  id?: string;
   imei?: string;
-  /** Vĩ độ */
   lat: number;
-  /** Kinh độ */
   lng: number;
-  /** Thời điểm ghi nhận (ISO 8601) */
-  timestamp: string;
-  /** Tốc độ (km/h) */
   speed?: number;
-  /** Mức pin (%) */
-  battery?: number;
-  /** Cường độ tín hiệu GSM (0–4) */
-  signal?: number;
-  /** Độ chính xác GPS (metres) */
-  accuracy?: number;
-  /** Độ cao (metres) */
   altitude?: number;
-  /** Góc hướng đi (degrees) */
-  heading?: number;
-  /** Loại sự kiện */
-  eventType?: string;
+  azimuth?: number;
+  hdop?: number;
+  vdop?: number;
+  gpsFix?: boolean;
+  satelliteCount?: number;
+  gsmSignal?: number;
+  gsmRegistration?: number;
+  gsmMcc?: string;
+  gsmMnc?: string;
+  deviceModel?: string;
+  firmwareVersion?: string;
+  hardwareVersion?: string;
+  batteryVoltage?: number | null;
+  externalVoltage?: number;
+  eventStatus?: boolean;
+  eventId?: number;
+  eventName?: string;
+  deviceTime?: string;
+  serverTime?: string;
+  /** Timestamp chuẩn hoá — ưu tiên server_time */
+  timestamp: string;
+  rawPacket?: string;
 }
 
-/** Wrapper phân trang trả về từ server */
+/** Wrapper phân trang */
 export interface PaginatedData<T> {
   items: T[];
   total: number;
@@ -54,7 +87,7 @@ export interface PaginatedData<T> {
   totalPages: number;
 }
 
-/** Response chuẩn từ GoSafe API */
+/** Response chuẩn GoSafe */
 export interface GosafeApiResponse<T> {
   code: number;
   message?: string;
@@ -63,16 +96,13 @@ export interface GosafeApiResponse<T> {
 
 export type GpsHistoryResponse = GosafeApiResponse<PaginatedData<GpsTrackingPoint>>;
 
-// ─── HELPER — normalise response về format thống nhất ────────────────────────
-/**
- * Một số server trả về data dưới dạng mảng trực tiếp, một số trong {items, total, ...}.
- * Hàm này đảm bảo luôn trả về PaginatedData.
- */
+// ─── NORMALISE HISTORY RESPONSE ───────────────────────────────────────────────
+
 export function normaliseHistoryResponse(
   raw: any,
-  params: GpsHistoryParams
+  params: GpsHistoryParams,
 ): PaginatedData<GpsTrackingPoint> {
-  // Dạng 1: { data: { items: [], total: N, page: N, ... } }
+  // Dạng 1: { data: { items: [], total, page, ... } }
   if (raw?.data?.items !== undefined) {
     const d = raw.data;
     return {
@@ -83,48 +113,62 @@ export function normaliseHistoryResponse(
       totalPages: d.totalPages ?? Math.ceil((d.total ?? d.items.length) / (d.limit ?? params.limit ?? 50)),
     };
   }
-  // Dạng 2: { data: [] } — mảng trực tiếp trong data
+  // Dạng 2: { data: [], total, page, limit, totalPages } — array trực tiếp
   if (Array.isArray(raw?.data)) {
+    const total = raw.total ?? raw.data.length;
+    const limit = raw.limit ?? params.limit ?? 50;
     return {
       items: raw.data.map(normalisePoint),
-      total: raw.total ?? raw.data.length,
-      page: params.page ?? 1,
-      limit: params.limit ?? 50,
-      totalPages: Math.ceil((raw.total ?? raw.data.length) / (params.limit ?? 50)),
+      total,
+      page: raw.page ?? params.page ?? 1,
+      limit,
+      totalPages: raw.totalPages ?? Math.ceil(total / limit),
     };
   }
-  // Fallback — không nhận dạng được format
   return { items: [], total: 0, page: 1, limit: 50, totalPages: 0 };
 }
 
-/** Chuẩn hoá field names từ server (lat/latitude, lng/longitude, time/timestamp...) */
+/** Chuẩn hoá field names từ server về GpsTrackingPoint */
 function normalisePoint(raw: any): GpsTrackingPoint {
   return {
-    imei: raw.imei,
-    lat: Number(raw.lat ?? raw.latitude ?? 0),
-    lng: Number(raw.lng ?? raw.longitude ?? raw.lon ?? 0),
-    timestamp: raw.timestamp ?? raw.time ?? raw.createdAt ?? '',
+    id: raw.id,
+    imei: raw.device_imei ?? raw.imei,
+    lat: Number(raw.latitude ?? raw.lat ?? 0),
+    lng: Number(raw.longitude ?? raw.lng ?? raw.lon ?? 0),
+    timestamp: raw.server_time ?? raw.device_time ?? raw.timestamp ?? raw.time ?? '',
     speed: raw.speed != null ? Number(raw.speed) : undefined,
-    battery: raw.battery != null ? Number(raw.battery) : undefined,
-    signal: raw.signal != null ? Number(raw.signal) : undefined,
-    accuracy: raw.accuracy != null ? Number(raw.accuracy) : undefined,
     altitude: raw.altitude != null ? Number(raw.altitude) : undefined,
-    heading: raw.heading != null ? Number(raw.heading) : undefined,
-    eventType: raw.eventType ?? raw.event_type,
+    azimuth: raw.azimuth != null ? Number(raw.azimuth) : undefined,
+    hdop: raw.hdop != null ? Number(raw.hdop) : undefined,
+    vdop: raw.vdop != null ? Number(raw.vdop) : undefined,
+    gpsFix: raw.gps_fixed,
+    satelliteCount: raw.satellite_count != null ? Number(raw.satellite_count) : undefined,
+    gsmSignal: raw.gsm_signal != null ? Number(raw.gsm_signal) : undefined,
+    gsmRegistration: raw.gsm_registration,
+    gsmMcc: raw.gsm_mcc,
+    gsmMnc: raw.gsm_mnc,
+    deviceModel: raw.device_model,
+    firmwareVersion: raw.firmware_version,
+    hardwareVersion: raw.hardware_version,
+    batteryVoltage: raw.battery_voltage,
+    externalVoltage: raw.external_voltage != null ? Number(raw.external_voltage) : undefined,
+    eventStatus: raw.event_status,
+    eventId: raw.event_id,
+    eventName: raw.event_name,
+    deviceTime: raw.device_time,
+    serverTime: raw.server_time,
+    rawPacket: raw.raw_packet,
   };
 }
 
 // ─── API METHODS ─────────────────────────────────────────────────────────────
 
 export const gosafeTrackingApi = {
-  /**
-   * GET /v1/gps_tracking/history
-   * Lịch sử di chuyển theo IMEI (paginated + date range)
-   */
+  /** GET /v1/gps_tracking/devices — Danh sách thiết bị + vị trí hiện tại */
+  getDevices: (): AxiosPromise<ApiDevicesResponse> =>
+    axiosGosafe({ url: '/v1/gps_tracking/devices', method: 'GET' }),
+
+  /** GET /v1/gps_tracking/history — Lịch sử di chuyển theo IMEI */
   getHistory: (params: GpsHistoryParams): AxiosPromise<any> =>
-    axiosGosafe({
-      url: '/v1/gps_tracking/history',
-      method: 'GET',
-      params,
-    }),
+    axiosGosafe({ url: '/v1/gps_tracking/history', method: 'GET', params }),
 };

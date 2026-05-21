@@ -7,31 +7,31 @@ export const DEVICE_PALETTE = [
   '#06b6d4', '#ec4899', '#84cc16', '#ef4444',
 ];
 
-/** 614 Điện Biên Phủ, P.25, Q.Bình Thạnh, TP.HCM */
-export const BASE_CENTER: [number, number] = [10.8016, 106.7100];
+/** 614 Điện Biên Phủ, Phường Vườn Lài, Quận Phú Nhuận, TP.HCM */
+export const BASE_CENTER: [number, number] = [10.770685, 106.676672];
 
 // ─── INITIAL DATA ─────────────────────────────────────────────────────────────
 
 export const INITIAL_GEOFENCES: Geofence[] = [
   {
     id: 'dbp-614',
-    name: 'Khu dân cư ĐBP',
-    address: '614 Điện Biên Phủ, P.25, Q.Bình Thạnh, TP.HCM',
+    name: 'Khu vực 614 ĐBP',
+    address: '614 Điện Biên Phủ, Phường Vườn Lài, Q.Phú Nhuận, TP.HCM',
     color: '#22c55e',
     coordinates: [
-      [10.8022, 106.7094], [10.8022, 106.7106],
-      [10.8010, 106.7106], [10.8010, 106.7094],
+      [10.771685, 106.675672], [10.771685, 106.677672],
+      [10.769685, 106.677672], [10.769685, 106.675672],
     ],
     active: true,
   },
   {
     id: 'zone-b',
-    name: 'Khu vực B',
-    address: '620 Điện Biên Phủ, P.25, Q.Bình Thạnh, TP.HCM',
+    name: 'Khu vực lân cận',
+    address: 'Phường Vườn Lài, Q.Phú Nhuận, TP.HCM',
     color: '#3b82f6',
     coordinates: [
-      [10.8026, 106.7108], [10.8026, 106.7118],
-      [10.8018, 106.7118], [10.8018, 106.7108],
+      [10.772185, 106.678172], [10.772185, 106.679172],
+      [10.771185, 106.679172], [10.771185, 106.678172],
     ],
     active: false,
   },
@@ -44,48 +44,26 @@ export const INITIAL_DEVICES: Device[] = [
     type: 'Person',
     deviceType: 'Gosafe G737P',
     uniqueId: '869487063154339',
-    phoneNumber: '+84909679250',
+    phoneNumber: '+84900000001',
     color: DEVICE_PALETTE[0],
     subject: {
-      fullName: 'Nguyễn Văn Bình',
-      idNumber: '079200123456',
+      fullName: 'Nguyễn Văn A',
+      idNumber: '000000000001',
       crime: 'Trộm cắp tài sản (Đ173 BLHS)',
       sentence: '36 tháng tù giam',
       startDate: '2024-03-15',
       releaseDate: '2027-03-14',
-      notes: 'Đang chấp hành án tại địa phương. Tuân thủ tốt.',
+      notes: 'Đang chấp hành án tại địa phương.',
     },
     status: {
-      battery: 88, signalStrength: 3, connectionStatus: 'online',
+      battery: 88, batteryVoltage: null, externalVoltage: 3.86,
+      signalStrength: 3, connectionStatus: 'online',
       lastGpsUpdate: new Date(), lastServerSync: new Date(), gpsAccuracy: 5,
+      gpsFix: false, satelliteCount: 3, speed: 0, altitude: 23,
+      eventId: 0, eventName: 'Normal', deviceModel: 'G737-4G', firmwareVersion: 'V1.18d0609',
     },
-    coords: [10.8016, 106.7100],
-    angle: 0, pathHistory: [], isSimulating: false, simIndex: 0,
-    assignedGeofenceId: 'dbp-614',
-  },
-  {
-    id: 'dev-002',
-    name: 'VTC-G002',
-    type: 'Person',
-    deviceType: 'Gosafe G737P',
-    uniqueId: '869487063154340',
-    phoneNumber: '+84909679251',
-    color: DEVICE_PALETTE[1],
-    subject: {
-      fullName: 'Trần Minh Đức',
-      idNumber: '079199876543',
-      crime: 'Gây rối trật tự công cộng (Đ318 BLHS)',
-      sentence: '18 tháng cải tạo không giam giữ',
-      startDate: '2025-01-10',
-      releaseDate: '2026-07-09',
-      notes: 'Lần đầu vi phạm. Có công việc ổn định.',
-    },
-    status: {
-      battery: 62, signalStrength: 4, connectionStatus: 'online',
-      lastGpsUpdate: new Date(), lastServerSync: new Date(), gpsAccuracy: 4,
-    },
-    coords: [10.8018, 106.7098],
-    angle: 0, pathHistory: [], isSimulating: false, simIndex: 0,
+    coords: [10.770685, 106.676672],
+    angle: 0, pathHistory: [],
     assignedGeofenceId: 'dbp-614',
   },
 ];
