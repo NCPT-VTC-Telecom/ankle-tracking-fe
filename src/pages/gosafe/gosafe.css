@@ -1,0 +1,738 @@
+/*
+ * gosafe.css
+ * Static styles for the Gosafe landing & tracking pages.
+ *
+ * CONVENTION
+ * ----------
+ * All classes use the "gs-" prefix to avoid collisions with MUI or other
+ * global styles.  Dynamic values (theme colours, dark/light toggles, brand
+ * primary/secondary) are handled with CSS custom properties set per-component
+ * or kept in the MUI `sx` prop when they depend on JS runtime values.
+ *
+ * Sections (in order):
+ *   1. CSS Custom Properties (defaults)
+ *   2. Keyframe Animations
+ *   3. Layout / Utility
+ *   4. Navbar
+ *   5. Hero
+ *   6. Solutions
+ *   7. FAQ
+ *   8. Footer
+ *   9. Contact
+ *  10. Tracking — layout
+ *  11. Tracking — status widgets (battery, signal, swatches)
+ *  12. Specs / Products (shared patterns)
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   1. CSS CUSTOM PROPERTIES
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  --gs-primary: #2772ed;
+  --gs-secondary: #4a90e2;
+  --gs-radius-sm: 8px;
+  --gs-radius-md: 12px;
+  --gs-radius-lg: 20px;
+  --gs-radius-xl: 24px;
+  --gs-transition-base: all 0.3s ease;
+  --gs-transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  --gs-transition-spring: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   2. KEYFRAME ANIMATIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+@keyframes gs-pulse-border {
+  0%, 100% {
+    border-color: rgba(239, 68, 68, 0.85);
+    box-shadow: inset 0 0 40px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    border-color: rgba(239, 68, 68, 0.2);
+    box-shadow: none;
+  }
+}
+
+@keyframes gs-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+@keyframes gs-fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes gs-pulse-dot {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%       { transform: scale(1.5); opacity: 0.5; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   3. LAYOUT / UTILITY
+   ═══════════════════════════════════════════════════════════════════════════ */
+.gs-relative        { position: relative; }
+.gs-absolute-fill   { position: absolute; top: 0; right: 0; bottom: 0; left: 0; }
+.gs-overflow-hidden { overflow: hidden; }
+.gs-pointer-none    { pointer-events: none; }
+
+.gs-z-0  { z-index: 0; }
+.gs-z-1  { z-index: 1; }
+.gs-z-2  { z-index: 2; }
+
+.gs-img-contain { object-fit: contain; }
+.gs-img-cover   { object-fit: cover; display: block; }
+.gs-img-block   { display: block; }
+
+/* Transition helpers */
+.gs-transition       { transition: var(--gs-transition-base); }
+.gs-transition-smooth { transition: var(--gs-transition-smooth); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   4. NAVBAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+.gs-navbar {
+  transition: var(--gs-transition-smooth);
+}
+
+/* Logo image inside <img> tags */
+.gs-logo {
+  object-fit: contain;
+  transition: filter 0.3s ease;
+}
+
+/* Floating pill nav container */
+.gs-nav-pill {
+  border-radius: 100px;
+  backdrop-filter: blur(10px);
+}
+
+/* Individual nav pill buttons */
+.gs-nav-btn {
+  border-radius: 100px !important;
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  transition: var(--gs-transition-base) !important;
+}
+.gs-nav-btn:hover {
+  transform: translateY(-1px);
+}
+
+/* Mobile drawer */
+.gs-drawer-logo {
+  width: 140px;
+  height: auto;
+  transition: filter 0.3s ease;
+}
+
+.gs-mobile-nav-btn {
+  justify-content: flex-start !important;
+  font-size: 1.1rem !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  padding: 12px 16px !important;
+  transition: var(--gs-transition-base) !important;
+}
+.gs-mobile-nav-btn:hover {
+  transform: translateX(5px);
+}
+
+/* Login / action buttons */
+.gs-btn-pill {
+  border-radius: 100px !important;
+  font-size: 0.9rem !important;
+  font-weight: 700 !important;
+  transition: var(--gs-transition-base) !important;
+}
+.gs-btn-pill:hover {
+  transform: translateY(-2px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   5. HERO SECTION
+   ═══════════════════════════════════════════════════════════════════════════ */
+.gs-hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  background-color: #020617; /* always dark */
+}
+
+.gs-hero__bg {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+}
+
+.gs-hero__overlay {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.gs-hero__content {
+  position: relative;
+  z-index: 2;
+}
+
+.gs-hero__stat {
+  min-width: 100px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   6. SOLUTIONS SECTION
+   ═══════════════════════════════════════════════════════════════════════════ */
+.gs-solutions {
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Title Hero ── */
+.gs-title-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.gs-title-hero__bg {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.gs-title-hero__ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  z-index: 0;
+}
+
+.gs-title-hero__glow {
+  position: absolute;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 600px;
+  filter: blur(60px);
+  z-index: 0;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.gs-title-hero__content {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Solution Group ── */
+.gs-solution-group {
+  position: relative;
+}
+
+/* ── Feature Item card ── */
+.gs-feature-item {
+  padding: 24px;
+  border-radius: var(--gs-radius-sm);
+  height: 100%;
+  backdrop-filter: blur(10px);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.gs-feature-item:hover {
+  transform: translateY(-5px) scale(1.02);
+}
+
+.gs-feature-icon {
+  padding: 12px;
+  border-radius: var(--gs-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Featured Screenshot Image ── */
+.gs-featured-image {
+  width: 100%;
+  max-width: 1200px;
+  margin: 64px auto;
+  display: flex;
+  justify-content: center;
+}
+
+.gs-featured-image__frame {
+  position: relative;
+  width: 100%;
+  border-radius: var(--gs-radius-md);
+  overflow: hidden;
+}
+
+.gs-featured-image__shimmer {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.15) 0%, transparent 40%);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.gs-featured-image__glow {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.gs-featured-image__img {
+  width: 100%;
+  height: auto;
+  display: block;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── CTA Buttons (plain button elements used in Solutions) ── */
+.gs-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 100px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 12px 32px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.gs-cta-btn:hover { transform: scale(1.03); }
+
+/* ── Dashboard preview frame ── */
+.gs-dashboard-frame {
+  width: 100%;
+  border-radius: var(--gs-radius-xl);
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+}
+
+.gs-dashboard-frame__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.8;
+}
+
+.gs-dashboard-frame__overlay {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   7. FAQ SECTION
+   ═══════════════════════════════════════════════════════════════════════════ */
+.gs-faq {
+  position: relative;
+  overflow: hidden;
+}
+
+.gs-faq__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px;
+  border-radius: 20px;
+}
+
+/* Accordion override — MUI's border-radius is blocked by !important internally */
+.gs-accordion.MuiAccordion-root {
+  border-radius: 16px !important;
+  transition: var(--gs-transition-smooth) !important;
+}
+.gs-accordion.MuiAccordion-root::before {
+  display: none !important;
+}
+
+/* Rotating expand icon */
+.gs-expand-icon {
+  display: flex;
+  align-items: center;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s ease;
+}
+.gs-expand-icon--open {
+  transform: rotate(45deg);
+}
+
+/* Fade-slide answer */
+.gs-faq-answer {
+  line-height: 1.7;
+  font-size: 1rem;
+  transition: opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s;
+}
+.gs-faq-answer--open   { opacity: 1; transform: translateY(0); }
+.gs-faq-answer--closed { opacity: 0; transform: translateY(-10px); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   8. FOOTER
+   ═══════════════════════════════════════════════════════════════════════════ */
+.gs-footer {
+  position: relative;
+  overflow: hidden;
+}
+
+.gs-footer__logo {
+  object-fit: contain;
+  transition: filter 0.3s ease;
+}
+
+.gs-footer__link {
+  font-size: 0.95rem;
+  transition: color 0.2s ease, transform 0.2s ease;
+  display: inline-block;
+  text-decoration: none;
+}
+.gs-footer__link:hover {
+  transform: translateX(4px);
+}
+
+.gs-footer__bottom-link {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+/* Social icon buttons */
+.gs-social-btn {
+  border-radius: var(--gs-radius-sm) !important;
+  transition: var(--gs-transition-smooth) !important;
+}
+.gs-social-btn:hover {
+  transform: translateY(-3px) !important;
+}
+.gs-social-btn img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  transition: all 0.3s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   9. CONTACT SECTION
+   ═══════════════════════════════════════════════════════════════════════════ */
+.gs-contact {
+  position: relative;
+  overflow: hidden;
+}
+
+.gs-contact-card {
+  border-radius: 20px;
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+}
+
+.gs-contact-icon {
+  padding: 9.6px;
+  border-radius: var(--gs-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.gs-contact-link {
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: color 0.2s ease;
+}
+
+.gs-contact-badge {
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.gs-required { color: #ef4444; }
+
+/* Submit button */
+.gs-submit-btn {
+  border-radius: var(--gs-radius-sm) !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  transition: box-shadow 0.3s ease !important;
+}
+.gs-submit-btn:hover { box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+  10. TRACKING — LAYOUT
+   ═══════════════════════════════════════════════════════════════════════════ */
+.gs-tracking {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Flashing alarm border overlay */
+.gs-alert-border {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  pointer-events: none;
+  z-index: 9999;
+  border: 6px solid #ef4444;
+  animation: gs-pulse-border 1.5s infinite;
+}
+
+/* Blinking badge/chip */
+.gs-blink {
+  animation: gs-blink 1s infinite;
+}
+
+/* Sidebar panel */
+.gs-sidebar {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  z-index: 110;
+  overflow: hidden;
+}
+
+/* Map panel */
+.gs-map-panel {
+  height: 100%;
+  position: relative;
+}
+
+/* Floating map hint */
+.gs-map-hint {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 1000;
+  backdrop-filter: blur(8px);
+  padding: 12px;
+  border-radius: var(--gs-radius-md);
+  pointer-events: auto;
+  max-width: 360px;
+}
+
+/* Device card */
+.gs-device-card {
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.gs-device-card:hover {
+  transform: translateY(-1px);
+}
+
+/* Dialog color swatch grid */
+.gs-swatch-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+  11. TRACKING — STATUS WIDGETS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Battery indicator ── */
+/*
+  Usage:
+    <Box className="gs-battery" style={{ '--battery-color': getBatteryColor(pct) }}>
+      <Box className="gs-battery__shell">
+        <Box className="gs-battery__fill" style={{ width: `${pct}%` }} />
+      </Box>
+      <span className="gs-battery__label">{pct}%</span>
+    </Box>
+*/
+.gs-battery {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gs-battery__shell {
+  position: relative;
+  width: 26px;
+  height: 12px;
+  border-radius: 3px;
+  border: 2px solid var(--battery-color, #22c55e);
+  flex-shrink: 0;
+}
+
+.gs-battery__shell::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 6px;
+  background-color: var(--battery-color, #22c55e);
+  border-radius: 0 2px 2px 0;
+}
+
+.gs-battery__fill {
+  height: 100%;
+  background-color: var(--battery-color, #22c55e);
+  border-radius: 1px;
+  transition: width 0.5s ease;
+}
+
+.gs-battery__label {
+  font-weight: 700;
+  font-size: 0.875rem;
+  min-width: 32px;
+  color: var(--battery-color, #22c55e);
+}
+
+/* ── Signal bars ── */
+/*
+  Usage:
+    <Box className="gs-signal">
+      {[1,2,3,4].map(b => (
+        <Box key={b} className="gs-signal__bar"
+          style={{ height: b*3.5, backgroundColor: b<=strength ? '#22c55e' : '#ddd' }} />
+      ))}
+    </Box>
+*/
+.gs-signal {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 14px;
+}
+
+.gs-signal__bar {
+  width: 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ── Color swatches (device / geofence color picker) ── */
+.gs-color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  flex-shrink: 0;
+}
+.gs-color-swatch:hover {
+  transform: scale(1.2);
+}
+.gs-color-swatch--active {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 2px currentColor;
+}
+
+/* ── Geofence color box (small square swatch in list) ── */
+.gs-gf-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* ── Status dot (online/offline indicator) ── */
+.gs-status-dot {
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+/* ── Subject avatar ── */
+.gs-subject-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ── Map layer icon base ── */
+.gs-leaflet-map {
+  width: 100%;
+  height: 100%;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+  12. SPECS / PRODUCTS — SHARED PATTERNS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Specs tab pill */
+.gs-specs-tab {
+  border-radius: var(--gs-radius-sm) !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+  transition: var(--gs-transition-base) !important;
+}
+
+/* Spec row (label / value pair) */
+.gs-spec-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.gs-spec-row + .gs-spec-row {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* Product carousel image */
+.gs-product-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--gs-radius-md);
+  object-fit: contain;
+  transition: transform 0.4s ease;
+}
+.gs-product-img:hover {
+  transform: scale(1.02);
+}
+
+/* Product feature tick item */
+.gs-feature-tick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+}
+
+/* Section badge pill */
+.gs-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}

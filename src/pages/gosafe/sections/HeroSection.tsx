@@ -9,69 +9,37 @@ interface HeroSectionProps {
   primaryColor: string;
   secondaryColor: string;
 }
+
 const HeroSection = ({ isDark, primaryColor, secondaryColor }: HeroSectionProps) => {
   const { formatMessage } = useIntl();
 
   const stats = [
-    {
-      label: formatMessage({ id: 'gosafe-hero-stat-connect', defaultMessage: 'Connectivity' }),
-      value: '4G LTE',
-      icon: <Global size={24} variant="Bold" />
-    },
-    {
-      label: formatMessage({ id: 'gosafe-hero-stat-waterproof', defaultMessage: 'Waterproof' }),
-      value: 'IP67',
-      icon: <ShieldTick size={24} variant="Bold" />
-    },
-    {
-      label: formatMessage({ id: 'gosafe-hero-stat-alert', defaultMessage: 'Alerts' }),
-      value: 'Real-time',
-      icon: <Gps size={24} variant="Bold" />
-    },
-    {
-      label: formatMessage({ id: 'gosafe-hero-stat-strap', defaultMessage: 'Strap' }),
-      value: formatMessage({ id: 'gosafe-hero-stat-strap-value', defaultMessage: 'Anti-cut' }),
-      icon: <ShieldSecurity size={24} variant="Bold" />
-    }
+    { label: formatMessage({ id: 'gosafe-hero-stat-connect', defaultMessage: 'Connectivity' }), value: '4G LTE', icon: <Global size={24} variant="Bold" /> },
+    { label: formatMessage({ id: 'gosafe-hero-stat-waterproof', defaultMessage: 'Waterproof' }), value: 'IP67', icon: <ShieldTick size={24} variant="Bold" /> },
+    { label: formatMessage({ id: 'gosafe-hero-stat-alert', defaultMessage: 'Alerts' }), value: 'Real-time', icon: <Gps size={24} variant="Bold" /> },
+    { label: formatMessage({ id: 'gosafe-hero-stat-strap', defaultMessage: 'Strap' }), value: formatMessage({ id: 'gosafe-hero-stat-strap-value', defaultMessage: 'Anti-cut' }), icon: <ShieldSecurity size={24} variant="Bold" /> }
   ];
 
   return (
-    <Box
-      sx={{
-        position: 'relative',
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        overflow: 'hidden',
-        bgcolor: '#020617', // Always dark background
-        pt: { xs: 12, md: 0 }
-      }}
-    >
-      {/* Background Image */}
+    /* gs-hero sets position:relative, min-height:100vh, display:flex, align-items:center,
+       overflow:hidden, background-color:#020617 */
+    <Box className="gs-hero" sx={{ pt: { xs: 12, md: 0 } }}>
+
+      {/* Background image — gs-hero__bg: absolute fill, cover, z-index 0 */}
       <Box
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: `url(${heroBg})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          zIndex: 0
-        }}
+        className="gs-hero__bg"
+        style={{ backgroundImage: `url(${heroBg})` }}
       />
 
-      {/* Subtle Gradient Overlay for Text Readability */}
+      {/* Gradient overlay — gs-hero__overlay: absolute fill, z-index 1 */}
       <Box
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          background: `linear-gradient(to right, ${alpha('#020617', 0.9)} 0%, ${alpha('#020617', 0.6)} 40%, transparent 100%)`,
-          zIndex: 1
-        }}
+        className="gs-hero__overlay"
+        sx={{ background: `linear-gradient(to right, ${alpha('#020617', 0.9)} 0%, ${alpha('#020617', 0.6)} 40%, transparent 100%)` }}
       />
 
-      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2 }}>
+      {/* Content — gs-hero__content: relative z-index 2 */}
+      <Container maxWidth="lg" className="gs-hero__content">
         <Grid container spacing={8} alignItems="center">
-          {/* Text Content */}
           <Grid item xs={12} md={8}>
             <Stack
               spacing={4}
@@ -104,6 +72,7 @@ const HeroSection = ({ isDark, primaryColor, secondaryColor }: HeroSectionProps)
                   </Box>{' '}
                   <FormattedMessage id="gosafe-hero-title-3" defaultMessage="BRACELET" />
                 </Typography>
+
                 <Typography
                   component={motion.div}
                   initial={{ opacity: 0, y: 20 }}
@@ -126,18 +95,14 @@ const HeroSection = ({ isDark, primaryColor, secondaryColor }: HeroSectionProps)
                     <FormattedMessage id="gosafe-hero-subtitle-highlight-2" defaultMessage="Management" />
                   </Box>
                 </Typography>
+
                 <Typography
                   component={motion.div}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
                   variant="body1"
-                  sx={{
-                    fontSize: { xs: '1rem', md: '1.125rem' },
-                    maxWidth: '500px',
-                    lineHeight: 1.8,
-                    color: alpha('#fff', 0.8)
-                  }}
+                  sx={{ fontSize: { xs: '1rem', md: '1.125rem' }, maxWidth: '500px', lineHeight: 1.8, color: alpha('#fff', 0.8) }}
                 >
                   <FormattedMessage
                     id="gosafe-hero-desc"
@@ -153,69 +118,45 @@ const HeroSection = ({ isDark, primaryColor, secondaryColor }: HeroSectionProps)
                   whileTap={{ scale: 0.95 }}
                   variant="contained"
                   size="large"
-                  onClick={() => {
-                    const element = document.getElementById('products');
-                    if (element) {
-                      element.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }}
+                  onClick={() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' })}
                   endIcon={<ArrowRight />}
                   sx={{
                     bgcolor: primaryColor,
                     color: '#fff',
-                    px: 4,
-                    py: 1.8,
+                    px: 4, py: 1.8,
                     borderRadius: '50px',
                     fontSize: '1rem',
                     fontWeight: 700,
                     boxShadow: `0 10px 30px -10px ${primaryColor}`,
-                    '&:hover': {
-                      bgcolor: alpha(primaryColor, 0.9),
-                      boxShadow: `0 20px 40px -10px ${primaryColor}`
-                    }
+                    '&:hover': { bgcolor: alpha(primaryColor, 0.9), boxShadow: `0 20px 40px -10px ${primaryColor}` }
                   }}
                 >
                   <FormattedMessage id="gosafe-hero-btn-discover" defaultMessage="Discover Products" />
                 </Button>
+
                 <Button
                   component={motion.button}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   variant="outlined"
                   size="large"
-                  onClick={() => {
-                    const element = document.getElementById('contact');
-                    if (element) {
-                      element.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }}
+                  onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
                   sx={{
                     borderColor: alpha('#fff', 0.3),
                     color: '#fff',
-                    px: 4,
-                    py: 1.8,
+                    px: 4, py: 1.8,
                     borderRadius: '50px',
                     fontSize: '1rem',
                     fontWeight: 600,
-                    '&:hover': {
-                      borderColor: '#fff',
-                      bgcolor: alpha('#fff', 0.1)
-                    }
+                    '&:hover': { borderColor: '#fff', bgcolor: alpha('#fff', 0.1) }
                   }}
                 >
                   <FormattedMessage id="gosafe-hero-btn-contact" defaultMessage="Contact Us" />
                 </Button>
               </Stack>
 
-              {/* Stats Bar */}
-              <Stack
-                direction="row"
-                flexWrap="wrap"
-                gap={3}
-                sx={{
-                  pt: 4
-                }}
-              >
+              {/* Stats bar */}
+              <Stack direction="row" flexWrap="wrap" gap={3} sx={{ pt: 4 }}>
                 {stats.map((stat, index) => (
                   <Box
                     key={index}
@@ -223,13 +164,11 @@ const HeroSection = ({ isDark, primaryColor, secondaryColor }: HeroSectionProps)
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 + index * 0.1 }}
-                    sx={{ minWidth: '100px' }}
+                    className="gs-hero__stat"
                   >
                     <Stack direction="row" spacing={1} alignItems="center" mb={0.5} color={primaryColor}>
                       {stat.icon}
-                      <Typography variant="h6" fontWeight={800} color="#fff">
-                        {stat.value}
-                      </Typography>
+                      <Typography variant="h6" fontWeight={800} color="#fff">{stat.value}</Typography>
                     </Stack>
                     <Typography variant="caption" color={alpha('#fff', 0.6)} fontWeight={600}>
                       {stat.label}

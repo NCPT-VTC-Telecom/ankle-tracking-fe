@@ -478,7 +478,8 @@ const ProductRow = ({
                   <Grid container spacing={2}>
                     {product.features.map((feature, idx) => (
                       <Grid item xs={12} sm={6} key={idx}>
-                        <Stack direction="row" spacing={1.5} alignItems="center">
+                        {/* gs-feature-tick: flex, align-center, gap */}
+                        <Stack direction="row" spacing={1.5} alignItems="center" className="gs-feature-tick">
                           <Box
                             sx={{
                               p: 0.5,

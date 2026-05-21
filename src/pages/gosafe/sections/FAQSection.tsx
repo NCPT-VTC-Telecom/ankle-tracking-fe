@@ -21,40 +21,32 @@ const FAQSection = ({ faqs, isDark, primaryColor, secondaryColor }: FAQSectionPr
   const theme = useTheme();
   const [expanded, setExpanded] = useState<string | false>(false);
 
-  const handleChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+  const handleChange = (panel: string) => (_: React.SyntheticEvent, isExpanded: boolean) => {
     setExpanded(isExpanded ? panel : false);
   };
 
-  // Style constants
-
-  // Màu nền khi Active: Sáng hơn nền chung một chút
-  const activeBg = isDark ? alpha(primaryColor, 0.1) : '#fff';
+  const activeBg   = isDark ? alpha(primaryColor, 0.1) : '#fff';
   const borderColor = isDark ? alpha('#fff', 0.1) : alpha('#000', 0.06);
 
   return (
+    /* gs-faq: position:relative, overflow:hidden */
     <Box
       id="faq"
+      className="gs-faq"
       sx={{
         py: { xs: 10, md: 16 },
-        position: 'relative',
-        overflow: 'hidden',
-        // backgroundImage: `radial-gradient(${dotColor} 1px, transparent 1px)`,
-        // backgroundSize: '32px 32px',
         bgcolor: isDark ? 'transparent' : alpha(secondaryColor, 0.02)
       }}
     >
       <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1 }}>
         <Stack spacing={8}>
-          {/* --- Header --- */}
+
+          {/* Header */}
           <Stack spacing={3} alignItems="center" textAlign="center">
+            {/* gs-faq__badge: inline-flex, gap, padding, border-radius */}
             <Box
+              className="gs-faq__badge"
               sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 1,
-                px: 2,
-                py: 0.5,
-                borderRadius: '20px',
                 border: `1px solid ${alpha(primaryColor, 0.3)}`,
                 bgcolor: alpha(primaryColor, 0.05)
               }}
@@ -63,81 +55,66 @@ const FAQSection = ({ faqs, isDark, primaryColor, secondaryColor }: FAQSectionPr
                 SUPPORT
               </Typography>
             </Box>
+
             <Typography
               component="h2"
               variant="h2"
-              sx={{
-                fontSize: { xs: '2rem', md: '3.5rem' },
-                fontWeight: 800,
-                color: theme.palette.text.primary,
-                lineHeight: 1.2
-              }}
+              sx={{ fontSize: { xs: '2rem', md: '3.5rem' }, fontWeight: 800, color: theme.palette.text.primary, lineHeight: 1.2 }}
             >
               <FormattedMessage id="landing.faq.title" defaultMessage="Câu hỏi thường gặp" />
             </Typography>
+
             <Typography sx={{ color: theme.palette.text.secondary, fontSize: '1.1rem', maxWidth: 600 }}>
-              <FormattedMessage
-                id="landing.faq.subtitle"
-                defaultMessage="Tìm câu trả lời nhanh cho các thắc mắc phổ biến về WiFi Digital."
-              />
+              <FormattedMessage id="landing.faq.subtitle" defaultMessage="Tìm câu trả lời nhanh cho các thắc mắc phổ biến về WiFi Digital." />
             </Typography>
           </Stack>
 
-          {/* --- Smooth Accordion List --- */}
+          {/* Accordion list */}
           <Stack spacing={2}>
-            {' '}
-            {/* Dùng Stack spacing thay vì margin bottom từng cái */}
             {faqs.map((faq, index) => {
-              const isPanelExpanded = expanded === `panel${index}`;
+              const panel = `panel${index}`;
+              const isOpen = expanded === panel;
+
               return (
                 <Accordion
                   key={index}
-                  expanded={isPanelExpanded}
-                  onChange={handleChange(`panel${index}`)}
+                  expanded={isOpen}
+                  onChange={handleChange(panel)}
                   disableGutters
                   elevation={0}
-                  // Tùy chỉnh Transition của MUI cho mượt hơn
                   TransitionProps={{ timeout: 400 }}
+                  /* gs-accordion: border-radius 16px, smooth transition */
+                  className="gs-accordion"
                   sx={{
-                    bgcolor: isPanelExpanded ? activeBg : 'transparent', // Đổi màu nền khi mở
+                    bgcolor: isOpen ? activeBg : 'transparent',
                     color: theme.palette.text.primary,
-                    borderRadius: '16px !important', // Bo góc mềm mại
-                    border: `1px solid ${isPanelExpanded ? alpha(primaryColor, 0.3) : borderColor}`,
-                    boxShadow: isPanelExpanded ? `0 10px 30px -5px ${alpha(primaryColor, 0.1)}` : 'none',
-                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', // Physics-based transition
-                    '&:before': { display: 'none' },
+                    border: `1px solid ${isOpen ? alpha(primaryColor, 0.3) : borderColor}`,
+                    boxShadow: isOpen ? `0 10px 30px -5px ${alpha(primaryColor, 0.1)}` : 'none',
                     '&:hover': {
-                      bgcolor: isPanelExpanded ? activeBg : isDark ? alpha('#fff', 0.02) : alpha('#000', 0.02),
-                      borderColor: isPanelExpanded ? alpha(primaryColor, 0.3) : alpha(primaryColor, 0.2)
+                      bgcolor: isOpen ? activeBg : isDark ? alpha('#fff', 0.02) : alpha('#000', 0.02),
+                      borderColor: isOpen ? alpha(primaryColor, 0.3) : alpha(primaryColor, 0.2)
                     }
                   }}
                 >
                   <AccordionSummary
                     expandIcon={
-                      // Icon xoay mượt mà thay vì đổi icon
+                      /* gs-expand-icon: display flex, smooth rotate transition
+                         gs-expand-icon--open: rotate(45deg) */
                       <Box
-                        sx={{
-                          transform: isPanelExpanded ? 'rotate(45deg)' : 'rotate(0deg)',
-                          transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                          color: isPanelExpanded ? primaryColor : theme.palette.text.secondary,
-                          display: 'flex'
-                        }}
+                        className={`gs-expand-icon${isOpen ? ' gs-expand-icon--open' : ''}`}
+                        sx={{ color: isOpen ? primaryColor : theme.palette.text.secondary }}
                       >
                         <Add size={28} />
                       </Box>
                     }
-                    sx={{
-                      px: 3,
-                      py: 1,
-                      '& .MuiAccordionSummary-content': { my: 1.5 }
-                    }}
+                    sx={{ px: 3, py: 1, '& .MuiAccordionSummary-content': { my: 1.5 } }}
                   >
                     <Typography
                       variant="h6"
                       sx={{
                         fontSize: { xs: '1rem', md: '1.1rem' },
                         fontWeight: 600,
-                        color: isPanelExpanded ? primaryColor : theme.palette.text.primary,
+                        color: isOpen ? primaryColor : theme.palette.text.primary,
                         transition: 'color 0.3s'
                       }}
                     >
@@ -146,16 +123,10 @@ const FAQSection = ({ faqs, isDark, primaryColor, secondaryColor }: FAQSectionPr
                   </AccordionSummary>
 
                   <AccordionDetails sx={{ px: 3, pb: 3, pt: 0 }}>
+                    {/* gs-faq-answer + gs-faq-answer--open / --closed: opacity + translateY transition */}
                     <Typography
-                      sx={{
-                        color: theme.palette.text.secondary,
-                        lineHeight: 1.7,
-                        fontSize: '1rem',
-                        // Fade in effect cho text
-                        opacity: isPanelExpanded ? 1 : 0,
-                        transform: isPanelExpanded ? 'translateY(0)' : 'translateY(-10px)',
-                        transition: 'all 0.4s ease 0.1s' // Delay nhẹ để đợi accordion mở ra
-                      }}
+                      className={`gs-faq-answer ${isOpen ? 'gs-faq-answer--open' : 'gs-faq-answer--closed'}`}
+                      sx={{ color: theme.palette.text.secondary }}
                     >
                       <FormattedMessage id={faq.answerKey} defaultMessage={faq.answerDefault} />
                     </Typography>

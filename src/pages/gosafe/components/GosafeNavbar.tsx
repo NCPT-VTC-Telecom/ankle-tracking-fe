@@ -11,7 +11,8 @@ import {
   useTheme,
   Link,
   useMediaQuery,
-  Drawer
+  Drawer,
+  Typography
 } from '@mui/material';
 import { HambergerMenu, Moon, Sun1, Translate, Login, ArrowRight2 } from 'iconsax-react';
 import { useIntl, FormattedMessage } from 'react-intl';
@@ -26,187 +27,231 @@ interface GosafeNavbarProps {
   onToggleTheme: () => void;
   onToggleLanguage: () => void;
   currentLang: string;
+  activeView: 'landing' | 'tracking';
+  onViewChange: (view: 'landing' | 'tracking') => void;
 }
 
-const GosafeNavbar = ({ primaryColor, secondaryColor, isDark, onToggleTheme, onToggleLanguage, currentLang }: GosafeNavbarProps) => {
+const GosafeNavbar = ({
+  primaryColor,
+  secondaryColor,
+  isDark,
+  onToggleTheme,
+  onToggleLanguage,
+  currentLang,
+  activeView,
+  onViewChange
+}: GosafeNavbarProps) => {
   const theme = useTheme();
   const intl = useIntl();
   const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const trigger = useScrollTrigger({
-    disableHysteresis: true,
-    threshold: 20
-  });
-
-  // Content color adaptation
-  // Top section (Solutions) now respects theme (White in Light Mode), so we just follow isDark.
+  const trigger = useScrollTrigger({ disableHysteresis: true, threshold: 20 });
   const contentIsDark = isDark;
 
   const navLinks = [
-    { label: intl.formatMessage({ id: 'gosafe-nav-solutions', defaultMessage: 'Giải pháp' }), href: '#solutions' },
-    { label: intl.formatMessage({ id: 'gosafe-nav-product', defaultMessage: 'Sản phẩm' }), href: '#products' },
-    { label: intl.formatMessage({ id: 'gosafe-nav-specs', defaultMessage: 'Thông số' }), href: '#specifications' },
-    { label: intl.formatMessage({ id: 'gosafe-nav-contact', defaultMessage: 'Liên hệ' }), href: '#contact' }
+    { label: intl.formatMessage({ id: 'gosafe-nav-solutions', defaultMessage: 'Giải pháp' }), href: '#solutions', view: 'landing' as const },
+    { label: intl.formatMessage({ id: 'gosafe-nav-product', defaultMessage: 'Sản phẩm' }), href: '#products', view: 'landing' as const },
+    { label: intl.formatMessage({ id: 'gosafe-nav-specs', defaultMessage: 'Thông số' }), href: '#specifications', view: 'landing' as const },
+    { label: intl.formatMessage({ id: 'gosafe-nav-tracking', defaultMessage: 'Tracking' }), href: '#tracking', view: 'tracking' as const },
+    { label: intl.formatMessage({ id: 'gosafe-nav-contact', defaultMessage: 'Liên hệ' }), href: '#contact', view: 'landing' as const }
   ];
 
   const handleScrollTo = (id: string) => {
     const element = document.querySelector(id);
     if (element) {
       const headerOffset = 80;
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
+      const offsetPosition = element.getBoundingClientRect().top + window.pageYOffset - headerOffset;
+      window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
     }
+  };
+
+  const handleLinkClick = (link: (typeof navLinks)[0]) => {
+    if (link.view === 'tracking') {
+      onViewChange('tracking');
+    } else {
+      if ((activeView as string) === 'tracking') {
+        onViewChange('landing');
+        setTimeout(() => handleScrollTo(link.href), 150);
+      } else {
+        handleScrollTo(link.href);
+      }
+    }
+  };
+
+  const iconBtnSx = {
+    color: contentIsDark ? '#94a3b8' : '#64748b',
+    transition: 'all 0.3s',
+    '&:hover': { color: primaryColor, bgcolor: alpha(primaryColor, 0.1) }
   };
 
   return (
     <AppBar
-      position="fixed"
+      position={activeView === 'tracking' ? 'static' : 'fixed'}
       elevation={0}
+      className="gs-navbar"
       sx={{
-        bgcolor: trigger ? (isDark ? alpha('#020617', 0.8) : alpha('#ffffff', 0.8)) : 'transparent',
-        backdropFilter: trigger ? 'blur(20px)' : 'none',
+        bgcolor:
+          activeView === 'tracking'
+            ? isDark ? '#090d1f' : '#ffffff'
+            : trigger
+              ? isDark ? alpha('#020617', 0.8) : alpha('#ffffff', 0.8)
+              : 'transparent',
+        backdropFilter: activeView === 'tracking' ? 'none' : trigger ? 'blur(20px)' : 'none',
         borderBottom: '1px solid',
-        borderColor: trigger ? (isDark ? alpha('#fff', 0.05) : alpha('#000', 0.05)) : 'transparent',
-        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-        py: trigger ? 1 : 2
+        borderColor:
+          activeView === 'tracking'
+            ? isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
+            : trigger
+              ? isDark ? alpha('#fff', 0.05) : alpha('#000', 0.05)
+              : 'transparent',
+        py: activeView === 'tracking' ? 1 : trigger ? 1 : 2
       }}
     >
       <Container maxWidth="xl">
         <Toolbar disableGutters sx={{ justifyContent: 'space-between' }}>
-          {/* Logo */}
-          <Link component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center' }}>
-            <img
-              src={settings.logoDefault}
-              alt="Logo"
-              style={{
-                width: isMobile ? 120 : 160,
-                objectFit: 'contain',
-                filter: contentIsDark ? 'brightness(0) invert(1)' : 'none',
-                transition: 'filter 0.3s ease'
-              }}
-            />
-          </Link>
 
-          {/* Desktop Nav - Floating Pill */}
-          <Stack
-            direction="row"
-            spacing={0.5}
-            sx={{
-              display: { xs: 'none', md: 'flex' },
-              bgcolor: contentIsDark ? alpha('#fff', 0.08) : alpha('#000', 0.04),
-              backdropFilter: 'blur(10px)',
-              p: 0.75,
-              borderRadius: '100px',
-              border: `1px solid ${contentIsDark ? alpha('#fff', 0.08) : alpha('#000', 0.05)}`,
-              boxShadow: trigger ? `0 8px 32px ${alpha('#000', 0.05)}` : 'none'
-            }}
-          >
-            {navLinks.map((link) => (
-              <Button
-                key={link.label}
-                onClick={() => handleScrollTo(link.href)}
+          {/* Logo */}
+          <Stack direction="row" alignItems="center">
+            <Link component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center' }}>
+              <img
+                src={settings.logoDefault}
+                alt="Logo"
+                className="gs-logo"
+                style={{
+                  width: isMobile ? 120 : 160,
+                  filter: contentIsDark ? 'brightness(0) invert(1)' : 'none'
+                }}
+              />
+            </Link>
+            {activeView === 'tracking' && (
+              <Typography
+                variant="subtitle1"
                 sx={{
-                  color: contentIsDark ? alpha('#fff', 0.8) : alpha('#0f172a', 0.8),
-                  borderRadius: '100px',
-                  px: 2.5,
-                  py: 1,
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    color: contentIsDark ? '#fff' : '#000',
-                    bgcolor: contentIsDark ? alpha('#fff', 0.1) : alpha('#fff', 0.8),
-                    transform: 'translateY(-1px)'
-                  }
+                  display: { xs: 'none', lg: 'block' },
+                  fontWeight: 800,
+                  letterSpacing: 1.5,
+                  color: primaryColor,
+                  textTransform: 'uppercase',
+                  ml: 2,
+                  pl: 2,
+                  borderLeft: `2px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`
                 }}
               >
-                {link.label}
-              </Button>
-            ))}
+                Hệ thống giám sát hành trình GoSafe
+              </Typography>
+            )}
           </Stack>
+
+          {/* Desktop nav pill */}
+          {activeView !== 'tracking' && (
+            <Stack
+              direction="row"
+              spacing={0.5}
+              className="gs-nav-pill"
+              sx={{
+                display: { xs: 'none', md: 'flex' },
+                bgcolor: contentIsDark ? alpha('#fff', 0.08) : alpha('#000', 0.04),
+                p: 0.75,
+                border: `1px solid ${contentIsDark ? alpha('#fff', 0.08) : alpha('#000', 0.05)}`,
+                boxShadow: trigger ? `0 8px 32px ${alpha('#000', 0.05)}` : 'none'
+              }}
+            >
+              {navLinks.map((link) => {
+                const isSelected =
+                  link.view === 'tracking'
+                    ? (activeView as string) === 'tracking'
+                    : (activeView as string) === 'landing' && window.location.hash === link.href;
+                return (
+                  <Button
+                    key={link.label}
+                    onClick={() => handleLinkClick(link)}
+                    className="gs-nav-btn"
+                    sx={{
+                      color: isSelected ? primaryColor : contentIsDark ? alpha('#fff', 0.8) : alpha('#0f172a', 0.8),
+                      bgcolor: isSelected
+                        ? contentIsDark ? alpha('#fff', 0.1) : alpha(primaryColor, 0.1)
+                        : 'transparent',
+                      px: 2.5,
+                      py: 1,
+                      '&:hover': {
+                        color: contentIsDark ? '#fff' : '#000',
+                        bgcolor: contentIsDark ? alpha('#fff', 0.15) : alpha('#fff', 0.8)
+                      }
+                    }}
+                  >
+                    {link.label}
+                  </Button>
+                );
+              })}
+            </Stack>
+          )}
 
           {/* Actions */}
           <Stack direction="row" spacing={1.5} alignItems="center">
-            {/* Theme & Lang Toggles */}
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{
-                display: { xs: 'none', md: 'flex' },
-                bg: isDark ? alpha('#fff', 0.05) : alpha('#000', 0.03),
-                p: 0.5,
-                borderRadius: 100
-              }}
-            >
-              <IconButton
-                onClick={onToggleLanguage}
-                size="small"
-                sx={{
-                  color: contentIsDark ? '#94a3b8' : '#64748b',
-                  transition: 'all 0.3s',
-                  '&:hover': { color: primaryColor, bgcolor: alpha(primaryColor, 0.1) }
-                }}
-              >
-                <Translate size={20} />
-              </IconButton>
-
-              <IconButton
-                onClick={onToggleTheme}
-                size="small"
-                sx={{
-                  color: contentIsDark ? '#94a3b8' : '#64748b',
-                  transition: 'all 0.3s',
-                  '&:hover': { color: primaryColor, bgcolor: alpha(primaryColor, 0.1) }
-                }}
-              >
+            <Stack direction="row" spacing={1} sx={{ p: 0.5, borderRadius: 100 }}>
+              {activeView !== 'tracking' && (
+                <IconButton onClick={onToggleLanguage} size="small" sx={iconBtnSx}>
+                  <Translate size={20} />
+                </IconButton>
+              )}
+              <IconButton onClick={onToggleTheme} size="small" sx={iconBtnSx}>
                 {isDark ? <Sun1 size={20} /> : <Moon size={20} />}
               </IconButton>
             </Stack>
 
-            {/* Login Button */}
-            <Button
-              variant="contained"
-              endIcon={<ArrowRight2 size={16} />}
-              onClick={() => navigate('/login')}
-              sx={{
-                display: { xs: 'none', md: 'flex' },
-                background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-                color: '#fff',
-                borderRadius: '100px',
-                px: 3,
-                py: 1.2,
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                textTransform: 'none',
-                boxShadow: `0 8px 20px -6px ${alpha(primaryColor, 0.5)}`,
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  boxShadow: `0 12px 25px -8px ${alpha(primaryColor, 0.6)}`,
-                  transform: 'translateY(-2px)'
-                }
-              }}
-            >
-              <FormattedMessage id="gosafe-nav-login" defaultMessage="Đăng nhập" />
-            </Button>
+            {activeView === 'tracking' ? (
+              <Button
+                variant="outlined"
+                onClick={() => onViewChange('landing')}
+                className="gs-btn-pill"
+                sx={{
+                  px: 3, py: 1,
+                  borderColor: primaryColor,
+                  color: primaryColor,
+                  '&:hover': {
+                    bgcolor: alpha(primaryColor, 0.1),
+                    borderColor: secondaryColor
+                  }
+                }}
+              >
+                Quay lại
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="contained"
+                  endIcon={<ArrowRight2 size={16} />}
+                  onClick={() => navigate('/login')}
+                  className="gs-btn-pill"
+                  sx={{
+                    display: { xs: 'none', md: 'flex' },
+                    background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                    color: '#fff',
+                    px: 3, py: 1.2,
+                    boxShadow: `0 8px 20px -6px ${alpha(primaryColor, 0.5)}`,
+                    '&:hover': {
+                      boxShadow: `0 12px 25px -8px ${alpha(primaryColor, 0.6)}`
+                    }
+                  }}
+                >
+                  <FormattedMessage id="gosafe-nav-login" defaultMessage="Đăng nhập" />
+                </Button>
 
-            {/* Mobile Menu Button */}
-            <IconButton
-              sx={{
-                display: { md: 'none' },
-                color: contentIsDark ? '#fff' : '#0f172a',
-                bgcolor: contentIsDark ? alpha('#fff', 0.1) : alpha('#000', 0.05),
-                '&:hover': { bgcolor: contentIsDark ? alpha('#fff', 0.2) : alpha('#000', 0.1) }
-              }}
-              onClick={() => setMobileOpen(true)}
-            >
-              <HambergerMenu />
-            </IconButton>
+                <IconButton
+                  sx={{
+                    display: { md: 'none' },
+                    color: contentIsDark ? '#fff' : '#0f172a',
+                    bgcolor: contentIsDark ? alpha('#fff', 0.1) : alpha('#000', 0.05),
+                    '&:hover': { bgcolor: contentIsDark ? alpha('#fff', 0.2) : alpha('#000', 0.1) }
+                  }}
+                  onClick={() => setMobileOpen(true)}
+                >
+                  <HambergerMenu />
+                </IconButton>
+              </>
+            )}
           </Stack>
         </Toolbar>
       </Container>
@@ -227,17 +272,14 @@ const GosafeNavbar = ({ primaryColor, secondaryColor, isDark, onToggleTheme, onT
         }}
       >
         <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
-          {/* Drawer Header */}
+          {/* Drawer header */}
           <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
             <Link component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center' }}>
               <img
                 src={settings.logoDefault}
                 alt="Logo"
-                style={{
-                  width: 140,
-                  height: 'auto',
-                  filter: isDark ? 'brightness(0) invert(1)' : 'none'
-                }}
+                className="gs-drawer-logo"
+                style={{ filter: isDark ? 'brightness(0) invert(1)' : 'none' }}
               />
             </Link>
             <IconButton onClick={() => setMobileOpen(false)} sx={{ color: isDark ? '#94a3b8' : '#64748b' }}>
@@ -245,69 +287,55 @@ const GosafeNavbar = ({ primaryColor, secondaryColor, isDark, onToggleTheme, onT
             </IconButton>
           </Stack>
 
-          {/* Drawer Links */}
+          {/* Drawer links */}
           <Stack spacing={2} sx={{ mb: 'auto' }}>
-            {navLinks.map((link) => (
-              <Button
-                key={link.label}
-                onClick={() => {
-                  handleScrollTo(link.href);
-                  setMobileOpen(false);
-                }}
-                sx={{
-                  justifyContent: 'flex-start',
-                  color: isDark ? '#f8fafc' : '#0f172a',
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  py: 1.5,
-                  px: 2,
-                  borderRadius: 2,
-                  '&:hover': {
-                    bgcolor: isDark ? alpha(primaryColor, 0.1) : alpha(primaryColor, 0.05),
-                    color: primaryColor,
-                    transform: 'translateX(5px)'
-                  },
-                  transition: 'all 0.2s'
-                }}
-              >
-                {link.label}
-              </Button>
-            ))}
+            {navLinks.map((link) => {
+              const isSelected = link.view === 'tracking' ? (activeView as string) === 'tracking' : false;
+              return (
+                <Button
+                  key={link.label}
+                  onClick={() => { handleLinkClick(link); setMobileOpen(false); }}
+                  className="gs-mobile-nav-btn"
+                  sx={{
+                    color: isSelected ? primaryColor : isDark ? '#f8fafc' : '#0f172a',
+                    bgcolor: isSelected
+                      ? isDark ? alpha(primaryColor, 0.15) : alpha(primaryColor, 0.05)
+                      : 'transparent',
+                    '&:hover': {
+                      bgcolor: isDark ? alpha(primaryColor, 0.1) : alpha(primaryColor, 0.05),
+                      color: primaryColor
+                    }
+                  }}
+                >
+                  {link.label}
+                </Button>
+              );
+            })}
           </Stack>
 
-          {/* Drawer Footer Actions */}
+          {/* Drawer footer */}
           <Stack spacing={3}>
-            <Stack direction="row" spacing={2} sx={{ width: '100%' }}>
-              <Button
-                fullWidth
-                onClick={onToggleLanguage}
-                startIcon={<Translate size={20} />}
-                sx={{
-                  borderRadius: 3,
-                  py: 1.5,
-                  color: isDark ? '#94a3b8' : '#64748b',
-                  bgcolor: isDark ? alpha('#fff', 0.05) : alpha('#000', 0.03),
-                  border: `1px solid ${isDark ? alpha('#fff', 0.1) : alpha('#000', 0.05)}`,
-                  '&:hover': { color: primaryColor, borderColor: primaryColor, bgcolor: alpha(primaryColor, 0.05) }
-                }}
-              >
-                {currentLang === 'vi' ? 'Tiếng Việt' : 'English'}
-              </Button>
-              <Button
-                fullWidth
-                onClick={onToggleTheme}
-                startIcon={isDark ? <Sun1 size={20} /> : <Moon size={20} />}
-                sx={{
-                  borderRadius: 3,
-                  py: 1.5,
-                  color: isDark ? '#94a3b8' : '#64748b',
-                  bgcolor: isDark ? alpha('#fff', 0.05) : alpha('#000', 0.03),
-                  border: `1px solid ${isDark ? alpha('#fff', 0.1) : alpha('#000', 0.05)}`,
-                  '&:hover': { color: primaryColor, borderColor: primaryColor, bgcolor: alpha(primaryColor, 0.05) }
-                }}
-              >
-                {isDark ? 'Light Mode' : 'Dark Mode'}
-              </Button>
+            <Stack direction="row" spacing={2}>
+              {[
+                { onClick: onToggleLanguage, icon: <Translate size={20} />, label: currentLang === 'vi' ? 'Tiếng Việt' : 'English' },
+                { onClick: onToggleTheme, icon: isDark ? <Sun1 size={20} /> : <Moon size={20} />, label: isDark ? 'Light Mode' : 'Dark Mode' }
+              ].map(({ onClick, icon, label }) => (
+                <Button
+                  key={label}
+                  fullWidth
+                  onClick={onClick}
+                  startIcon={icon}
+                  sx={{
+                    borderRadius: 3, py: 1.5,
+                    color: isDark ? '#94a3b8' : '#64748b',
+                    bgcolor: isDark ? alpha('#fff', 0.05) : alpha('#000', 0.03),
+                    border: `1px solid ${isDark ? alpha('#fff', 0.1) : alpha('#000', 0.05)}`,
+                    '&:hover': { color: primaryColor, borderColor: primaryColor, bgcolor: alpha(primaryColor, 0.05) }
+                  }}
+                >
+                  {label}
+                </Button>
+              ))}
             </Stack>
 
             <Button

@@ -1,27 +1,15 @@
 import { Box, Container, Stack, Typography, alpha } from '@mui/material';
 import { motion } from 'framer-motion';
 import {
-  Bluetooth,
-  Chart,
-  Gps,
-  Map1,
-  Message,
-  Mobile,
-  Monitor,
-  Notification,
-  Profile,
-  ScanBarcode,
-  SecurityUser,
-  ShieldSecurity,
-  ShieldTick,
-  Task
+  Bluetooth, Chart, Gps, Map1, Message, Mobile, Monitor,
+  Notification, Profile, ScanBarcode, SecurityUser, ShieldSecurity, ShieldTick, Task
 } from 'iconsax-react';
 import { FormattedMessage } from 'react-intl';
 import flexibleGeofence from '/public/images/Flexible-Geofence---Offender-Tracking-System.png';
-import liveMonitoring from '/public/images/Live-Monitoring---Offender-Tracking-System.png';
-import multiPlatform from '/public/images/Multi-Platform-Offender-Tracking-System.png';
-import oneStopSolution from '/public/images/One-stop-solution-for-offenders-tracking.png';
-import variousAlarms from '/public/images/Various-Alarms-setting---Offender-Tracking-System.png';
+import liveMonitoring   from '/public/images/Live-Monitoring---Offender-Tracking-System.png';
+import multiPlatform    from '/public/images/Multi-Platform-Offender-Tracking-System.png';
+import oneStopSolution  from '/public/images/One-stop-solution-for-offenders-tracking.png';
+import variousAlarms    from '/public/images/Various-Alarms-setting---Offender-Tracking-System.png';
 
 interface SolutionsSectionProps {
   isDark: boolean;
@@ -31,11 +19,8 @@ interface SolutionsSectionProps {
 
 const solutionGroups = [
   {
-    id: 0,
-    titleId: 'gosafe-solution-group-1-title',
-    descId: 'gosafe-solution-group-1-desc',
-    image: liveMonitoring,
-    icon: <Map1 variant="Bold" />,
+    id: 0, titleId: 'gosafe-solution-group-1-title', descId: 'gosafe-solution-group-1-desc',
+    image: liveMonitoring, icon: <Map1 variant="Bold" />,
     items: [
       { titleId: 'gosafe-solutions-admin-1-title', descId: 'gosafe-solutions-admin-1-desc', icon: <Monitor size={24} /> },
       { titleId: 'gosafe-solutions-admin-5-title', descId: 'gosafe-solutions-admin-5-desc', icon: <Gps size={24} /> },
@@ -43,11 +28,8 @@ const solutionGroups = [
     ]
   },
   {
-    id: 1,
-    titleId: 'gosafe-solution-group-2-title',
-    descId: 'gosafe-solution-group-2-desc',
-    image: flexibleGeofence,
-    icon: <ShieldTick variant="Bold" />,
+    id: 1, titleId: 'gosafe-solution-group-2-title', descId: 'gosafe-solution-group-2-desc',
+    image: flexibleGeofence, icon: <ShieldTick variant="Bold" />,
     items: [
       { titleId: 'gosafe-solutions-admin-3-title', descId: 'gosafe-solutions-admin-3-desc', icon: <Map1 size={24} /> },
       { titleId: 'gosafe-solutions-alert-sos-title', descId: 'gosafe-solutions-alert-sos-desc', icon: <ShieldSecurity size={24} /> },
@@ -55,11 +37,8 @@ const solutionGroups = [
     ]
   },
   {
-    id: 2,
-    titleId: 'gosafe-solution-group-alerts-title',
-    descId: 'gosafe-solution-group-alerts-desc',
-    image: variousAlarms,
-    icon: <Notification variant="Bold" />,
+    id: 2, titleId: 'gosafe-solution-group-alerts-title', descId: 'gosafe-solution-group-alerts-desc',
+    image: variousAlarms, icon: <Notification variant="Bold" />,
     items: [
       { titleId: 'gosafe-solutions-alert-sms-title', descId: 'gosafe-solutions-alert-sms-desc', icon: <Message size={24} /> },
       { titleId: 'gosafe-solutions-alert-beacon-title', descId: 'gosafe-solutions-alert-beacon-desc', icon: <Bluetooth size={24} /> },
@@ -67,11 +46,8 @@ const solutionGroups = [
     ]
   },
   {
-    id: 3,
-    titleId: 'gosafe-solution-group-4-title',
-    descId: 'gosafe-solution-group-4-desc',
-    image: oneStopSolution,
-    icon: <Chart variant="Bold" />,
+    id: 3, titleId: 'gosafe-solution-group-4-title', descId: 'gosafe-solution-group-4-desc',
+    image: oneStopSolution, icon: <Chart variant="Bold" />,
     items: [
       { titleId: 'gosafe-solutions-admin-6-title', descId: 'gosafe-solutions-admin-6-desc', icon: <Chart size={24} /> },
       { titleId: 'gosafe-solutions-admin-4-title', descId: 'gosafe-solutions-admin-4-desc', icon: <Profile size={24} /> },
@@ -80,11 +56,8 @@ const solutionGroups = [
     ]
   },
   {
-    id: 4,
-    titleId: 'gosafe-solution-group-5-title',
-    descId: 'gosafe-solution-group-5-desc',
-    image: multiPlatform,
-    icon: <Mobile variant="Bold" />,
+    id: 4, titleId: 'gosafe-solution-group-5-title', descId: 'gosafe-solution-group-5-desc',
+    image: multiPlatform, icon: <Mobile variant="Bold" />,
     items: [
       { titleId: 'gosafe-solutions-app-4-title', descId: 'gosafe-solutions-app-4-desc', icon: <Message size={24} /> },
       { titleId: 'gosafe-solutions-app-1-title', descId: 'gosafe-solutions-app-1-desc', icon: <ScanBarcode size={24} /> },
@@ -93,19 +66,18 @@ const solutionGroups = [
   }
 ];
 
+/* ── Sub-components ─────────────────────────────────────────────────────── */
+
 const FeatureItem = ({ item, isDark, primaryColor }: { item: any; isDark: boolean; primaryColor: string }) => (
+  /* gs-feature-item: padding, border-radius, height 100%, backdrop-filter, transition */
   <Box
     component={motion.div}
     whileHover={{ y: -5, scale: 1.02 }}
+    className="gs-feature-item"
     sx={{
-      p: 3,
-      borderRadius: 2,
       bgcolor: isDark ? alpha('#fff', 0.03) : alpha('#fff', 0.6),
       border: `1px solid ${isDark ? alpha('#fff', 0.08) : alpha('#000', 0.05)}`,
-      height: '100%',
-      backdropFilter: 'blur(10px)',
       boxShadow: isDark ? 'none' : '0 4px 20px -5px rgba(0,0,0,0.05)',
-      transition: 'border-color 0.3s ease',
       '&:hover': {
         borderColor: alpha(primaryColor, 0.4),
         boxShadow: `0 10px 40px -10px ${alpha(primaryColor, 0.2)}`
@@ -113,14 +85,12 @@ const FeatureItem = ({ item, isDark, primaryColor }: { item: any; isDark: boolea
     }}
   >
     <Stack direction="row" spacing={2.5} alignItems="flex-start">
+      {/* gs-feature-icon: padding, border-radius, display flex, flex-shrink 0 */}
       <Box
+        className="gs-feature-icon"
         sx={{
           color: primaryColor,
-          p: 1.5,
-          borderRadius: 2,
-          bgcolor: isDark ? alpha(primaryColor, 0.15) : alpha(primaryColor, 0.1),
-          display: 'flex',
-          flexShrink: 0
+          bgcolor: isDark ? alpha(primaryColor, 0.15) : alpha(primaryColor, 0.1)
         }}
       >
         {item.icon}
@@ -138,54 +108,40 @@ const FeatureItem = ({ item, isDark, primaryColor }: { item: any; isDark: boolea
 );
 
 const FeaturedImage = ({ src, isDark, primaryColor }: { src: string; isDark: boolean; primaryColor: string }) => (
+  /* gs-featured-image: max-width, margin auto, display flex, justify-content center */
   <Box
     component={motion.div}
     initial={{ opacity: 0, y: 40 }}
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true, margin: '-5%' }}
     transition={{ duration: 0.7 }}
-    sx={{ width: '100%', maxWidth: '1200px', mx: 'auto', my: 8, display: 'flex', justifyContent: 'center' }}
+    className="gs-featured-image"
+    sx={{ my: 8 }}
   >
+    {/* gs-featured-image__frame: relative, border-radius, overflow hidden */}
     <Box
+      className="gs-featured-image__frame"
       sx={{
-        position: 'relative',
-        width: '100%',
-        borderRadius: 3,
-        overflow: 'hidden',
         boxShadow: `0 50px 100px -20px ${isDark ? '#000' : alpha('#000', 0.25)}`,
         border: `1px solid ${isDark ? alpha('#fff', 0.1) : alpha('#000', 0.08)}`
       }}
     >
+      {/* gs-featured-image__shimmer: absolute fill, gradient, z-index 2 */}
+      <Box className="gs-featured-image__shimmer" />
+      {/* gs-featured-image__glow: absolute fill, z-index 0 */}
       <Box
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          background: `linear-gradient(120deg, ${alpha('#fff', 0.15)} 0%, transparent 40%)`,
-          zIndex: 2,
-          pointerEvents: 'none'
-        }}
+        className="gs-featured-image__glow"
+        sx={{ background: `radial-gradient(circle at center, ${alpha(primaryColor, 0.2)}, transparent 80%)` }}
       />
-      <Box
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          background: `radial-gradient(circle at center, ${alpha(primaryColor, 0.2)}, transparent 80%)`,
-          zIndex: 0
-        }}
-      />
-      <Box
-        component="img"
-        src={src}
-        alt="Feature Screenshot"
-        loading="lazy"
-        sx={{ width: '100%', height: 'auto', display: 'block', position: 'relative', zIndex: 1 }}
-      />
+      {/* gs-featured-image__img: width 100%, block, z-index 1 */}
+      <img src={src} alt="Feature Screenshot" loading="lazy" className="gs-featured-image__img" />
     </Box>
   </Box>
 );
 
 const SolutionGroup = ({ group, isDark, primaryColor, secondaryColor }: any) => (
-  <Box sx={{ mb: { xs: 15, md: 25 }, position: 'relative' }}>
+  /* gs-solution-group: position relative */
+  <Box className="gs-solution-group" sx={{ mb: { xs: 15, md: 25 } }}>
     <Container maxWidth="xl">
       <Stack alignItems="center" spacing={4} textAlign="center">
         <motion.div
@@ -207,7 +163,6 @@ const SolutionGroup = ({ group, isDark, primaryColor, secondaryColor }: any) => 
           >
             <FormattedMessage id={group.titleId} />
           </Typography>
-
           <Typography
             variant="h5"
             sx={{
@@ -224,26 +179,9 @@ const SolutionGroup = ({ group, isDark, primaryColor, secondaryColor }: any) => 
 
         <FeaturedImage src={group.image} isDark={isDark} primaryColor={primaryColor} />
 
-        <Box
-          sx={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            gap: 4,
-            px: { xs: 2, md: 0 },
-            maxWidth: 'lg',
-            mx: 'auto'
-          }}
-        >
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 4, px: { xs: 2, md: 0 }, maxWidth: 'lg', mx: 'auto' }}>
           {group.items.map((item: any, idx: number) => (
-            <Box
-              key={idx}
-              sx={{
-                flex: { xs: '1 1 100%', md: '1 1 30%' },
-                minWidth: { md: '300px' },
-                maxWidth: { md: '400px' }
-              }}
-            >
+            <Box key={idx} sx={{ flex: { xs: '1 1 100%', md: '1 1 30%' }, minWidth: { md: '300px' }, maxWidth: { md: '400px' } }}>
               <motion.div
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -261,54 +199,39 @@ const SolutionGroup = ({ group, isDark, primaryColor, secondaryColor }: any) => 
   </Box>
 );
 
+/* ── Title Hero ─────────────────────────────────────────────────────────── */
+
 const TitleHero = ({ isDark, primaryColor }: { isDark: boolean; primaryColor: string }) => (
+  /* gs-title-hero: relative, flex-col, align center, overflow hidden */
   <Box
-    sx={{
-      position: 'relative',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-      overflow: 'hidden',
-      pt: { xs: 15, md: 20 },
-      bgcolor: isDark ? '#020617' : '#ffffff'
-    }}
+    className="gs-title-hero"
+    sx={{ pt: { xs: 15, md: 20 }, bgcolor: isDark ? '#020617' : '#ffffff' }}
   >
-    {/* Background: Concentric Rings */}
-    <Box sx={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+    {/* Concentric rings + glow — gs-title-hero__bg */}
+    <Box className="gs-title-hero__bg">
       {[1, 2, 3, 4].map((i) => (
+        /* gs-title-hero__ring: absolute centered, border-radius 50% */
         <Box
           key={i}
+          className="gs-title-hero__ring"
           sx={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
             width: `${60 + i * 25}vh`,
             height: `${60 + i * 25}vh`,
-            borderRadius: '50%',
-            border: `1px solid ${isDark ? alpha('#fff', 0.03) : alpha('#000', 0.03)}`,
-            zIndex: 0
+            border: `1px solid ${isDark ? alpha('#fff', 0.03) : alpha('#000', 0.03)}`
           }}
         />
       ))}
+      {/* gs-title-hero__glow: absolute top-20%, left 50%, blur 60px */}
       <Box
+        className="gs-title-hero__glow"
         sx={{
-          position: 'absolute',
-          top: '-20%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '80%',
-          height: '600px',
-          background: `conic-gradient(from 180deg at 50% 0%, ${alpha(primaryColor, 0.15)} 0deg, transparent 60deg, transparent 300deg, ${alpha(primaryColor, 0.15)} 360deg)`,
-          filter: 'blur(60px)',
-          zIndex: 0,
-          opacity: 0.6
+          background: `conic-gradient(from 180deg at 50% 0%, ${alpha(primaryColor, 0.15)} 0deg, transparent 60deg, transparent 300deg, ${alpha(primaryColor, 0.15)} 360deg)`
         }}
       />
     </Box>
 
-    <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+    {/* gs-title-hero__content: relative z-index 1 */}
+    <Container maxWidth="lg" className="gs-title-hero__content" sx={{ textAlign: 'center' }}>
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -346,50 +269,36 @@ const TitleHero = ({ isDark, primaryColor }: { isDark: boolean; primaryColor: st
         </Typography>
 
         <Stack direction="row" spacing={2} justifyContent="center" alignItems="center" sx={{ mb: 10 }}>
+          {/* gs-cta-btn: border-radius 100px, padding, font, cursor, transition */}
           <Box
             component={motion.button}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            className="gs-cta-btn"
             onClick={() => {
-              const element = document.getElementById('contact-form');
-              if (element) {
-                element.scrollIntoView({ behavior: 'smooth' });
-              } else {
-                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-              }
+              const el = document.getElementById('contact-form');
+              el ? el.scrollIntoView({ behavior: 'smooth' }) : window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
             }}
             sx={{
-              px: 4,
-              py: 1.5,
-              borderRadius: 100,
-              border: 'none',
               bgcolor: primaryColor,
               color: '#fff',
-              fontSize: '1rem',
-              fontWeight: 600,
-              cursor: 'pointer',
+              border: 'none',
               boxShadow: `0 10px 30px -10px ${alpha(primaryColor, 0.6)}`
             }}
           >
             <FormattedMessage id="gosafe-solutions-cta-contact" defaultMessage="Contact Sales" />
           </Box>
+
           <Box
             component={motion.button}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              window.scrollBy({ top: window.innerHeight * 0.9, behavior: 'smooth' });
-            }}
+            className="gs-cta-btn"
+            onClick={() => window.scrollBy({ top: window.innerHeight * 0.9, behavior: 'smooth' })}
             sx={{
-              px: 4,
-              py: 1.5,
-              borderRadius: 100,
-              border: `1px solid ${isDark ? alpha('#fff', 0.2) : alpha('#000', 0.2)}`,
               bgcolor: 'transparent',
               color: isDark ? '#fff' : '#0f172a',
-              fontSize: '1rem',
-              fontWeight: 600,
-              cursor: 'pointer'
+              border: `1px solid ${isDark ? alpha('#fff', 0.2) : alpha('#000', 0.2)}`
             }}
           >
             <FormattedMessage id="gosafe-solutions-cta-learn" defaultMessage="Learn More" />
@@ -398,68 +307,44 @@ const TitleHero = ({ isDark, primaryColor }: { isDark: boolean; primaryColor: st
       </motion.div>
     </Container>
 
-    {/* Dashboard Hero Image */}
+    {/* Dashboard preview */}
     <Box
       component={motion.div}
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 1, delay: 0.3 }}
-      sx={{
-        width: '100%',
-        maxWidth: '1200px',
-        px: 2,
-        display: 'flex',
-        justifyContent: 'center'
-      }}
+      sx={{ width: '100%', maxWidth: '1200px', px: 2, display: 'flex', justifyContent: 'center' }}
     >
+      {/* gs-dashboard-frame: aspect-ratio 16/9, border-radius, overflow hidden */}
       <Box
+        className="gs-dashboard-frame"
         sx={{
-          width: '100%',
-          aspectRatio: '16/9',
-          borderRadius: '24px',
           border: `1px solid ${isDark ? alpha('#fff', 0.1) : alpha('#000', 0.1)}`,
-          background: isDark ? '#0f172a' : '#fff',
-          position: 'relative',
-          overflow: 'hidden'
+          background: isDark ? '#0f172a' : '#fff'
         }}
       >
-        <Box component="img" src={oneStopSolution} loading="lazy" sx={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} />
-        <Box
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 40%)',
-            pointerEvents: 'none'
-          }}
-        />
+        {/* gs-dashboard-frame__img: width/height 100%, object-fit cover */}
+        <img src={oneStopSolution} loading="lazy" className="gs-dashboard-frame__img" alt="Dashboard" />
+        {/* gs-dashboard-frame__overlay: absolute fill, gradient */}
+        <Box className="gs-dashboard-frame__overlay gs-absolute-fill" />
       </Box>
     </Box>
   </Box>
 );
 
+/* ── Root Component ─────────────────────────────────────────────────────── */
+
 const SolutionsSection = ({ isDark, primaryColor, secondaryColor }: SolutionsSectionProps) => (
+  /* gs-solutions: position relative, overflow hidden */
   <Box
     id="solutions"
-    sx={{
-      bgcolor: isDark ? '#020617' : '#ffffff',
-      position: 'relative',
-      overflow: 'hidden',
-      pt: 0,
-      pb: 10
-    }}
+    className="gs-solutions"
+    sx={{ bgcolor: isDark ? '#020617' : '#ffffff', pt: 0, pb: 10 }}
   >
     <TitleHero isDark={isDark} primaryColor={primaryColor} />
-
     <Box sx={{ position: 'relative', zIndex: 1, mt: { xs: 20, md: 35 } }}>
       {solutionGroups.map((group, index) => (
-        <SolutionGroup
-          key={group.id}
-          group={group}
-          index={index}
-          isDark={isDark}
-          primaryColor={primaryColor}
-          secondaryColor={secondaryColor}
-        />
+        <SolutionGroup key={group.id} group={group} index={index} isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
       ))}
     </Box>
   </Box>

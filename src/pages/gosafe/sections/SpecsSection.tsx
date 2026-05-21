@@ -297,18 +297,16 @@ const SpecsSection = ({ isDark, primaryColor, secondaryColor }: SpecsSectionProp
       <Container maxWidth="lg">
         {/* Header */}
         <Stack spacing={2} alignItems="center" textAlign="center" mb={10}>
+          {/* gs-badge-pill: inline-flex, align-center, border-radius 100px */}
           <Box
             component={motion.div}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
+            className="gs-badge-pill"
             sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 1.5,
               px: 2.5,
               py: 1,
-              borderRadius: '100px',
               border: `1px solid ${alpha(primaryColor, 0.2)}`,
               bgcolor: alpha(primaryColor, 0.05)
             }}
@@ -460,12 +458,12 @@ const SpecsSection = ({ isDark, primaryColor, secondaryColor }: SpecsSectionProp
 
                       {/* Specs List */}
                       <Stack spacing={2} position="relative" zIndex={1}>
+                        {/* gs-spec-row: flex, space-between, border-top between rows */}
                         {category.specs.map((spec, specIndex) => (
                           <Box
                             key={specIndex}
+                            className="gs-spec-row"
                             sx={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
                               alignItems: 'baseline',
                               borderBottom: specIndex !== category.specs.length - 1 ? `1px dashed ${alpha(borderColor, 2)}` : 'none',
                               pb: specIndex !== category.specs.length - 1 ? 1.5 : 0

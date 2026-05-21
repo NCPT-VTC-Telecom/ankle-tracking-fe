@@ -1,3 +1,4 @@
+import './gosafe.css';
 import { Box, CssBaseline, ThemeProvider, createTheme, Fab, Zoom, useScrollTrigger } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import useConfig from 'hooks/useConfig';
@@ -14,6 +15,7 @@ import ContactSection from './sections/ContactSection';
 import FAQSection from './sections/FAQSection';
 import { faqsGosafe } from 'pages/landing/data';
 import Footer from './sections/Footer';
+import TrackingSection from './sections/TrackingSection';
 
 function ScrollTop(props: { children: React.ReactElement }) {
   const trigger = useScrollTrigger({
@@ -40,6 +42,7 @@ function ScrollTop(props: { children: React.ReactElement }) {
 const GosafeLanding = () => {
   const { onChangeMode, mode, onChangeLocalization, i18n } = useConfig();
   const [isDark, setIsDark] = useState(mode === ThemeMode.DARK);
+  const [view, setView] = useState<'landing' | 'tracking'>('landing');
   const primaryColor = '#2772ed';
   const secondaryColor = '#4a90e2';
   useEffect(() => {
@@ -93,7 +96,19 @@ const GosafeLanding = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', overflowX: 'hidden' }}>
+      <Box
+        sx={{
+          bgcolor: 'background.default',
+          minHeight: '100vh',
+          overflowX: 'hidden',
+          ...(view === 'tracking' && {
+            height: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflowY: 'hidden'
+          })
+        }}
+      >
         <GosafeNavbar
           primaryColor={primaryColor}
           secondaryColor={secondaryColor}
@@ -101,26 +116,34 @@ const GosafeLanding = () => {
           currentLang={i18n}
           onToggleTheme={() => onChangeMode(mode === ThemeMode.DARK ? ThemeMode.LIGHT : ThemeMode.DARK)}
           onToggleLanguage={() => onChangeLocalization(i18n === 'vi' ? 'en' : 'vi')}
+          activeView={view}
+          onViewChange={setView}
         />
 
-        <SolutionsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
-        <HeroSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
-        <ProductsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
-        <SpecsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
-        <FAQSection faqs={faqsGosafe} isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+        {view === 'landing' ? (
+          <>
+            <SolutionsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+            <HeroSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+            <ProductsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+            <SpecsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+            <FAQSection faqs={faqsGosafe} isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
 
-        <ContactSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
-        <Footer isDark={isDark} primaryColor={primaryColor} />
+            <ContactSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+            <Footer isDark={isDark} primaryColor={primaryColor} />
 
-        <ScrollTop>
-          <Fab
-            size="medium"
-            aria-label="scroll back to top"
-            sx={{ bgcolor: primaryColor, color: '#fff', '&:hover': { bgcolor: secondaryColor } }}
-          >
-            <ArrowUp />
-          </Fab>
-        </ScrollTop>
+            <ScrollTop>
+              <Fab
+                size="medium"
+                aria-label="scroll back to top"
+                sx={{ bgcolor: primaryColor, color: '#fff', '&:hover': { bgcolor: secondaryColor } }}
+              >
+                <ArrowUp />
+              </Fab>
+            </ScrollTop>
+          </>
+        ) : (
+          <TrackingSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+        )}
       </Box>
     </ThemeProvider>
   );
