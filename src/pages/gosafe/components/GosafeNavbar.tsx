@@ -51,18 +51,39 @@ const GosafeNavbar = ({
   const contentIsDark = isDark;
 
   const navLinks = [
-    { label: intl.formatMessage({ id: 'gosafe-nav-solutions', defaultMessage: 'Giải pháp' }), href: '#solutions', view: 'landing' as const },
-    { label: intl.formatMessage({ id: 'gosafe-nav-product', defaultMessage: 'Sản phẩm' }), href: '#products', view: 'landing' as const },
-    { label: intl.formatMessage({ id: 'gosafe-nav-specs', defaultMessage: 'Thông số' }), href: '#specifications', view: 'landing' as const },
-    { label: intl.formatMessage({ id: 'gosafe-nav-tracking', defaultMessage: 'Tracking' }), href: '#tracking', view: 'tracking' as const },
-    { label: intl.formatMessage({ id: 'gosafe-nav-contact', defaultMessage: 'Liên hệ' }), href: '#contact', view: 'landing' as const }
+    {
+      label: intl.formatMessage({ id: 'gosafe-nav-solutions', defaultMessage: 'Giải pháp' }),
+      href: '#solutions',
+      view: 'landing' as const
+    },
+    {
+      label: intl.formatMessage({ id: 'gosafe-nav-product', defaultMessage: 'Sản phẩm' }),
+      href: '#products',
+      view: 'landing' as const
+    },
+    {
+      label: intl.formatMessage({ id: 'gosafe-nav-specs', defaultMessage: 'Thông số' }),
+      href: '#specifications',
+      view: 'landing' as const
+    },
+    {
+      label: intl.formatMessage({ id: 'gosafe-nav-tracking', defaultMessage: 'Tracking' }),
+      href: '#tracking',
+      view: 'tracking' as const
+    },
+    {
+      label: intl.formatMessage({ id: 'gosafe-nav-contact', defaultMessage: 'Liên hệ' }),
+      href: '#contact',
+      view: 'landing' as const
+    }
   ];
 
   const handleScrollTo = (id: string) => {
     const element = document.querySelector(id);
     if (element) {
       const headerOffset = 80;
-      const offsetPosition = element.getBoundingClientRect().top + window.pageYOffset - headerOffset;
+      const offsetPosition =
+        element.getBoundingClientRect().top + window.pageYOffset - headerOffset;
       window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
     }
   };
@@ -94,24 +115,31 @@ const GosafeNavbar = ({
       sx={{
         bgcolor:
           activeView === 'tracking'
-            ? isDark ? '#090d1f' : '#ffffff'
+            ? isDark
+              ? '#090d1f'
+              : '#ffffff'
             : trigger
-              ? isDark ? alpha('#020617', 0.8) : alpha('#ffffff', 0.8)
-              : 'transparent',
+            ? isDark
+              ? alpha('#020617', 0.8)
+              : alpha('#ffffff', 0.8)
+            : 'transparent',
         backdropFilter: activeView === 'tracking' ? 'none' : trigger ? 'blur(20px)' : 'none',
         borderBottom: '1px solid',
         borderColor:
           activeView === 'tracking'
-            ? isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
+            ? isDark
+              ? 'rgba(255,255,255,0.08)'
+              : 'rgba(0,0,0,0.08)'
             : trigger
-              ? isDark ? alpha('#fff', 0.05) : alpha('#000', 0.05)
-              : 'transparent',
+            ? isDark
+              ? alpha('#fff', 0.05)
+              : alpha('#000', 0.05)
+            : 'transparent',
         py: activeView === 'tracking' ? 1 : trigger ? 1 : 2
       }}
     >
       <Container maxWidth="xl">
         <Toolbar disableGutters sx={{ justifyContent: 'space-between' }}>
-
           {/* Logo */}
           <Stack direction="row" alignItems="center">
             <Link component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center' }}>
@@ -139,7 +167,7 @@ const GosafeNavbar = ({
                   borderLeft: `2px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`
                 }}
               >
-                Hệ thống giám sát hành trình GoSafe
+                Hệ thống điện tử EMS
               </Typography>
             )}
           </Stack>
@@ -169,9 +197,15 @@ const GosafeNavbar = ({
                     onClick={() => handleLinkClick(link)}
                     className="gs-nav-btn"
                     sx={{
-                      color: isSelected ? primaryColor : contentIsDark ? alpha('#fff', 0.8) : alpha('#0f172a', 0.8),
+                      color: isSelected
+                        ? primaryColor
+                        : contentIsDark
+                        ? alpha('#fff', 0.8)
+                        : alpha('#0f172a', 0.8),
                       bgcolor: isSelected
-                        ? contentIsDark ? alpha('#fff', 0.1) : alpha(primaryColor, 0.1)
+                        ? contentIsDark
+                          ? alpha('#fff', 0.1)
+                          : alpha(primaryColor, 0.1)
                         : 'transparent',
                       px: 2.5,
                       py: 1,
@@ -207,7 +241,8 @@ const GosafeNavbar = ({
                 onClick={() => onViewChange('landing')}
                 className="gs-btn-pill"
                 sx={{
-                  px: 3, py: 1,
+                  px: 3,
+                  py: 1,
                   borderColor: primaryColor,
                   color: primaryColor,
                   '&:hover': {
@@ -229,7 +264,8 @@ const GosafeNavbar = ({
                     display: { xs: 'none', md: 'flex' },
                     background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
                     color: '#fff',
-                    px: 3, py: 1.2,
+                    px: 3,
+                    py: 1.2,
                     boxShadow: `0 8px 20px -6px ${alpha(primaryColor, 0.5)}`,
                     '&:hover': {
                       boxShadow: `0 12px 25px -8px ${alpha(primaryColor, 0.6)}`
@@ -282,7 +318,10 @@ const GosafeNavbar = ({
                 style={{ filter: isDark ? 'brightness(0) invert(1)' : 'none' }}
               />
             </Link>
-            <IconButton onClick={() => setMobileOpen(false)} sx={{ color: isDark ? '#94a3b8' : '#64748b' }}>
+            <IconButton
+              onClick={() => setMobileOpen(false)}
+              sx={{ color: isDark ? '#94a3b8' : '#64748b' }}
+            >
               <HambergerMenu size={24} style={{ transform: 'rotate(90deg)' }} />
             </IconButton>
           </Stack>
@@ -290,16 +329,22 @@ const GosafeNavbar = ({
           {/* Drawer links */}
           <Stack spacing={2} sx={{ mb: 'auto' }}>
             {navLinks.map((link) => {
-              const isSelected = link.view === 'tracking' ? (activeView as string) === 'tracking' : false;
+              const isSelected =
+                link.view === 'tracking' ? (activeView as string) === 'tracking' : false;
               return (
                 <Button
                   key={link.label}
-                  onClick={() => { handleLinkClick(link); setMobileOpen(false); }}
+                  onClick={() => {
+                    handleLinkClick(link);
+                    setMobileOpen(false);
+                  }}
                   className="gs-mobile-nav-btn"
                   sx={{
                     color: isSelected ? primaryColor : isDark ? '#f8fafc' : '#0f172a',
                     bgcolor: isSelected
-                      ? isDark ? alpha(primaryColor, 0.15) : alpha(primaryColor, 0.05)
+                      ? isDark
+                        ? alpha(primaryColor, 0.15)
+                        : alpha(primaryColor, 0.05)
                       : 'transparent',
                     '&:hover': {
                       bgcolor: isDark ? alpha(primaryColor, 0.1) : alpha(primaryColor, 0.05),
@@ -317,8 +362,16 @@ const GosafeNavbar = ({
           <Stack spacing={3}>
             <Stack direction="row" spacing={2}>
               {[
-                { onClick: onToggleLanguage, icon: <Translate size={20} />, label: currentLang === 'vi' ? 'Tiếng Việt' : 'English' },
-                { onClick: onToggleTheme, icon: isDark ? <Sun1 size={20} /> : <Moon size={20} />, label: isDark ? 'Light Mode' : 'Dark Mode' }
+                {
+                  onClick: onToggleLanguage,
+                  icon: <Translate size={20} />,
+                  label: currentLang === 'vi' ? 'Tiếng Việt' : 'English'
+                },
+                {
+                  onClick: onToggleTheme,
+                  icon: isDark ? <Sun1 size={20} /> : <Moon size={20} />,
+                  label: isDark ? 'Light Mode' : 'Dark Mode'
+                }
               ].map(({ onClick, icon, label }) => (
                 <Button
                   key={label}
@@ -326,11 +379,16 @@ const GosafeNavbar = ({
                   onClick={onClick}
                   startIcon={icon}
                   sx={{
-                    borderRadius: 3, py: 1.5,
+                    borderRadius: 3,
+                    py: 1.5,
                     color: isDark ? '#94a3b8' : '#64748b',
                     bgcolor: isDark ? alpha('#fff', 0.05) : alpha('#000', 0.03),
                     border: `1px solid ${isDark ? alpha('#fff', 0.1) : alpha('#000', 0.05)}`,
-                    '&:hover': { color: primaryColor, borderColor: primaryColor, bgcolor: alpha(primaryColor, 0.05) }
+                    '&:hover': {
+                      color: primaryColor,
+                      borderColor: primaryColor,
+                      bgcolor: alpha(primaryColor, 0.05)
+                    }
                   }}
                 >
                   {label}
