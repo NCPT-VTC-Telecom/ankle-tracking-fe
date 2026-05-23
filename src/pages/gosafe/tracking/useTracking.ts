@@ -16,6 +16,57 @@ import {
 
 const EMPTY_HISTORY: DeviceHistoryState = { loading: false, error: null, data: null };
 
+// ─── SESSION STORAGE ──────────────────────────────────────────────────────────
+
+const SS = {
+  DEVICES:    'gosafe:devices',
+  GEOFENCES:  'gosafe:geofences',
+  LOGS:       'gosafe:logs',
+  SOUND:      'gosafe:soundEnabled',
+  FOLLOW:     'gosafe:followDevice',
+  SELECTED:   'gosafe:selectedDeviceId',
+};
+
+function ssGet<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw !== null ? (JSON.parse(raw) as T) : fallback;
+  } catch { return fallback; }
+}
+
+function ssSet(key: string, value: unknown): void {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+}
+
+/** Serialize Device → JSON-safe (Date fields → ISO strings) */
+function deviceToSS(d: Device) {
+  return {
+    ...d,
+    status: {
+      ...d.status,
+      lastGpsUpdate:  d.status.lastGpsUpdate?.toISOString()  ?? null,
+      lastServerSync: d.status.lastServerSync?.toISOString() ?? null,
+    },
+  };
+}
+
+/** Deserialize: restore Date fields after JSON.parse */
+function deviceFromSS(raw: ReturnType<typeof deviceToSS>): Device {
+  return {
+    ...raw,
+    status: {
+      ...raw.status,
+      lastGpsUpdate:  raw.status.lastGpsUpdate  ? new Date(raw.status.lastGpsUpdate)  : null,
+      lastServerSync: raw.status.lastServerSync ? new Date(raw.status.lastServerSync) : null,
+    },
+  };
+}
+
+const INITIAL_LOGS: EventLog[] = [
+  { id: '1', time: '08:50:00', message: 'Hệ thống GoSafe khởi động tại 614 Điện Biên Phủ, P.Vườn Lài, Q.Phú Nhuận.', type: 'info' },
+  { id: '2', time: '08:50:05', message: 'Phát hiện 1 thiết bị. Tín hiệu GPS bình thường.', type: 'success' },
+];
+
 // ─── API HELPERS ──────────────────────────────────────────────────────────────
 
 /** Chuyển điện áp Li-ion → % pin (3.0V = 0%, 4.2V = 100%) */
@@ -81,21 +132,31 @@ function mapApiDeviceToDevice(api: ApiDevice, existing: Device | undefined, fall
 
 export function useTracking(isDark: boolean, primaryColor: string, secondaryColor: string) {
 
-  // ── CORE ──
-  const [devices, setDevices] = useState<Device[]>(INITIAL_DEVICES);
-  const [selectedDeviceId, setSelectedDeviceId] = useState('dev-001');
-  const [geofences, setGeofences] = useState<Geofence[]>(INITIAL_GEOFENCES);
+  // ── CORE — khởi tạo từ sessionStorage nếu có ──
+  const [devices, setDevices] = useState<Device[]>(() => {
+    const saved = ssGet<ReturnType<typeof deviceToSS>[]>(SS.DEVICES, []);
+    return saved.length > 0 ? saved.map(deviceFromSS) : INITIAL_DEVICES;
+  });
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>(() =>
+    ssGet(SS.SELECTED, 'dev-001'),
+  );
+  const [geofences, setGeofences] = useState<Geofence[]>(() =>
+    ssGet(SS.GEOFENCES, INITIAL_GEOFENCES),
+  );
   const [editingGeofenceId, setEditingGeofenceId] = useState<string | null>(null);
-  const [logs, setLogs] = useState<EventLog[]>([
-    { id: '1', time: '08:50:00', message: 'Hệ thống GoSafe khởi động tại 614 Điện Biên Phủ, P.Vườn Lài, Q.Phú Nhuận.', type: 'info' },
-    { id: '2', time: '08:50:05', message: 'Phát hiện 1 thiết bị. Tín hiệu GPS bình thường.', type: 'success' },
-  ]);
+  const [logs, setLogs] = useState<EventLog[]>(() =>
+    ssGet(SS.LOGS, INITIAL_LOGS),
+  );
 
   // ── UI ──
   const [activeTab, setActiveTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [followDevice, setFollowDevice] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() =>
+    ssGet(SS.SOUND, true),
+  );
+  const [followDevice, setFollowDevice] = useState<boolean>(() =>
+    ssGet(SS.FOLLOW, true),
+  );
   const [showAlertOverlay, setShowAlertOverlay] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>(BASE_CENTER);
   const [mapZoom, setMapZoom] = useState(16);
@@ -122,12 +183,29 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
   const centerDragStartRef = useRef<{ startLat: number; startLng: number } | null>(null);
   const prevViolationsRef = useRef<Record<string, boolean>>({});
   const deviceColorIdxRef = useRef(INITIAL_DEVICES.length);
+  const deviceSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Tick for time-ago labels
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 30000);
     return () => clearInterval(id);
   }, []);
+
+  // ── SESSION STORAGE SAVE ──────────────────────────────────────────────────────
+
+  // Devices: debounce 2 s — SSE/API updates nhiều, không cần save mỗi packet
+  useEffect(() => {
+    if (deviceSaveTimer.current) clearTimeout(deviceSaveTimer.current);
+    deviceSaveTimer.current = setTimeout(() => {
+      ssSet(SS.DEVICES, devices.map(deviceToSS));
+    }, 2000);
+  }, [devices]);
+
+  useEffect(() => { ssSet(SS.GEOFENCES, geofences); },      [geofences]);
+  useEffect(() => { ssSet(SS.LOGS,      logs.slice(0, 200)); }, [logs]);
+  useEffect(() => { ssSet(SS.SOUND,     soundEnabled); },    [soundEnabled]);
+  useEffect(() => { ssSet(SS.FOLLOW,    followDevice); },    [followDevice]);
+  useEffect(() => { ssSet(SS.SELECTED,  selectedDeviceId); },[selectedDeviceId]);
 
   // ── DERIVED ──────────────────────────────────────────────────────────────────
 

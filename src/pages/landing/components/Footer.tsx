@@ -1,4 +1,15 @@
-import { Box, Container, Divider, Grid, IconButton, Link, Stack, Typography, alpha, useTheme } from '@mui/material';
+import {
+  Box,
+  Container,
+  Divider,
+  Grid,
+  IconButton,
+  Link,
+  Stack,
+  Typography,
+  alpha,
+  useTheme
+} from '@mui/material';
 import facebookIcon from 'assets/icons/facebook.png';
 import linkedinIcon from 'assets/icons/linkedin.png';
 import youtubeIcon from 'assets/icons/youtube.png';
@@ -30,10 +41,22 @@ const Footer = ({ isDark, primaryColor }: FooterProps) => {
       titleKey: 'landing.footer.product',
       titleDefault: 'Sản phẩm',
       links: [
-        { labelKey: 'landing.footer.product.features', labelDefault: 'Tính năng', href: '#features' },
-        { labelKey: 'landing.footer.product.solutions', labelDefault: 'Giải pháp', href: '#solutions' },
+        {
+          labelKey: 'landing.footer.product.features',
+          labelDefault: 'Tính năng',
+          href: '#features'
+        },
+        {
+          labelKey: 'landing.footer.product.solutions',
+          labelDefault: 'Giải pháp',
+          href: '#solutions'
+        },
         { labelKey: 'landing.footer.product.pricing', labelDefault: 'Bảng giá', href: '#pricing' },
-        { labelKey: 'landing.footer.product.changelog', labelDefault: 'Changelog', href: '#changelog' }
+        {
+          labelKey: 'landing.footer.product.changelog',
+          labelDefault: 'Changelog',
+          href: '#changelog'
+        }
       ]
     },
     company: {
@@ -41,7 +64,11 @@ const Footer = ({ isDark, primaryColor }: FooterProps) => {
       titleDefault: 'Công ty',
       links: [
         { labelKey: 'landing.footer.company.about', labelDefault: 'Về chúng tôi', href: '#about' },
-        { labelKey: 'landing.footer.company.customers', labelDefault: 'Khách hàng', href: '#customers' },
+        {
+          labelKey: 'landing.footer.company.customers',
+          labelDefault: 'Khách hàng',
+          href: '#customers'
+        },
         { labelKey: 'landing.footer.company.partners', labelDefault: 'Đối tác', href: '#partners' },
         { labelKey: 'landing.footer.company.news', labelDefault: 'Tin tức', href: '#news' }
       ]
@@ -50,9 +77,21 @@ const Footer = ({ isDark, primaryColor }: FooterProps) => {
       titleKey: 'landing.footer.support',
       titleDefault: 'Hỗ trợ',
       links: [
-        { labelKey: 'landing.footer.support.help', labelDefault: 'Trung tâm trợ giúp', href: '#help' },
-        { labelKey: 'landing.footer.support.community', labelDefault: 'Cộng đồng', href: '#community' },
-        { labelKey: 'landing.footer.support.status', labelDefault: 'Trạng thái hệ thống', href: '#status' },
+        {
+          labelKey: 'landing.footer.support.help',
+          labelDefault: 'Trung tâm trợ giúp',
+          href: '#help'
+        },
+        {
+          labelKey: 'landing.footer.support.community',
+          labelDefault: 'Cộng đồng',
+          href: '#community'
+        },
+        {
+          labelKey: 'landing.footer.support.status',
+          labelDefault: 'Trạng thái hệ thống',
+          href: '#status'
+        },
         { labelKey: 'landing.footer.support.contact', labelDefault: 'Liên hệ', href: '#contact' }
       ]
     }
@@ -95,7 +134,14 @@ const Footer = ({ isDark, primaryColor }: FooterProps) => {
                     transition: 'filter 0.3s ease'
                   }}
                 />
-                <Typography sx={{ color: theme.palette.text.secondary, mt: 2, lineHeight: 1.6, fontSize: '0.95rem' }}>
+                <Typography
+                  sx={{
+                    color: theme.palette.text.secondary,
+                    mt: 2,
+                    lineHeight: 1.6,
+                    fontSize: '0.95rem'
+                  }}
+                >
                   <FormattedMessage
                     id="landing.footer.desc"
                     defaultMessage="Nền tảng quản lý WiFi Digital toàn diện. Tối ưu hóa vận hành và gia tăng trải nghiệm khách hàng."
@@ -108,7 +154,10 @@ const Footer = ({ isDark, primaryColor }: FooterProps) => {
           {/* --- COL 2, 3, 4: Links --- */}
           {Object.entries(footerLinks).map(([key, section]) => (
             <Grid item xs={6} sm={4} md={2} key={key}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 3, color: theme.palette.text.primary }}>
+              <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: 700, mb: 3, color: theme.palette.text.primary }}
+              >
                 <FormattedMessage id={section.titleKey} defaultMessage={section.titleDefault} />
               </Typography>
               <Stack spacing={1.5}>
@@ -137,7 +186,10 @@ const Footer = ({ isDark, primaryColor }: FooterProps) => {
 
           {/* --- COL 5: Socials (Mobile layout adjustment or keep separate) --- */}
           <Grid item xs={12} md={2}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 3, color: theme.palette.text.primary }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 700, mb: 3, color: theme.palette.text.primary }}
+            >
               <FormattedMessage id="landing.footer.social" defaultMessage="Kết nối" />
             </Typography>
             <Stack direction="row" flexWrap="wrap" gap={1.5}>
