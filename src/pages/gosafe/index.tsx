@@ -121,18 +121,20 @@ const GosafeLanding = () => {
           })
         }}
       >
-        <GosafeNavbar
-          primaryColor={primaryColor}
-          secondaryColor={secondaryColor}
-          isDark={isDark}
-          currentLang={i18n}
-          onToggleTheme={() =>
-            onChangeMode(mode === ThemeMode.DARK ? ThemeMode.LIGHT : ThemeMode.DARK)
-          }
-          onToggleLanguage={() => onChangeLocalization(i18n === 'vi' ? 'en' : 'vi')}
-          activeView={view}
-          onViewChange={setView}
-        />
+        {view === 'landing' && (
+          <GosafeNavbar
+            primaryColor={primaryColor}
+            secondaryColor={secondaryColor}
+            isDark={isDark}
+            currentLang={i18n}
+            onToggleTheme={() =>
+              onChangeMode(mode === ThemeMode.DARK ? ThemeMode.LIGHT : ThemeMode.DARK)
+            }
+            onToggleLanguage={() => onChangeLocalization(i18n === 'vi' ? 'en' : 'vi')}
+            activeView={view}
+            onViewChange={setView}
+          />
+        )}
 
         {view === 'landing' ? (
           <>
@@ -189,6 +191,7 @@ const GosafeLanding = () => {
             isDark={isDark}
             primaryColor={primaryColor}
             secondaryColor={secondaryColor}
+            onBackToLanding={() => setView('landing')}
           />
         )}
       </Box>

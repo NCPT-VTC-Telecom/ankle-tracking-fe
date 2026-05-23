@@ -10,7 +10,6 @@ export const DEVICE_PALETTE = [
 /** 614 Điện Biên Phủ, Phường Vườn Lài, Quận Phú Nhuận, TP.HCM */
 export const BASE_CENTER: [number, number] = [10.770685, 106.676672];
 
-// ─── INITIAL DATA ─────────────────────────────────────────────────────────────
 
 export const INITIAL_GEOFENCES: Geofence[] = [
   {
@@ -49,7 +48,7 @@ export const INITIAL_DEVICES: Device[] = [
     subject: {
       fullName: 'Nguyễn Văn A',
       idNumber: '000000000001',
-      crime: 'Trộm cắp tài sản (Đ173 BLHS)',
+      crime: 'Vi phạm trật tự công cộng',
       sentence: '36 tháng tù giam',
       startDate: '2024-03-15',
       releaseDate: '2027-03-14',

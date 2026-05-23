@@ -28,7 +28,6 @@ interface Props {
   store: TrackingStore;
 }
 
-// ── Device form (shared by Add + Edit dialogs) ─────────────────────────────────
 function DeviceFormContent({ store }: Props) {
   const { addDeviceForm, setAddDeviceForm } = store;
   const f = addDeviceForm;
