@@ -67,11 +67,6 @@ const GosafeNavbar = ({
       view: 'landing' as const
     },
     {
-      label: intl.formatMessage({ id: 'gosafe-nav-tracking', defaultMessage: 'Tracking' }),
-      href: '#tracking',
-      view: 'tracking' as const
-    },
-    {
       label: intl.formatMessage({ id: 'gosafe-nav-contact', defaultMessage: 'Liên hệ' }),
       href: '#contact',
       view: 'landing' as const
@@ -89,15 +84,11 @@ const GosafeNavbar = ({
   };
 
   const handleLinkClick = (link: (typeof navLinks)[0]) => {
-    if (link.view === 'tracking') {
-      onViewChange('tracking');
+    if ((activeView as string) === 'tracking') {
+      onViewChange('landing');
+      setTimeout(() => handleScrollTo(link.href), 150);
     } else {
-      if ((activeView as string) === 'tracking') {
-        onViewChange('landing');
-        setTimeout(() => handleScrollTo(link.href), 150);
-      } else {
-        handleScrollTo(link.href);
-      }
+      handleScrollTo(link.href);
     }
   };
 
@@ -188,9 +179,7 @@ const GosafeNavbar = ({
             >
               {navLinks.map((link) => {
                 const isSelected =
-                  link.view === 'tracking'
-                    ? (activeView as string) === 'tracking'
-                    : (activeView as string) === 'landing' && window.location.hash === link.href;
+                  (activeView as string) === 'landing' && window.location.hash === link.href;
                 return (
                   <Button
                     key={link.label}
@@ -330,7 +319,7 @@ const GosafeNavbar = ({
           <Stack spacing={2} sx={{ mb: 'auto' }}>
             {navLinks.map((link) => {
               const isSelected =
-                link.view === 'tracking' ? (activeView as string) === 'tracking' : false;
+                (activeView as string) === 'landing' && window.location.hash === link.href;
               return (
                 <Button
                   key={link.label}

@@ -525,7 +525,15 @@ const MainRoutes = {
     },
     {
       path: '/gosafe',
-      element: <GosafeLanding />
+      element: <GosafeLanding viewType="landing" />
+    },
+    {
+      path: '/gosafe/tracking',
+      element: (
+        <AuthGuard>
+          <GosafeLanding viewType="tracking" />
+        </AuthGuard>
+      )
     }
   ]
 };

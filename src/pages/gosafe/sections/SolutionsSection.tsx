@@ -332,8 +332,6 @@ const TitleHero = ({ isDark, primaryColor }: { isDark: boolean; primaryColor: st
   </Box>
 );
 
-/* ── Root Component ─────────────────────────────────────────────────────── */
-
 const SolutionsSection = ({ isDark, primaryColor, secondaryColor }: SolutionsSectionProps) => (
   /* gs-solutions: position relative, overflow hidden */
   <Box

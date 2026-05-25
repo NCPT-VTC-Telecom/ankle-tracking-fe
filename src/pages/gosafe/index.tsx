@@ -12,6 +12,8 @@ import { useEffect, useMemo, useState } from 'react';
 import useConfig from 'hooks/useConfig';
 import { ThemeMode } from 'types/config';
 import { ArrowUp } from 'iconsax-react';
+import { useNavigate } from 'react-router-dom';
+import useAuth from 'hooks/useAuth';
 
 // Components
 import GosafeNavbar from './components/GosafeNavbar';
@@ -51,15 +53,27 @@ function ScrollTop(props: { children: React.ReactElement }) {
   );
 }
 
-const GosafeLanding = () => {
+interface GosafeLandingProps {
+  viewType?: 'landing' | 'tracking';
+}
+
+const GosafeLanding = ({ viewType = 'landing' }: GosafeLandingProps) => {
   const { onChangeMode, mode, onChangeLocalization, i18n } = useConfig();
   const [isDark, setIsDark] = useState(mode === ThemeMode.DARK);
-  const [view, setView] = useState<'landing' | 'tracking'>('landing');
   const primaryColor = '#2772ed';
   const secondaryColor = '#4a90e2';
+  const navigate = useNavigate();
+  const { isLoggedIn } = useAuth();
+
   useEffect(() => {
     setIsDark(mode === ThemeMode.DARK);
   }, [mode]);
+
+  useEffect(() => {
+    if (viewType === 'landing' && isLoggedIn) {
+      navigate('/gosafe/tracking', { replace: true });
+    }
+  }, [viewType, isLoggedIn, navigate]);
 
   const theme = useMemo(
     () =>
@@ -113,7 +127,7 @@ const GosafeLanding = () => {
           bgcolor: 'background.default',
           minHeight: '100vh',
           overflowX: 'hidden',
-          ...(view === 'tracking' && {
+          ...(viewType === 'tracking' && {
             height: '100vh',
             display: 'flex',
             flexDirection: 'column',
@@ -121,7 +135,7 @@ const GosafeLanding = () => {
           })
         }}
       >
-        {view === 'landing' && (
+        {viewType === 'landing' && (
           <GosafeNavbar
             primaryColor={primaryColor}
             secondaryColor={secondaryColor}
@@ -131,12 +145,12 @@ const GosafeLanding = () => {
               onChangeMode(mode === ThemeMode.DARK ? ThemeMode.LIGHT : ThemeMode.DARK)
             }
             onToggleLanguage={() => onChangeLocalization(i18n === 'vi' ? 'en' : 'vi')}
-            activeView={view}
-            onViewChange={setView}
+            activeView={viewType}
+            onViewChange={(v) => navigate(v === 'tracking' ? '/gosafe/tracking' : '/gosafe')}
           />
         )}
 
-        {view === 'landing' ? (
+        {viewType === 'landing' ? (
           <>
             <SolutionsSection
               isDark={isDark}
@@ -191,7 +205,7 @@ const GosafeLanding = () => {
             isDark={isDark}
             primaryColor={primaryColor}
             secondaryColor={secondaryColor}
-            onBackToLanding={() => setView('landing')}
+            onBackToLanding={() => navigate('/gosafe')}
           />
         )}
       </Box>

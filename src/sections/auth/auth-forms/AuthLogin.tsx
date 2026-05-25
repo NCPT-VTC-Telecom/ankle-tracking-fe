@@ -1,4 +1,4 @@
-import { Box, FormHelperText, Link, Stack, TextField, Typography } from '@mui/material';
+import { Box, Button, FormHelperText, Link, Stack, TextField, Typography } from '@mui/material';
 import LoadingButton from 'components/@extended/LoadingButton';
 import { Formik } from 'formik';
 import useAuth from 'hooks/useAuth';
@@ -6,14 +6,14 @@ import useMapCode from 'hooks/useMapCode';
 import useScriptRef from 'hooks/useScriptRef';
 import { enqueueSnackbar } from 'notistack';
 import { useState } from 'react';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { useIntl } from 'react-intl';
 import { Link as RouterLink } from 'react-router-dom';
 import { dispatch } from 'store';
 import { handlerIconVariants, openSnackbar } from 'store/reducers/snackbar';
 import * as Yup from 'yup';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
-import { Eye, EyeSlash } from 'iconsax-react';
+import { Eye, EyeSlash, ShieldSecurity, Lock1, Profile } from 'iconsax-react';
 
 const AuthLogin = ({ forgot }: { forgot?: string }) => {
   const intl = useIntl();
@@ -26,31 +26,33 @@ const AuthLogin = ({ forgot }: { forgot?: string }) => {
     <Box sx={{ width: '100%' }}>
       {/* Header */}
       <Box sx={{ mb: 4, textAlign: 'center' }}>
-        <Typography
-          variant="h3"
-          sx={{
-            fontWeight: 700,
-            // color: '#1e293b',
-            mb: 1,
-            fontSize: { xs: 24, sm: 28 },
-            letterSpacing: 0.5
-          }}
-        >
-          <FormattedMessage id="login" defaultMessage="Login" />
-        </Typography>
+        <Stack direction="row" spacing={1.2} justifyContent="center" alignItems="center" sx={{ mb: 1 }}>
+          <ShieldSecurity size={28} color="#2563eb" variant="Bold" />
+          <Typography
+            variant="h3"
+            sx={{
+              fontWeight: 800,
+              fontSize: { xs: 20, sm: 24 },
+              letterSpacing: 0.5,
+              background: 'linear-gradient(135deg, #1e293b 0%, #475569 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}
+          >
+            ĐĂNG NHẬP HỆ THỐNG
+          </Typography>
+        </Stack>
 
         <Typography
           variant="body2"
           sx={{
             color: 'text.secondary',
-            fontWeight: 400,
-            fontSize: { xs: 13, sm: 14 }
+            fontWeight: 500,
+            fontSize: { xs: 13, sm: 14 },
+            lineHeight: 1.4
           }}
         >
-          {intl.formatMessage({
-            id: 'system-title',
-            defaultMessage: 'Hệ thống quản lý Ankle Tracker'
-          })}
+          Trung tâm Giám sát Điện tử & Định vị Phạm nhân Ankle Tracker EMS
         </Typography>
       </Box>
 
@@ -106,7 +108,7 @@ const AuthLogin = ({ forgot }: { forgot?: string }) => {
           }
         }}
       >
-        {({ errors, handleBlur, handleChange, handleSubmit, isSubmitting, touched, values }) => (
+        {({ errors, handleBlur, handleChange, handleSubmit, isSubmitting, touched, values, setFieldValue }) => (
           <form noValidate onSubmit={handleSubmit} style={{ width: '100%' }}>
             <Stack spacing={3}>
               {/* Username */}
@@ -116,24 +118,29 @@ const AuthLogin = ({ forgot }: { forgot?: string }) => {
                   sx={{
                     mb: 0.75,
                     ml: 0.5,
-                    fontWeight: 500,
-                    fontSize: 14
+                    fontWeight: 600,
+                    fontSize: 13,
+                    color: 'text.primary'
                   }}
                 >
-                  {intl.formatMessage({ id: 'username' })}
+                  Tên tài khoản quản trị
                 </Typography>
                 <TextField
                   fullWidth
                   variant="outlined"
-                  // label={intl.formatMessage({ id: 'username' })}
                   name="username"
-                  placeholder={intl.formatMessage({ id: 'enter-username' })}
+                  placeholder="Nhập tên đăng nhập của bạn"
                   value={values.username}
                   onChange={handleChange}
                   onBlur={handleBlur}
                   error={Boolean(touched.username && errors.username)}
                   helperText={touched.username && errors.username}
                   InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start" sx={{ mr: 1 }}>
+                        <Profile size={18} color="#94a3b8" />
+                      </InputAdornment>
+                    ),
                     sx: { borderRadius: 3 }
                   }}
                 />
@@ -145,28 +152,34 @@ const AuthLogin = ({ forgot }: { forgot?: string }) => {
                   sx={{
                     mb: 0.75,
                     ml: 0.5,
-                    fontWeight: 500,
-                    fontSize: 14
+                    fontWeight: 600,
+                    fontSize: 13,
+                    color: 'text.primary'
                   }}
                 >
-                  {intl.formatMessage({ id: 'password' })}
+                  Mật khẩu bảo mật
                 </Typography>
                 <TextField
                   fullWidth
                   variant="outlined"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder={intl.formatMessage({ id: 'enter-password' })}
+                  placeholder="Nhập mật khẩu truy cập"
                   value={values.password}
                   onChange={handleChange}
                   onBlur={handleBlur}
                   error={Boolean(touched.password && errors.password)}
                   helperText={touched.password && errors.password}
                   InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start" sx={{ mr: 1 }}>
+                        <Lock1 size={18} color="#94a3b8" />
+                      </InputAdornment>
+                    ),
                     endAdornment: (
                       <InputAdornment position="end">
                         <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                          {showPassword ? <EyeSlash /> : <Eye />}
+                          {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
                         </IconButton>
                       </InputAdornment>
                     ),
@@ -194,14 +207,14 @@ const AuthLogin = ({ forgot }: { forgot?: string }) => {
                   component={RouterLink}
                   to={isLoggedIn && forgot ? forgot : '/forgot-password'}
                   sx={{
-                    fontSize: 14,
+                    fontSize: 13,
                     color: '#2563eb',
                     textDecoration: 'none',
-                    fontWeight: 500,
+                    fontWeight: 600,
                     '&:hover': { textDecoration: 'underline' }
                   }}
                 >
-                  <FormattedMessage id="forgot-password" />?
+                  Quên mật khẩu truy cập?
                 </Link>
               </Box>
               {/* Login button */}
@@ -217,12 +230,71 @@ const AuthLogin = ({ forgot }: { forgot?: string }) => {
                   borderRadius: 3,
                   py: 1.5,
                   color: 'white',
-                  fontWeight: 600,
-                  fontSize: 15
+                  fontWeight: 700,
+                  fontSize: 15,
+                  bgcolor: '#2563eb',
+                  '&:hover': {
+                    bgcolor: '#1d4ed8'
+                  }
                 }}
               >
-                <FormattedMessage id="login" defaultMessage="Sign In" />
+                ĐĂNG NHẬP HỆ THỐNG
               </LoadingButton>
+
+              {/* Demo Accounts Panel */}
+              <Box
+                sx={{
+                  mt: 3,
+                  p: 2,
+                  borderRadius: 3,
+                  bgcolor: 'rgba(37, 99, 235, 0.03)',
+                  border: '1.5px dashed rgba(37, 99, 235, 0.15)',
+                  textAlign: 'center'
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: 'block',
+                    fontWeight: 700,
+                    color: '#2563eb',
+                    mb: 1.5,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.8,
+                    fontSize: '0.7rem'
+                  }}
+                >
+                  Cổng kết nối tài khoản kiểm thử
+                </Typography>
+                <Stack direction="row" justifyContent="center">
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => {
+                      setFieldValue('username', 'gosafe_admin');
+                      setFieldValue('password', 'admin');
+                    }}
+                    startIcon={<ShieldSecurity size={14} />}
+                    sx={{
+                      borderRadius: 2,
+                      px: 3.5,
+                      py: 0.75,
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      bgcolor: '#2563eb',
+                      color: '#ffffff',
+                      textTransform: 'none',
+                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)',
+                      '&:hover': {
+                        bgcolor: '#1d4ed8',
+                        boxShadow: '0 6px 16px rgba(37, 99, 235, 0.25)'
+                      }
+                    }}
+                  >
+                    Đăng nhập tài khoản Demo (GoSafe Admin)
+                  </Button>
+                </Stack>
+              </Box>
             </Stack>
           </form>
         )}
