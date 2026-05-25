@@ -14,12 +14,7 @@ import {
   Tooltip,
   IconButton
 } from '@mui/material';
-import {
-  SearchNormal1,
-  Wifi,
-  Map as MapIcon,
-  Add
-} from 'iconsax-react';
+import { SearchNormal1, Wifi, Map as MapIcon, Add } from 'iconsax-react';
 import { TrackingStore } from '../../tracking/useTracking';
 import { unassignedSims } from './mockData';
 
@@ -29,28 +24,21 @@ interface SimManagementTableProps {
   setDashboardView: (view: 'overview' | 'tracking' | 'devices' | 'prisoners' | 'sims') => void;
 }
 
-export default function SimManagementTable({
-  isDark,
-  store,
-  setDashboardView
-}: SimManagementTableProps) {
-  const {
-    devices,
-    setSelectedDeviceId,
-    setAddDeviceOpen
-  } = store;
+export default function SimManagementTable({ isDark, store, setDashboardView }: SimManagementTableProps) {
+  const { devices, setSelectedDeviceId, setAddDeviceOpen } = store;
 
   const [simSearch, setSimSearch] = useState('');
 
   // Helper for SIM details derivation
   const allSimCards = useMemo(() => {
     const activeSims = devices
-      .filter(d => d.phoneNumber)
-      .map(d => {
+      .filter((d) => d.phoneNumber)
+      .map((d) => {
         const num = d.phoneNumber;
         let carrier = 'Viettel';
         if (num.startsWith('+8490') || num.startsWith('090') || num.startsWith('093') || num.startsWith('+8493')) carrier = 'Mobifone';
-        else if (num.startsWith('+8491') || num.startsWith('091') || num.startsWith('088') || num.startsWith('+8488')) carrier = 'Vinaphone';
+        else if (num.startsWith('+8491') || num.startsWith('091') || num.startsWith('088') || num.startsWith('+8488'))
+          carrier = 'Vinaphone';
         return {
           phoneNumber: num,
           carrier,
@@ -62,7 +50,7 @@ export default function SimManagementTable({
         };
       });
 
-    const mockSims = unassignedSims.map(s => ({
+    const mockSims = unassignedSims.map((s) => ({
       phoneNumber: s.phoneNumber,
       carrier: s.carrier,
       iccid: s.iccid,
@@ -78,11 +66,9 @@ export default function SimManagementTable({
   const filteredSimTable = useMemo(() => {
     if (!simSearch) return allSimCards;
     const q = simSearch.toLowerCase();
-    return allSimCards.filter(s =>
-      s.phoneNumber.includes(q) ||
-      s.iccid.includes(q) ||
-      s.carrier.toLowerCase().includes(q) ||
-      s.deviceName.toLowerCase().includes(q)
+    return allSimCards.filter(
+      (s) =>
+        s.phoneNumber.includes(q) || s.iccid.includes(q) || s.carrier.toLowerCase().includes(q) || s.deviceName.toLowerCase().includes(q)
     );
   }, [allSimCards, simSearch]);
 
@@ -95,7 +81,7 @@ export default function SimManagementTable({
           value={simSearch}
           onChange={(e) => setSimSearch(e.target.value)}
           InputProps={{
-            startAdornment: <SearchNormal1 size={14} style={{ marginRight: 6, color: '#94a3b8' }} />,
+            startAdornment: <SearchNormal1 size={18} style={{ marginRight: 6, color: '#94a3b8' }} />,
             sx: { fontSize: '0.825rem', borderRadius: 1.5 }
           }}
           sx={{ width: 260 }}
@@ -106,13 +92,30 @@ export default function SimManagementTable({
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>Số điện thoại</TableCell>
-              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>Nhà mạng</TableCell>
-              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>Số ICCID / Serial</TableCell>
-              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>Thiết bị gán</TableCell>
-              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>Sóng</TableCell>
-              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>Trạng thái</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>Thao tác</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>
+                Số điện thoại
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>
+                Nhà mạng
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>
+                Số ICCID / Serial
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>
+                Thiết bị gán
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>
+                Sóng
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>
+                Trạng thái
+              </TableCell>
+              <TableCell
+                align="right"
+                sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}
+              >
+                Thao tác
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -128,10 +131,20 @@ export default function SimManagementTable({
                         fontWeight: 600,
                         fontSize: '0.75rem',
                         borderRadius: 1,
-                        bgcolor: sim.carrier === 'Viettel' ? 'rgba(239, 68, 68, 0.05)' : sim.carrier === 'Vinaphone' ? 'rgba(59, 130, 246, 0.05)' : 'rgba(245, 158, 11, 0.05)',
+                        bgcolor:
+                          sim.carrier === 'Viettel'
+                            ? 'rgba(239, 68, 68, 0.05)'
+                            : sim.carrier === 'Vinaphone'
+                            ? 'rgba(59, 130, 246, 0.05)'
+                            : 'rgba(245, 158, 11, 0.05)',
                         color: sim.carrier === 'Viettel' ? '#dc2626' : sim.carrier === 'Vinaphone' ? '#2563eb' : '#d97706',
                         border: '1px solid',
-                        borderColor: sim.carrier === 'Viettel' ? 'rgba(239, 68, 68, 0.12)' : sim.carrier === 'Vinaphone' ? 'rgba(59, 130, 246, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                        borderColor:
+                          sim.carrier === 'Viettel'
+                            ? 'rgba(239, 68, 68, 0.12)'
+                            : sim.carrier === 'Vinaphone'
+                            ? 'rgba(59, 130, 246, 0.12)'
+                            : 'rgba(245, 158, 11, 0.12)'
                       }}
                     />
                   </TableCell>
@@ -157,13 +170,17 @@ export default function SimManagementTable({
                         }}
                       />
                     ) : (
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>Chưa sử dụng</Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                        Chưa sử dụng
+                      </Typography>
                     )}
                   </TableCell>
                   <TableCell>
                     <Stack direction="row" spacing={0.5} alignItems="center">
-                      <Wifi size={14} color={sim.signal > 1 ? '#16a34a' : '#d97706'} variant="Bold" />
-                      <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>{sim.signal}/4</Typography>
+                      <Wifi size={16} color={sim.signal > 1 ? '#16a34a' : '#d97706'} variant="Bold" />
+                      <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+                        {sim.signal}/4
+                      </Typography>
                     </Stack>
                   </TableCell>
                   <TableCell>
@@ -174,10 +191,20 @@ export default function SimManagementTable({
                         fontWeight: 600,
                         fontSize: '0.75rem',
                         borderRadius: 1,
-                        bgcolor: sim.status === 'active' ? 'rgba(34, 197, 94, 0.05)' : sim.status === 'ready' ? 'rgba(59, 130, 246, 0.05)' : 'rgba(100, 116, 139, 0.05)',
+                        bgcolor:
+                          sim.status === 'active'
+                            ? 'rgba(34, 197, 94, 0.05)'
+                            : sim.status === 'ready'
+                            ? 'rgba(59, 130, 246, 0.05)'
+                            : 'rgba(100, 116, 139, 0.05)',
                         color: sim.status === 'active' ? '#16a34a' : sim.status === 'ready' ? '#2563eb' : '#475569',
                         border: '1px solid',
-                        borderColor: sim.status === 'active' ? 'rgba(34, 197, 94, 0.15)' : sim.status === 'ready' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(100, 116, 139, 0.15)'
+                        borderColor:
+                          sim.status === 'active'
+                            ? 'rgba(34, 197, 94, 0.15)'
+                            : sim.status === 'ready'
+                            ? 'rgba(59, 130, 246, 0.15)'
+                            : 'rgba(100, 116, 139, 0.15)'
                       }}
                     />
                   </TableCell>
@@ -193,17 +220,13 @@ export default function SimManagementTable({
                               setSelectedDeviceId(sim.deviceId!);
                             }}
                           >
-                            <MapIcon size={15} />
+                            <MapIcon size={18} />
                           </IconButton>
                         </Tooltip>
                       ) : (
                         <Tooltip title="Gán vào thiết bị">
-                          <IconButton
-                            size="small"
-                            color="success"
-                            onClick={() => setAddDeviceOpen(true)}
-                          >
-                            <Add size={15} />
+                          <IconButton size="small" color="success" onClick={() => setAddDeviceOpen(true)}>
+                            <Add size={18} />
                           </IconButton>
                         </Tooltip>
                       )}

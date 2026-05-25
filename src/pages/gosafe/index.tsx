@@ -1,13 +1,5 @@
 import './gosafe.css';
-import {
-  Box,
-  CssBaseline,
-  ThemeProvider,
-  createTheme,
-  Fab,
-  Zoom,
-  useScrollTrigger
-} from '@mui/material';
+import { Box, CssBaseline, ThemeProvider, createTheme, Fab, Zoom, useScrollTrigger } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import useConfig from 'hooks/useConfig';
 import { ThemeMode } from 'types/config';
@@ -42,11 +34,7 @@ function ScrollTop(props: { children: React.ReactElement }) {
 
   return (
     <Zoom in={trigger}>
-      <Box
-        onClick={handleClick}
-        role="presentation"
-        sx={{ position: 'fixed', bottom: 32, right: 32, zIndex: 999 }}
-      >
+      <Box onClick={handleClick} role="presentation" sx={{ position: 'fixed', bottom: 32, right: 32, zIndex: 999 }}>
         {props.children}
       </Box>
     </Zoom>
@@ -103,7 +91,7 @@ const GosafeLanding = ({ viewType = 'landing' }: GosafeLandingProps) => {
           button: { fontWeight: 600 }
         },
         shape: {
-          borderRadius: 12
+          borderRadius: 6
         },
         components: {
           MuiButton: {
@@ -141,9 +129,7 @@ const GosafeLanding = ({ viewType = 'landing' }: GosafeLandingProps) => {
             secondaryColor={secondaryColor}
             isDark={isDark}
             currentLang={i18n}
-            onToggleTheme={() =>
-              onChangeMode(mode === ThemeMode.DARK ? ThemeMode.LIGHT : ThemeMode.DARK)
-            }
+            onToggleTheme={() => onChangeMode(mode === ThemeMode.DARK ? ThemeMode.LIGHT : ThemeMode.DARK)}
             onToggleLanguage={() => onChangeLocalization(i18n === 'vi' ? 'en' : 'vi')}
             activeView={viewType}
             onViewChange={(v) => navigate(v === 'tracking' ? '/gosafe/tracking' : '/gosafe')}
@@ -152,38 +138,13 @@ const GosafeLanding = ({ viewType = 'landing' }: GosafeLandingProps) => {
 
         {viewType === 'landing' ? (
           <>
-            <SolutionsSection
-              isDark={isDark}
-              primaryColor={primaryColor}
-              secondaryColor={secondaryColor}
-            />
-            <HeroSection
-              isDark={isDark}
-              primaryColor={primaryColor}
-              secondaryColor={secondaryColor}
-            />
-            <ProductsSection
-              isDark={isDark}
-              primaryColor={primaryColor}
-              secondaryColor={secondaryColor}
-            />
-            <SpecsSection
-              isDark={isDark}
-              primaryColor={primaryColor}
-              secondaryColor={secondaryColor}
-            />
-            <FAQSection
-              faqs={faqsGosafe}
-              isDark={isDark}
-              primaryColor={primaryColor}
-              secondaryColor={secondaryColor}
-            />
+            <SolutionsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+            <HeroSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+            <ProductsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+            <SpecsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+            <FAQSection faqs={faqsGosafe} isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
 
-            <ContactSection
-              isDark={isDark}
-              primaryColor={primaryColor}
-              secondaryColor={secondaryColor}
-            />
+            <ContactSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
             <Footer isDark={isDark} primaryColor={primaryColor} />
 
             <ScrollTop>
@@ -201,12 +162,7 @@ const GosafeLanding = ({ viewType = 'landing' }: GosafeLandingProps) => {
             </ScrollTop>
           </>
         ) : (
-          <TrackingSection
-            isDark={isDark}
-            primaryColor={primaryColor}
-            secondaryColor={secondaryColor}
-            onBackToLanding={() => navigate('/gosafe')}
-          />
+          <TrackingSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
         )}
       </Box>
     </ThemeProvider>

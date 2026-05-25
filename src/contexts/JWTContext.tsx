@@ -220,7 +220,7 @@ export const JWTProvider = ({ children }: { children: ReactElement }) => {
         };
 
         dispatch(loginStore({ isLoggedIn: true, user: mockUser }));
-        
+
         setAccessToken('mock-gosafe-access-token');
         setRefreshToken('mock-gosafe-refresh-token');
 
@@ -237,10 +237,7 @@ export const JWTProvider = ({ children }: { children: ReactElement }) => {
         const parseString = JSON.stringify(mockKeyAccess);
         const permissionsString = JSON.stringify(mockPermissions);
         const encryptedData = Crypto.AES.encrypt(parseString, import.meta.env.VITE_APP_SECRET_KEY as string).toString();
-        const encryptedDataPermission = Crypto.AES.encrypt(
-          permissionsString,
-          import.meta.env.VITE_APP_SECRET_KEY as string
-        ).toString();
+        const encryptedDataPermission = Crypto.AES.encrypt(permissionsString, import.meta.env.VITE_APP_SECRET_KEY as string).toString();
 
         sessionStorage.setItem('accessPermission', encryptedData);
         sessionStorage.setItem('dataPermission', encryptedDataPermission);
@@ -314,11 +311,17 @@ export const JWTProvider = ({ children }: { children: ReactElement }) => {
       });
     }
 
-    navigate(`/login`, {
-      state: {
-        from: ''
-      }
-    });
+    const env = import.meta.env.VITE_APP_ENV;
+    const isLandingEnabled = env === 'production' || env === 'development';
+    if (isLandingEnabled) {
+      navigate('/gosafe', { replace: true });
+    } else {
+      navigate(`/login`, {
+        state: {
+          from: ''
+        }
+      });
+    }
   };
 
   const resetPassword = async (username: string, email: string, newPassword: string) => {

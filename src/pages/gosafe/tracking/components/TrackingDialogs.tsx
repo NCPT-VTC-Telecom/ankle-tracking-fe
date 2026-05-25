@@ -212,7 +212,7 @@ export default function TrackingDialogs({ store }: Props) {
   } = store;
 
   const paperSx = {
-    borderRadius: 4,
+    borderRadius: 2,
     bgcolor: isDark ? '#0f172a' : '#fff',
     backgroundImage: 'none'
   };
@@ -284,7 +284,7 @@ export default function TrackingDialogs({ store }: Props) {
         onClose={() => setRemoveConfirmId(null)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { ...paperSx, borderRadius: 3 } }}
+        PaperProps={{ sx: paperSx }}
       >
         <DialogTitle sx={{ fontWeight: 700 }}>Xác nhận xoá</DialogTitle>
         <DialogContent>

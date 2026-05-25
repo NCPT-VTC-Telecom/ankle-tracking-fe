@@ -16,15 +16,7 @@ import {
   Tooltip,
   IconButton
 } from '@mui/material';
-import {
-  SearchNormal1,
-  Add,
-  Wifi,
-  Map as MapIcon,
-  Gps,
-  Edit,
-  Trash
-} from 'iconsax-react';
+import { SearchNormal1, Add, Wifi, Map as MapIcon, Gps, Edit, Trash } from 'iconsax-react';
 import { TrackingStore } from '../../tracking/useTracking';
 
 interface DeviceManagementTableProps {
@@ -33,11 +25,7 @@ interface DeviceManagementTableProps {
   setDashboardView: (view: 'overview' | 'tracking' | 'devices' | 'prisoners' | 'sims') => void;
 }
 
-export default function DeviceManagementTable({
-  isDark,
-  store,
-  setDashboardView
-}: DeviceManagementTableProps) {
+export default function DeviceManagementTable({ isDark, store, setDashboardView }: DeviceManagementTableProps) {
   const {
     devices,
     geofences,
@@ -55,11 +43,12 @@ export default function DeviceManagementTable({
   const filteredDeviceTable = useMemo(() => {
     if (!deviceSearch) return devices;
     const q = deviceSearch.toLowerCase();
-    return devices.filter(d =>
-      d.name.toLowerCase().includes(q) ||
-      d.uniqueId.includes(q) ||
-      d.phoneNumber.includes(q) ||
-      (d.subject?.fullName.toLowerCase().includes(q) ?? false)
+    return devices.filter(
+      (d) =>
+        d.name.toLowerCase().includes(q) ||
+        d.uniqueId.includes(q) ||
+        d.phoneNumber.includes(q) ||
+        (d.subject?.fullName.toLowerCase().includes(q) ?? false)
     );
   }, [devices, deviceSearch]);
 
@@ -72,7 +61,7 @@ export default function DeviceManagementTable({
           value={deviceSearch}
           onChange={(e) => setDeviceSearch(e.target.value)}
           InputProps={{
-            startAdornment: <SearchNormal1 size={14} style={{ marginRight: 6, color: '#94a3b8' }} />,
+            startAdornment: <SearchNormal1 size={18} style={{ marginRight: 6, color: '#94a3b8' }} />,
             sx: { fontSize: '0.825rem', borderRadius: 1.5 }
           }}
           sx={{ width: 260 }}
@@ -80,7 +69,7 @@ export default function DeviceManagementTable({
         <Button
           variant="contained"
           size="small"
-          startIcon={<Add size={16} />}
+          startIcon={<Add size={18} />}
           onClick={() => setAddDeviceOpen(true)}
           sx={{ borderRadius: 1.5, fontWeight: 600, fontSize: '0.8rem', textTransform: 'none', py: 0.75, px: 2 }}
         >
@@ -92,15 +81,36 @@ export default function DeviceManagementTable({
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>Tên thiết bị</TableCell>
-              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>IMEI</TableCell>
-              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>Model</TableCell>
-              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>Số SIM</TableCell>
-              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>Trạng thái</TableCell>
-              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>Pin</TableCell>
-              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>Sóng</TableCell>
-              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>Người đeo</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>Thao tác</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>
+                Tên thiết bị
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>
+                IMEI
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>
+                Model
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>
+                Số SIM
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>
+                Trạng thái
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>
+                Pin
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>
+                Sóng
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}>
+                Người đeo
+              </TableCell>
+              <TableCell
+                align="right"
+                sx={{ fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', py: 1.2 }}
+              >
+                Thao tác
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -128,18 +138,32 @@ export default function DeviceManagementTable({
                         fontWeight: 600,
                         fontSize: '0.75rem',
                         borderRadius: 1,
-                        bgcolor: isViolating ? 'rgba(239, 68, 68, 0.05)' : conn === 'online' ? 'rgba(34, 197, 94, 0.05)' : conn === 'offline' ? 'rgba(100, 116, 139, 0.05)' : 'rgba(245, 158, 11, 0.05)',
+                        bgcolor: isViolating
+                          ? 'rgba(239, 68, 68, 0.05)'
+                          : conn === 'online'
+                          ? 'rgba(34, 197, 94, 0.05)'
+                          : conn === 'offline'
+                          ? 'rgba(100, 116, 139, 0.05)'
+                          : 'rgba(245, 158, 11, 0.05)',
                         color: isViolating ? '#dc2626' : conn === 'online' ? '#16a34a' : conn === 'offline' ? '#475569' : '#d97706',
                         border: '1px solid',
-                        borderColor: isViolating ? 'rgba(239, 68, 68, 0.15)' : conn === 'online' ? 'rgba(34, 197, 94, 0.15)' : conn === 'offline' ? 'rgba(100, 116, 139, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                        borderColor: isViolating
+                          ? 'rgba(239, 68, 68, 0.15)'
+                          : conn === 'online'
+                          ? 'rgba(34, 197, 94, 0.15)'
+                          : conn === 'offline'
+                          ? 'rgba(100, 116, 139, 0.15)'
+                          : 'rgba(245, 158, 11, 0.15)'
                       }}
                     />
                   </TableCell>
                   <TableCell sx={{ fontWeight: 500, fontSize: '0.8rem' }}>{dev.status.battery}%</TableCell>
                   <TableCell>
                     <Stack direction="row" spacing={0.5} alignItems="center">
-                      <Wifi size={14} color={dev.status.signalStrength > 1 ? '#16a34a' : '#d97706'} variant="Bold" />
-                      <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>{dev.status.signalStrength}/4</Typography>
+                      <Wifi size={16} color={dev.status.signalStrength > 1 ? '#16a34a' : '#d97706'} variant="Bold" />
+                      <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+                        {dev.status.signalStrength}/4
+                      </Typography>
                     </Stack>
                   </TableCell>
                   <TableCell>
@@ -160,7 +184,9 @@ export default function DeviceManagementTable({
                         }}
                       />
                     ) : (
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>Chưa gán</Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                        Chưa gán
+                      </Typography>
                     )}
                   </TableCell>
                   <TableCell align="right">
@@ -174,7 +200,7 @@ export default function DeviceManagementTable({
                             setSelectedDeviceId(dev.id);
                           }}
                         >
-                          <MapIcon size={15} />
+                          <MapIcon size={18} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Gán vùng Geofence">
@@ -183,24 +209,17 @@ export default function DeviceManagementTable({
                           color="success"
                           onClick={() => setAssignGeofenceId(dev.assignedGeofenceId || geofences[0]?.id)}
                         >
-                          <Gps size={15} />
+                          <Gps size={18} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Sửa">
-                        <IconButton
-                          size="small"
-                          onClick={() => openEditDevice(dev)}
-                        >
-                          <Edit size={15} />
+                        <IconButton size="small" onClick={() => openEditDevice(dev)}>
+                          <Edit size={18} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Xóa">
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => setRemoveConfirmId(dev.id)}
-                        >
-                          <Trash size={15} />
+                        <IconButton size="small" color="error" onClick={() => setRemoveConfirmId(dev.id)}>
+                          <Trash size={18} />
                         </IconButton>
                       </Tooltip>
                     </Stack>
