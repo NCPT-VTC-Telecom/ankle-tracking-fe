@@ -40,6 +40,32 @@
   50%       { transform: scale(1.5); opacity: 0.5; }
 }
 
+@keyframes gs-pulse-heart {
+  0% { transform: scale(1); }
+  14% { transform: scale(1.15); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.15); }
+  70% { transform: scale(1); }
+}
+
+.gs-pulse-heart-icon {
+  animation: gs-pulse-heart 1.4s infinite;
+  display: inline-block;
+  transform-origin: center;
+}
+
+/* Glassmorphism tactical panels */
+.gs-glass-panel {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.gs-glow-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+
 /* ═══════════════════════════════════════════════════════════════════════════
    3. LAYOUT / UTILITY
    ═══════════════════════════════════════════════════════════════════════════ */

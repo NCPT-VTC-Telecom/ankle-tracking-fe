@@ -4,10 +4,6 @@ import {
   Stack,
   Typography,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Button,
   Alert,
   Switch,
@@ -46,6 +42,7 @@ export default function GpsHistoryPanel({ store }: Props) {
   const [localSearch, setLocalSearch] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'moving' | 'stationary' | 'events' | 'nogps'>('all');
   const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
+  const [isFilterExpanded, setIsFilterExpanded] = useState(true);
 
   const hs = dev ? historyState[dev.id] : null;
   const hd = hs?.data;
@@ -96,71 +93,167 @@ export default function GpsHistoryPanel({ store }: Props) {
     <Stack spacing={1.5}>
       <Divider sx={{ my: 0.5 }} />
 
-      <Stack direction="row" alignItems="center" spacing={1}>
-        <ReceiptSearch size="18" color={primaryColor} />
-        <Typography variant="caption" sx={{ fontWeight: 700, color: primaryColor, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-          Lịch sử GPS
-        </Typography>
-      </Stack>
-
-      {/* Date range */}
-      <Stack direction="row" spacing={1}>
-        <TextField
-          label="Từ ngày"
-          type="date"
-          size="small"
-          fullWidth
-          InputLabelProps={{ shrink: true }}
-          value={historyFilters.from}
-          onChange={(e) => setHistoryFilters((f) => ({ ...f, from: e.target.value }))}
-          onClick={(e) => e.stopPropagation()}
-          sx={{ '& .MuiInputBase-root': { borderRadius: 2 } }}
-        />
-        <TextField
-          label="Đến ngày"
-          type="date"
-          size="small"
-          fullWidth
-          InputLabelProps={{ shrink: true }}
-          value={historyFilters.to}
-          onChange={(e) => setHistoryFilters((f) => ({ ...f, to: e.target.value }))}
-          onClick={(e) => e.stopPropagation()}
-          sx={{ '& .MuiInputBase-root': { borderRadius: 2 } }}
-        />
-      </Stack>
-
-      {/* Limit + Load */}
-      <Stack direction="row" spacing={1} alignItems="center">
-        <FormControl size="small" sx={{ minWidth: 110 }}>
-          <InputLabel>Số bản ghi</InputLabel>
-          <Select
-            value={historyFilters.limit}
-            label="Số bản ghi"
-            onChange={(e) => setHistoryFilters((f) => ({ ...f, limit: Number(e.target.value) }))}
-            sx={{ borderRadius: 2 }}
-          >
-            <MenuItem value={20}>20</MenuItem>
-            <MenuItem value={50}>50</MenuItem>
-            <MenuItem value={100}>100</MenuItem>
-            <MenuItem value={200}>200</MenuItem>
-          </Select>
-        </FormControl>
-
-        <Button
-          variant="contained"
-          fullWidth
-          size="small"
-          startIcon={hs?.loading ? <CircularProgress size={13} color="inherit" /> : <Clock size="18" />}
-          disabled={hs?.loading}
-          onClick={(e) => {
-            e.stopPropagation();
-            loadDeviceHistory(dev);
+      {!isFilterExpanded && hd ? (
+        <Box
+          onClick={() => setIsFilterExpanded(true)}
+          sx={{
+            p: 1.5,
+            borderRadius: 1.5,
+            bgcolor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+            border: '1px dashed',
+            borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+              borderColor: primaryColor
+            }
           }}
-          sx={{ borderRadius: 2, fontWeight: 700, py: 0.9 }}
         >
-          {hs?.loading ? 'Đang tải...' : 'Tải lịch sử'}
-        </Button>
-      </Stack>
+          <Stack spacing={0.3}>
+            <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8rem', color: isDark ? '#f8fafc' : '#0f172a' }}>
+              Bộ lọc: {new Date(historyFilters.from).toLocaleDateString('vi-VN')} -{' '}
+              {new Date(historyFilters.to).toLocaleDateString('vi-VN')}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Tải {historyFilters.limit} bản ghi • Click để cấu hình
+            </Typography>
+          </Stack>
+          <Button size="small" variant="text" sx={{ fontWeight: 700, fontSize: '0.75rem', color: primaryColor }}>
+            Thay đổi
+          </Button>
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+            border: '1px solid',
+            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+            borderRadius: 2,
+            p: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2
+          }}
+        >
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <ReceiptSearch size="18" color={primaryColor} />
+              <Typography variant="caption" sx={{ fontWeight: 700, color: primaryColor, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                Cấu hình thời gian & bản ghi
+              </Typography>
+            </Stack>
+            {hd && (
+              <Button
+                size="small"
+                variant="text"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsFilterExpanded(false);
+                }}
+                sx={{ fontWeight: 700, fontSize: '0.75rem', p: 0, minWidth: 0 }}
+              >
+                Thu gọn
+              </Button>
+            )}
+          </Stack>
+
+          {/* Date range */}
+          <Stack direction="row" spacing={1.5}>
+            <TextField
+              label="Từ ngày"
+              type="date"
+              size="small"
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              value={historyFilters.from}
+              onChange={(e) => setHistoryFilters((f) => ({ ...f, from: e.target.value }))}
+              onClick={(e) => e.stopPropagation()}
+              sx={{ '& .MuiInputBase-root': { borderRadius: 1.5 } }}
+            />
+            <TextField
+              label="Đến ngày"
+              type="date"
+              size="small"
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              value={historyFilters.to}
+              onChange={(e) => setHistoryFilters((f) => ({ ...f, to: e.target.value }))}
+              onClick={(e) => e.stopPropagation()}
+              sx={{ '& .MuiInputBase-root': { borderRadius: 1.5 } }}
+            />
+          </Stack>
+
+          {/* Custom Record Limit */}
+          <Stack spacing={1}>
+            <TextField
+              label="Số bản ghi tải về"
+              type="number"
+              size="small"
+              fullWidth
+              value={historyFilters.limit}
+              onChange={(e) => {
+                const val = Math.max(1, Math.min(10000, Number(e.target.value) || 1));
+                setHistoryFilters((f) => ({ ...f, limit: val }));
+              }}
+              onClick={(e) => e.stopPropagation()}
+              InputProps={{
+                inputProps: { min: 1, max: 10000 },
+                sx: { borderRadius: 1.5 }
+              }}
+            />
+
+            {/* Quick presets helper */}
+            <Stack direction="row" spacing={0.8} alignItems="center" flexWrap="wrap">
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+                Chọn nhanh:
+              </Typography>
+              {[20, 50, 150, 500, 1000].map((preset) => {
+                const active = historyFilters.limit === preset;
+                return (
+                  <Chip
+                    key={preset}
+                    label={preset}
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setHistoryFilters((f) => ({ ...f, limit: preset }));
+                    }}
+                    variant="outlined"
+                    color={active ? 'primary' : 'default'}
+                    sx={{
+                      fontSize: '0.68rem',
+                      height: 20,
+                      borderRadius: 1,
+                      cursor: 'pointer',
+                      borderColor: active ? undefined : isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'
+                    }}
+                  />
+                );
+              })}
+            </Stack>
+          </Stack>
+
+          <Button
+            variant="contained"
+            fullWidth
+            size="small"
+            startIcon={hs?.loading ? <CircularProgress size={13} color="inherit" /> : <Clock size="18" />}
+            disabled={hs?.loading}
+            onClick={(e) => {
+              e.stopPropagation();
+              loadDeviceHistory(dev);
+              setIsFilterExpanded(false);
+            }}
+            sx={{ borderRadius: 1.5, fontWeight: 700, py: 1 }}
+          >
+            {hs?.loading ? 'Đang tải...' : 'Tải lịch sử'}
+          </Button>
+        </Box>
+      )}
 
       {hs?.loading && <LinearProgress sx={{ borderRadius: 0.5 }} />}
 
@@ -293,7 +386,7 @@ export default function GpsHistoryPanel({ store }: Props) {
               </Typography>
               <Box
                 sx={{
-                  maxHeight: 250,
+                  maxHeight: 480,
                   overflowY: 'auto',
                   border: '1px solid',
                   borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',

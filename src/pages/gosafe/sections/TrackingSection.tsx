@@ -43,6 +43,8 @@ import GeofenceList from '../tracking/components/GeofenceList';
 import NotificationList from '../tracking/components/NotificationList';
 import GpsHistoryPanel from '../tracking/components/GpsHistoryPanel';
 import TrackingDialogs from '../tracking/components/TrackingDialogs';
+import ProfileDialog from '../tracking/components/ProfileDialog';
+import SystemConfigDialog from '../tracking/components/SystemConfigDialog';
 
 // Subcomponents
 import DashboardOverview from './components/DashboardOverview';
@@ -85,6 +87,10 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
   const [bellAnchorEl, setBellAnchorEl] = useState<null | HTMLElement>(null);
   const handleBellOpen = (event: React.MouseEvent<HTMLElement>) => setBellAnchorEl(event.currentTarget);
   const handleBellClose = () => setBellAnchorEl(null);
+
+  // Profile and configuration dialog states
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
 
   // Derived stats
   const totalViolating = useMemo(() => Object.values(deviceViolations).filter(Boolean).length, [deviceViolations]);
@@ -261,13 +267,25 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
               }
             }}
           >
-            <MenuItem onClick={handleProfileClose} sx={{ py: 1, px: 2, gap: 1.2, fontSize: '0.85rem' }}>
+            <MenuItem
+              onClick={() => {
+                handleProfileClose();
+                setProfileDialogOpen(true);
+              }}
+              sx={{ py: 1, px: 2, gap: 1.2, fontSize: '0.85rem' }}
+            >
               <Profile2User size={18} />
               <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
                 Hồ sơ cá nhân
               </Typography>
             </MenuItem>
-            <MenuItem onClick={handleProfileClose} sx={{ py: 1, px: 2, gap: 1.2, fontSize: '0.85rem' }}>
+            <MenuItem
+              onClick={() => {
+                handleProfileClose();
+                setConfigDialogOpen(true);
+              }}
+              sx={{ py: 1, px: 2, gap: 1.2, fontSize: '0.85rem' }}
+            >
               <Cpu size={18} />
               <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
                 Cấu hình hệ thống
@@ -541,6 +559,22 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
 
       {/* Dialogs: Add/Edit Device, Delete, Geofence assign, geofence info, etc. */}
       <TrackingDialogs store={store} />
+
+      <ProfileDialog
+        open={profileDialogOpen}
+        onClose={() => setProfileDialogOpen(false)}
+        user={user}
+        primaryColor={primaryColor}
+        isDark={isDark}
+      />
+
+      <SystemConfigDialog
+        open={configDialogOpen}
+        onClose={() => setConfigDialogOpen(false)}
+        store={store}
+        primaryColor={primaryColor}
+        isDark={isDark}
+      />
     </Box>
   );
 }

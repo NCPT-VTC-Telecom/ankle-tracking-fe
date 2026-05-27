@@ -14,7 +14,7 @@ import {
   FormControlLabel
 } from '@mui/material';
 import { Add, Edit, Trash, DocumentText } from 'iconsax-react';
-import { getBatteryColor, timeAgo } from '../utils';
+import { getBatteryColor, timeAgo, getMockBiometrics } from '../utils';
 import type { TrackingStore } from '../useTracking';
 
 interface Props {
@@ -267,6 +267,88 @@ export default function DeviceList({ store }: Props) {
                       sx={{ fontWeight: 700, height: 22, fontSize: '0.7rem' }}
                     />
                   </Stack>
+
+                  {/* Biometrics */}
+                  {dev.subject &&
+                    (() => {
+                      const bio = getMockBiometrics(dev.id);
+                      return (
+                        <Box
+                          sx={{
+                            mt: 1,
+                            mb: 1.5,
+                            p: 1.25,
+                            bgcolor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                            borderRadius: 1.5,
+                            border: '1px solid',
+                            borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'
+                          }}
+                        >
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontWeight: 800,
+                              color: primaryColor,
+                              textTransform: 'uppercase',
+                              display: 'block',
+                              mb: 1,
+                              fontSize: '0.65rem'
+                            }}
+                          >
+                            Sinh trắc & Sức khỏe
+                          </Typography>
+                          <Stack spacing={1}>
+                            <Stack direction="row" justifyContent="space-between" alignItems="center">
+                              <Typography variant="caption" color="text.secondary">
+                                Nhịp tim:
+                              </Typography>
+                              <Stack direction="row" spacing={0.5} alignItems="center">
+                                <span className="gs-pulse-heart-icon">❤️</span>
+                                <Typography variant="caption" sx={{ fontWeight: 700, color: '#ef4444' }}>
+                                  {bio.heartRate} bpm
+                                </Typography>
+                              </Stack>
+                            </Stack>
+                            <Stack direction="row" justifyContent="space-between" alignItems="center">
+                              <Typography variant="caption" color="text.secondary">
+                                Nhiệt độ:
+                              </Typography>
+                              <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                {bio.temp} °C
+                              </Typography>
+                            </Stack>
+                            <Stack direction="row" justifyContent="space-between" alignItems="center">
+                              <Typography variant="caption" color="text.secondary">
+                                Vận động:
+                              </Typography>
+                              <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                {bio.steps.toLocaleString()} bước
+                              </Typography>
+                            </Stack>
+                            <Stack direction="row" justifyContent="space-between" alignItems="center">
+                              <Typography variant="caption" color="text.secondary">
+                                Khóa vòng:
+                              </Typography>
+                              <Chip
+                                label={bio.isTampered ? 'PHÁT HIỆN THÁO' : 'Khóa ổn định'}
+                                size="small"
+                                className={bio.isTampered ? 'gs-blink' : ''}
+                                sx={{
+                                  fontWeight: 700,
+                                  fontSize: '0.6rem',
+                                  height: 16,
+                                  borderRadius: 0.5,
+                                  bgcolor: bio.isTampered ? 'rgba(239, 68, 68, 0.08)' : 'rgba(34, 197, 94, 0.08)',
+                                  color: bio.isTampered ? '#ef4444' : '#22c55e',
+                                  border: '1px solid',
+                                  borderColor: bio.isTampered ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)'
+                                }}
+                              />
+                            </Stack>
+                          </Stack>
+                        </Box>
+                      );
+                    })()}
 
                   <Stack direction="row" justifyContent="space-between" py={0.8}>
                     <Typography variant="body2" color="text.secondary">

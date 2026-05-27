@@ -22,6 +22,7 @@ import {
   Alert
 } from '@mui/material';
 import { DEVICE_PALETTE } from '../constants';
+import { getMockBiometrics } from '../utils';
 import type { TrackingStore } from '../useTracking';
 
 interface Props {
@@ -36,19 +37,10 @@ function DeviceFormContent({ store }: Props) {
   return (
     <Stack spacing={2.5}>
       <Stack direction="row" spacing={2}>
-        <TextField
-          label="Tên thiết bị *"
-          fullWidth
-          value={f.name}
-          onChange={(e) => set({ name: e.target.value })}
-        />
+        <TextField label="Tên thiết bị *" fullWidth value={f.name} onChange={(e) => set({ name: e.target.value })} />
         <FormControl sx={{ minWidth: 160 }}>
           <InputLabel>Loại</InputLabel>
-          <Select
-            value={f.type}
-            label="Loại"
-            onChange={(e) => set({ type: e.target.value as any })}
-          >
+          <Select value={f.type} label="Loại" onChange={(e) => set({ type: e.target.value as any })}>
             <MenuItem value="Person">Phạm nhân</MenuItem>
             <MenuItem value="Vehicle">Phương tiện</MenuItem>
             <MenuItem value="Asset">Tài sản</MenuItem>
@@ -56,25 +48,10 @@ function DeviceFormContent({ store }: Props) {
         </FormControl>
       </Stack>
       <Stack direction="row" spacing={2}>
-        <TextField
-          label="IMEI *"
-          fullWidth
-          value={f.uniqueId}
-          onChange={(e) => set({ uniqueId: e.target.value })}
-        />
-        <TextField
-          label="Số SIM"
-          fullWidth
-          value={f.phoneNumber}
-          onChange={(e) => set({ phoneNumber: e.target.value })}
-        />
+        <TextField label="IMEI *" fullWidth value={f.uniqueId} onChange={(e) => set({ uniqueId: e.target.value })} />
+        <TextField label="Số SIM" fullWidth value={f.phoneNumber} onChange={(e) => set({ phoneNumber: e.target.value })} />
       </Stack>
-      <TextField
-        label="Dòng thiết bị"
-        fullWidth
-        value={f.deviceType}
-        onChange={(e) => set({ deviceType: e.target.value })}
-      />
+      <TextField label="Dòng thiết bị" fullWidth value={f.deviceType} onChange={(e) => set({ deviceType: e.target.value })} />
 
       {/* Color swatches */}
       <Stack direction="row" spacing={1} alignItems="center" className="gs-swatch-row">
@@ -99,25 +76,10 @@ function DeviceFormContent({ store }: Props) {
             </Typography>
           </Divider>
           <Stack direction="row" spacing={2}>
-            <TextField
-              label="Họ và tên *"
-              fullWidth
-              value={f.subjectFullName}
-              onChange={(e) => set({ subjectFullName: e.target.value })}
-            />
-            <TextField
-              label="CCCD/CMND"
-              fullWidth
-              value={f.subjectIdNumber}
-              onChange={(e) => set({ subjectIdNumber: e.target.value })}
-            />
+            <TextField label="Họ và tên *" fullWidth value={f.subjectFullName} onChange={(e) => set({ subjectFullName: e.target.value })} />
+            <TextField label="CCCD/CMND" fullWidth value={f.subjectIdNumber} onChange={(e) => set({ subjectIdNumber: e.target.value })} />
           </Stack>
-          <TextField
-            label="Tội danh"
-            fullWidth
-            value={f.subjectCrime}
-            onChange={(e) => set({ subjectCrime: e.target.value })}
-          />
+          <TextField label="Tội danh" fullWidth value={f.subjectCrime} onChange={(e) => set({ subjectCrime: e.target.value })} />
           <TextField
             label="Bản án / Hình phạt"
             fullWidth
@@ -220,22 +182,13 @@ export default function TrackingDialogs({ store }: Props) {
   return (
     <>
       {/* ── Add Device ── */}
-      <Dialog
-        open={addDeviceOpen}
-        onClose={() => setAddDeviceOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{ sx: paperSx }}
-      >
+      <Dialog open={addDeviceOpen} onClose={() => setAddDeviceOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: paperSx }}>
         <DialogTitle sx={{ fontWeight: 800, pb: 0 }}>Thêm thiết bị mới</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <DeviceFormContent store={store} />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
-          <Button
-            onClick={() => setAddDeviceOpen(false)}
-            sx={{ borderRadius: 2.5, fontWeight: 600, color: 'text.secondary', py: 1 }}
-          >
+          <Button onClick={() => setAddDeviceOpen(false)} sx={{ borderRadius: 2.5, fontWeight: 600, color: 'text.secondary', py: 1 }}>
             Hủy
           </Button>
           <Button
@@ -250,54 +203,31 @@ export default function TrackingDialogs({ store }: Props) {
       </Dialog>
 
       {/* ── Edit Device ── */}
-      <Dialog
-        open={!!editDeviceId}
-        onClose={() => setEditDeviceId(null)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{ sx: paperSx }}
-      >
+      <Dialog open={!!editDeviceId} onClose={() => setEditDeviceId(null)} maxWidth="sm" fullWidth PaperProps={{ sx: paperSx }}>
         <DialogTitle sx={{ fontWeight: 800, pb: 0 }}>Chỉnh sửa thiết bị</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <DeviceFormContent store={store} />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
-          <Button
-            onClick={() => setEditDeviceId(null)}
-            sx={{ borderRadius: 2.5, fontWeight: 600, color: 'text.secondary', py: 1 }}
-          >
+          <Button onClick={() => setEditDeviceId(null)} sx={{ borderRadius: 2.5, fontWeight: 600, color: 'text.secondary', py: 1 }}>
             Hủy
           </Button>
-          <Button
-            variant="contained"
-            onClick={handleSaveEditDevice}
-            sx={{ borderRadius: 2.5, fontWeight: 700, py: 1, px: 3 }}
-          >
+          <Button variant="contained" onClick={handleSaveEditDevice} sx={{ borderRadius: 2.5, fontWeight: 700, py: 1, px: 3 }}>
             Lưu thay đổi
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* ── Remove Confirm ── */}
-      <Dialog
-        open={!!removeConfirmId}
-        onClose={() => setRemoveConfirmId(null)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: paperSx }}
-      >
+      <Dialog open={!!removeConfirmId} onClose={() => setRemoveConfirmId(null)} maxWidth="xs" fullWidth PaperProps={{ sx: paperSx }}>
         <DialogTitle sx={{ fontWeight: 700 }}>Xác nhận xoá</DialogTitle>
         <DialogContent>
           <Typography>
-            Bạn có chắc muốn xoá thiết bị{' '}
-            <b>{devices.find((d) => d.id === removeConfirmId)?.name}</b>?
+            Bạn có chắc muốn xoá thiết bị <b>{devices.find((d) => d.id === removeConfirmId)?.name}</b>?
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
-          <Button
-            onClick={() => setRemoveConfirmId(null)}
-            sx={{ borderRadius: 2.5, fontWeight: 600, py: 1 }}
-          >
+          <Button onClick={() => setRemoveConfirmId(null)} sx={{ borderRadius: 2.5, fontWeight: 600, py: 1 }}>
             Hủy
           </Button>
           <Button
@@ -317,17 +247,9 @@ export default function TrackingDialogs({ store }: Props) {
         const sub = dev?.subject;
         if (!dev || !sub) return null;
         const release = sub.releaseDate ? new Date(sub.releaseDate) : null;
-        const daysLeft = release
-          ? Math.max(0, Math.ceil((release.getTime() - Date.now()) / 86400000))
-          : null;
+        const daysLeft = release ? Math.max(0, Math.ceil((release.getTime() - Date.now()) / 86400000)) : null;
         return (
-          <Dialog
-            open={!!subjectDetailId}
-            onClose={() => setSubjectDetailId(null)}
-            maxWidth="xs"
-            fullWidth
-            PaperProps={{ sx: paperSx }}
-          >
+          <Dialog open={!!subjectDetailId} onClose={() => setSubjectDetailId(null)} maxWidth="xs" fullWidth PaperProps={{ sx: paperSx }}>
             <DialogTitle sx={{ fontWeight: 800 }}>Hồ sơ phạm nhân</DialogTitle>
             <DialogContent>
               <Stack spacing={2}>
@@ -377,6 +299,79 @@ export default function TrackingDialogs({ store }: Props) {
                     sx={{ fontWeight: 700 }}
                   />
                 )}
+                <Divider />
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 700,
+                    color: '#2d5eaf',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.6,
+                    fontSize: '0.68rem',
+                    display: 'block'
+                  }}
+                >
+                  Sinh trắc học & Vận động
+                </Typography>
+                {(() => {
+                  const bio = getMockBiometrics(dev.id);
+                  return (
+                    <Stack spacing={1} sx={{ mt: 0.5 }}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography variant="body2" color="text.secondary">
+                          Nhịp tim:
+                        </Typography>
+                        <Stack direction="row" spacing={0.5} alignItems="center">
+                          <span className="gs-pulse-heart-icon" style={{ display: 'inline-block' }}>
+                            ❤️
+                          </span>
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: '#ef4444' }}>
+                            {bio.heartRate} bpm
+                          </Typography>
+                        </Stack>
+                      </Stack>
+
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography variant="body2" color="text.secondary">
+                          Nhiệt độ da:
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {bio.temp} °C
+                        </Typography>
+                      </Stack>
+
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography variant="body2" color="text.secondary">
+                          Số bước di chuyển:
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {bio.steps.toLocaleString()} bước
+                        </Typography>
+                      </Stack>
+
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography variant="body2" color="text.secondary">
+                          Tiếp xúc vòng chân:
+                        </Typography>
+                        <Chip
+                          label={bio.isTampered ? 'PHÁT HIỆN THÁO XÍCH' : 'Khóa đeo ổn định'}
+                          size="small"
+                          className={bio.isTampered ? 'gs-blink' : ''}
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: '0.65rem',
+                            height: 20,
+                            borderRadius: 1,
+                            bgcolor: bio.isTampered ? 'rgba(239, 68, 68, 0.08)' : 'rgba(34, 197, 94, 0.08)',
+                            color: bio.isTampered ? '#ef4444' : '#22c55e',
+                            border: '1px solid',
+                            borderColor: bio.isTampered ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)'
+                          }}
+                        />
+                      </Stack>
+                    </Stack>
+                  );
+                })()}
                 {sub.notes && (
                   <Box
                     sx={{
@@ -385,11 +380,7 @@ export default function TrackingDialogs({ store }: Props) {
                       p: 1.5
                     }}
                   >
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}
-                    >
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>
                       Ghi chú:
                     </Typography>
                     <Typography variant="body2">{sub.notes}</Typography>
@@ -415,13 +406,7 @@ export default function TrackingDialogs({ store }: Props) {
         const gf = geofences.find((g) => g.id === assignGeofenceId);
         if (!gf) return null;
         return (
-          <Dialog
-            open={!!assignGeofenceId}
-            onClose={() => setAssignGeofenceId(null)}
-            maxWidth="xs"
-            fullWidth
-            PaperProps={{ sx: paperSx }}
-          >
+          <Dialog open={!!assignGeofenceId} onClose={() => setAssignGeofenceId(null)} maxWidth="xs" fullWidth PaperProps={{ sx: paperSx }}>
             <DialogTitle sx={{ fontWeight: 800, pb: 0 }}>Gán thiết bị vào "{gf.name}"</DialogTitle>
             <DialogContent sx={{ pt: 1.5 }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -430,17 +415,12 @@ export default function TrackingDialogs({ store }: Props) {
               <List disablePadding>
                 {devices.map((dev) => {
                   const isAssigned = dev.assignedGeofenceId === gf.id;
-                  const other =
-                    !isAssigned && dev.assignedGeofenceId
-                      ? geofences.find((g) => g.id === dev.assignedGeofenceId)?.name
-                      : null;
+                  const other = !isAssigned && dev.assignedGeofenceId ? geofences.find((g) => g.id === dev.assignedGeofenceId)?.name : null;
                   return (
                     <ListItem key={dev.id} disableGutters sx={{ py: 0.5 }}>
                       <Checkbox
                         checked={isAssigned}
-                        onChange={(e) =>
-                          handleAssignDeviceToGeofence(dev.id, e.target.checked ? gf.id : null)
-                        }
+                        onChange={(e) => handleAssignDeviceToGeofence(dev.id, e.target.checked ? gf.id : null)}
                         sx={{ color: dev.color, '&.Mui-checked': { color: dev.color } }}
                       />
                       <Avatar
@@ -488,13 +468,7 @@ export default function TrackingDialogs({ store }: Props) {
       })()}
 
       {/* ── Edit Geofence Info ── */}
-      <Dialog
-        open={!!editGfId}
-        onClose={() => setEditGfId(null)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: paperSx }}
-      >
+      <Dialog open={!!editGfId} onClose={() => setEditGfId(null)} maxWidth="xs" fullWidth PaperProps={{ sx: paperSx }}>
         <DialogTitle sx={{ fontWeight: 800 }}>Thông tin vùng giám sát</DialogTitle>
         <DialogContent>
           <Stack spacing={2.5} sx={{ mt: 1 }}>
@@ -511,37 +485,21 @@ export default function TrackingDialogs({ store }: Props) {
               onChange={(e) => setEditGfForm((f) => ({ ...f, address: e.target.value }))}
               placeholder="VD: 614 Điện Biên Phủ, P.25, Q.Bình Thạnh"
             />
-            <GfColorRow
-              value={editGfForm.color}
-              onChange={(c) => setEditGfForm((f) => ({ ...f, color: c }))}
-            />
+            <GfColorRow value={editGfForm.color} onChange={(c) => setEditGfForm((f) => ({ ...f, color: c }))} />
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
-          <Button
-            onClick={() => setEditGfId(null)}
-            sx={{ borderRadius: 2.5, fontWeight: 600, color: 'text.secondary', py: 1 }}
-          >
+          <Button onClick={() => setEditGfId(null)} sx={{ borderRadius: 2.5, fontWeight: 600, color: 'text.secondary', py: 1 }}>
             Hủy
           </Button>
-          <Button
-            variant="contained"
-            onClick={handleSaveGfInfo}
-            sx={{ borderRadius: 2.5, fontWeight: 700, py: 1, px: 3 }}
-          >
+          <Button variant="contained" onClick={handleSaveGfInfo} sx={{ borderRadius: 2.5, fontWeight: 700, py: 1, px: 3 }}>
             Lưu
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* ── Add Geofence ── */}
-      <Dialog
-        open={addGfOpen}
-        onClose={() => setAddGfOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: paperSx }}
-      >
+      <Dialog open={addGfOpen} onClose={() => setAddGfOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: paperSx }}>
         <DialogTitle sx={{ fontWeight: 800 }}>Thêm vùng giám sát mới</DialogTitle>
         <DialogContent>
           <Stack spacing={2.5} sx={{ mt: 1 }}>
@@ -558,20 +516,14 @@ export default function TrackingDialogs({ store }: Props) {
               onChange={(e) => setAddGfForm((f) => ({ ...f, address: e.target.value }))}
               placeholder="VD: 614 Điện Biên Phủ, P.25, Q.Bình Thạnh"
             />
-            <GfColorRow
-              value={addGfForm.color}
-              onChange={(c) => setAddGfForm((f) => ({ ...f, color: c }))}
-            />
+            <GfColorRow value={addGfForm.color} onChange={(c) => setAddGfForm((f) => ({ ...f, color: c }))} />
             <Alert severity="info" sx={{ borderRadius: 2 }}>
               Vùng mới xuất hiện ở vị trí mặc định. Bấm "Sửa ranh giới" để điều chỉnh.
             </Alert>
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
-          <Button
-            onClick={() => setAddGfOpen(false)}
-            sx={{ borderRadius: 2.5, fontWeight: 600, color: 'text.secondary', py: 1 }}
-          >
+          <Button onClick={() => setAddGfOpen(false)} sx={{ borderRadius: 2.5, fontWeight: 600, color: 'text.secondary', py: 1 }}>
             Hủy
           </Button>
           <Button

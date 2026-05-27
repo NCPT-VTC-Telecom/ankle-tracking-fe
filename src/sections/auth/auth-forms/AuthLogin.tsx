@@ -1,9 +1,12 @@
-import { Box, Button, FormHelperText, Link, Stack, TextField, Typography } from '@mui/material';
+import { Box, Divider, FormHelperText, Link, Stack, TextField, Typography } from '@mui/material';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
 import LoadingButton from 'components/@extended/LoadingButton';
 import { Formik } from 'formik';
 import useAuth from 'hooks/useAuth';
 import useMapCode from 'hooks/useMapCode';
 import useScriptRef from 'hooks/useScriptRef';
+import { Eye, EyeSlash, InfoCircle, Lock1, Profile, ShieldSecurity } from 'iconsax-react';
 import { enqueueSnackbar } from 'notistack';
 import { useState } from 'react';
 import { useIntl } from 'react-intl';
@@ -11,9 +14,6 @@ import { Link as RouterLink } from 'react-router-dom';
 import { dispatch } from 'store';
 import { handlerIconVariants, openSnackbar } from 'store/reducers/snackbar';
 import * as Yup from 'yup';
-import IconButton from '@mui/material/IconButton';
-import InputAdornment from '@mui/material/InputAdornment';
-import { Eye, EyeSlash, ShieldSecurity, Lock1, Profile } from 'iconsax-react';
 
 const AuthLogin = ({ forgot }: { forgot?: string }) => {
   const intl = useIntl();
@@ -24,39 +24,53 @@ const AuthLogin = ({ forgot }: { forgot?: string }) => {
 
   return (
     <Box sx={{ width: '100%' }}>
-      {/* Header */}
-      <Box sx={{ mb: 4, textAlign: 'center' }}>
-        <Stack direction="row" spacing={1.2} justifyContent="center" alignItems="center" sx={{ mb: 1 }}>
-          <ShieldSecurity size={28} color="#2563eb" variant="Bold" />
-          <Typography
-            variant="h3"
-            sx={{
-              fontWeight: 800,
-              fontSize: { xs: 20, sm: 24 },
-              letterSpacing: 0.5,
-              background: 'linear-gradient(135deg, #1e293b 0%, #475569 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}
-          >
-            ĐĂNG NHẬP HỆ THỐNG
-          </Typography>
-        </Stack>
-
-        <Typography
-          variant="body2"
+      {/* ── Header ── */}
+      <Box sx={{ mb: 3.5, textAlign: 'center' }}>
+        <Box
           sx={{
-            color: 'text.secondary',
-            fontWeight: 500,
-            fontSize: { xs: 13, sm: 14 },
-            lineHeight: 1.4
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 52,
+            height: 52,
+            borderRadius: '14px',
+            bgcolor: 'rgba(37, 99, 235, 0.08)',
+            border: '1.5px solid rgba(37, 99, 235, 0.18)',
+            mb: 2
           }}
         >
-          Trung tâm Giám sát Điện tử & Định vị Phạm nhân Ankle Tracker EMS
+          <ShieldSecurity size={26} color="#2563eb" variant="Bold" />
+        </Box>
+
+        <Typography
+          sx={{
+            fontWeight: 800,
+            fontSize: { xs: 18, sm: 21 },
+            letterSpacing: 0.8,
+            color: '#0f172a',
+            mb: 0.75
+          }}
+        >
+          ĐĂNG NHẬP HỆ THỐNG
+        </Typography>
+
+        <Typography
+          sx={{
+            color: '#64748b',
+            fontSize: { xs: 12.5, sm: 13 },
+            lineHeight: 1.55,
+            fontWeight: 400
+          }}
+        >
+          Hệ thống quản trị giám sát điện tử EMS
+
+
         </Typography>
       </Box>
 
-      {/* Form */}
+      <Divider sx={{ mb: 3, borderColor: 'rgba(0,0,0,0.07)' }} />
+
+      {/* ── Form ── */}
       <Formik
         initialValues={{ username: '', password: '', submit: null }}
         validationSchema={Yup.object().shape({
@@ -88,19 +102,13 @@ const AuthLogin = ({ forgot }: { forgot?: string }) => {
                 setStatus({ success: true });
                 setSubmitting(false);
                 dispatch(handlerIconVariants({ iconVariant: 'useemojis' }));
-                enqueueSnackbar(getStatusMessage('login', res.code), {
-                  variant: 'error'
-                });
+                enqueueSnackbar(getStatusMessage('login', res.code), { variant: 'error' });
               }
             }
           } catch {
             if (scriptedRef.current) {
               setStatus({ success: false });
-              setErrors({
-                submit: intl.formatMessage({
-                  id: 'verify-your-username-and-password'
-                })
-              });
+              setErrors({ submit: intl.formatMessage({ id: 'verify-your-username-and-password' }) });
               setSubmitting(false);
               dispatch(handlerIconVariants({ iconVariant: 'useemojis' }));
               enqueueSnackbar(intl.formatMessage({ id: 'login-failed' }), { variant: 'error' });
@@ -108,28 +116,19 @@ const AuthLogin = ({ forgot }: { forgot?: string }) => {
           }
         }}
       >
-        {({ errors, handleBlur, handleChange, handleSubmit, isSubmitting, touched, values, setFieldValue }) => (
+        {({ errors, handleBlur, handleChange, handleSubmit, isSubmitting, touched, values }) => (
           <form noValidate onSubmit={handleSubmit} style={{ width: '100%' }}>
-            <Stack spacing={3}>
+            <Stack spacing={2.5}>
               {/* Username */}
-              <div>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    mb: 0.75,
-                    ml: 0.5,
-                    fontWeight: 600,
-                    fontSize: 13,
-                    color: 'text.primary'
-                  }}
-                >
-                  Tên tài khoản quản trị
+              <Box>
+                <Typography sx={{ mb: 0.75, fontWeight: 600, fontSize: 13, color: '#334155' }}>
+                  Tên tài khoản
                 </Typography>
                 <TextField
                   fullWidth
                   variant="outlined"
                   name="username"
-                  placeholder="Nhập tên đăng nhập của bạn"
+                  placeholder="Nhập tên đăng nhập"
                   value={values.username}
                   onChange={handleChange}
                   onBlur={handleBlur}
@@ -141,23 +140,22 @@ const AuthLogin = ({ forgot }: { forgot?: string }) => {
                         <Profile size={18} color="#94a3b8" />
                       </InputAdornment>
                     ),
-                    sx: { borderRadius: 3 }
+                    sx: {
+                      borderRadius: 2.5,
+                      bgcolor: '#f8fafc',
+                      fontSize: 14,
+                      '& fieldset': { borderColor: 'rgba(0,0,0,0.1)' },
+                      '&:hover fieldset': { borderColor: '#2563eb !important' },
+                      '&.Mui-focused fieldset': { borderColor: '#2563eb !important' }
+                    }
                   }}
                 />
-              </div>
+              </Box>
+
               {/* Password */}
-              <div>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    mb: 0.75,
-                    ml: 0.5,
-                    fontWeight: 600,
-                    fontSize: 13,
-                    color: 'text.primary'
-                  }}
-                >
-                  Mật khẩu bảo mật
+              <Box>
+                <Typography sx={{ mb: 0.75, fontWeight: 600, fontSize: 13, color: '#334155' }}>
+                  Mật khẩu
                 </Typography>
                 <TextField
                   fullWidth
@@ -178,32 +176,33 @@ const AuthLogin = ({ forgot }: { forgot?: string }) => {
                     ),
                     endAdornment: (
                       <InputAdornment position="end">
-                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                          {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" size="small">
+                          {showPassword ? <EyeSlash size={18} color="#94a3b8" /> : <Eye size={18} color="#94a3b8" />}
                         </IconButton>
                       </InputAdornment>
                     ),
-                    sx: { borderRadius: 3 }
+                    sx: {
+                      borderRadius: 2.5,
+                      bgcolor: '#f8fafc',
+                      fontSize: 14,
+                      '& fieldset': { borderColor: 'rgba(0,0,0,0.1)' },
+                      '&:hover fieldset': { borderColor: '#2563eb !important' },
+                      '&.Mui-focused fieldset': { borderColor: '#2563eb !important' }
+                    }
                   }}
                 />
-              </div>
-              {/* Error text */}
+              </Box>
+
+              {/* Submit error */}
               {errors.submit && (
-                <FormHelperText
-                  error
-                  sx={{
-                    fontSize: 13,
-                    fontWeight: 500,
-                    color: '#dc2626'
-                  }}
-                >
+                <FormHelperText error sx={{ fontSize: 13, fontWeight: 500 }}>
                   {errors.submit}
                 </FormHelperText>
               )}
+
               {/* Forgot password */}
-              <Box sx={{ textAlign: 'end' }}>
+              <Box sx={{ textAlign: 'right', mt: -1 }}>
                 <Link
-                  variant="body2"
                   component={RouterLink}
                   to={isLoggedIn && forgot ? forgot : '/forgot-password'}
                   sx={{
@@ -217,6 +216,7 @@ const AuthLogin = ({ forgot }: { forgot?: string }) => {
                   Quên mật khẩu truy cập?
                 </Link>
               </Box>
+
               {/* Login button */}
               <LoadingButton
                 loading={isSubmitting}
@@ -227,74 +227,43 @@ const AuthLogin = ({ forgot }: { forgot?: string }) => {
                 size="large"
                 variant="contained"
                 sx={{
-                  borderRadius: 3,
-                  py: 1.5,
-                  color: 'white',
+                  borderRadius: 2.5,
+                  py: 1.55,
                   fontWeight: 700,
-                  fontSize: 15,
-                  bgcolor: '#2563eb',
+                  fontSize: 14,
+                  letterSpacing: 1.1,
+                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                  boxShadow: '0 4px 16px rgba(37, 99, 235, 0.32)',
+                  transition: 'all 0.2s',
                   '&:hover': {
-                    bgcolor: '#1d4ed8'
-                  }
+                    background: 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)',
+                    boxShadow: '0 6px 22px rgba(37, 99, 235, 0.48)',
+                    transform: 'translateY(-1px)'
+                  },
+                  '&:active': { transform: 'translateY(0)' }
                 }}
               >
                 ĐĂNG NHẬP HỆ THỐNG
               </LoadingButton>
 
-              {/* Demo Accounts Panel */}
-              <Box
+              {/* Security notice */}
+              <Stack
+                direction="row"
+                spacing={1}
+                alignItems="flex-start"
                 sx={{
-                  mt: 3,
-                  p: 2,
-                  borderRadius: 3,
-                  bgcolor: 'rgba(37, 99, 235, 0.03)',
-                  border: '1.5px dashed rgba(37, 99, 235, 0.15)',
-                  textAlign: 'center'
+                  mt: 0.5,
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: 'rgba(37, 99, 235, 0.04)',
+                  border: '1px solid rgba(37, 99, 235, 0.1)'
                 }}
               >
-                <Typography
-                  variant="caption"
-                  sx={{
-                    display: 'block',
-                    fontWeight: 700,
-                    color: '#2563eb',
-                    mb: 1.5,
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.8,
-                    fontSize: '0.7rem'
-                  }}
-                >
-                  Cổng kết nối tài khoản kiểm thử
+                <InfoCircle size={15} color="#3b82f6" style={{ marginTop: 1, flexShrink: 0 }} />
+                <Typography sx={{ fontSize: '0.71rem', color: '#64748b', lineHeight: 1.55 }}>
+                  Hệ thống chỉ dành cho nhân viên được ủy quyền. Mọi truy cập trái phép đều bị ghi nhận và xử lý theo quy định pháp luật.
                 </Typography>
-                <Stack direction="row" justifyContent="center">
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={() => {
-                      setFieldValue('username', 'gosafe_admin');
-                      setFieldValue('password', 'admin');
-                    }}
-                    startIcon={<ShieldSecurity size={14} />}
-                    sx={{
-                      borderRadius: 2,
-                      px: 3.5,
-                      py: 0.75,
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      bgcolor: '#2563eb',
-                      color: '#ffffff',
-                      textTransform: 'none',
-                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)',
-                      '&:hover': {
-                        bgcolor: '#1d4ed8',
-                        boxShadow: '0 6px 16px rgba(37, 99, 235, 0.25)'
-                      }
-                    }}
-                  >
-                    Đăng nhập tài khoản Demo (GoSafe Admin)
-                  </Button>
-                </Stack>
-              </Box>
+              </Stack>
             </Stack>
           </form>
         )}

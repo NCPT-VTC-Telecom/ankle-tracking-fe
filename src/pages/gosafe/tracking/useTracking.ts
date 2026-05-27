@@ -25,6 +25,7 @@ const SS = {
   SOUND:      'gosafe:soundEnabled',
   FOLLOW:     'gosafe:followDevice',
   SELECTED:   'gosafe:selectedDeviceId',
+  INTERVAL:   'gosafe:syncInterval',
 };
 
 function ssGet<T>(key: string, fallback: T): T {
@@ -161,6 +162,9 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
   const [mapCenter, setMapCenter] = useState<[number, number]>(BASE_CENTER);
   const [mapZoom, setMapZoom] = useState(16);
   const [tick, setTick] = useState(0);
+  const [syncInterval, setSyncInterval] = useState<number>(() =>
+    ssGet(SS.INTERVAL, 30),
+  );
 
   // ── HISTORY ──
   const [historyState, setHistoryState] = useState<Record<string, DeviceHistoryState>>({});
@@ -206,6 +210,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
   useEffect(() => { ssSet(SS.SOUND,     soundEnabled); },    [soundEnabled]);
   useEffect(() => { ssSet(SS.FOLLOW,    followDevice); },    [followDevice]);
   useEffect(() => { ssSet(SS.SELECTED,  selectedDeviceId); },[selectedDeviceId]);
+  useEffect(() => { ssSet(SS.INTERVAL,  syncInterval); },    [syncInterval]);
 
   // ── DERIVED ──────────────────────────────────────────────────────────────────
 
@@ -499,12 +504,12 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     }
   }, []);
 
-  // Poll live device positions every 30 s
+  // Poll live device positions based on syncInterval configuration
   useEffect(() => {
     fetchLiveDevices();
-    const id = setInterval(fetchLiveDevices, 30000);
+    const id = setInterval(fetchLiveDevices, syncInterval * 1000);
     return () => clearInterval(id);
-  }, [fetchLiveDevices]);
+  }, [fetchLiveDevices, syncInterval]);
 
   // ── GPS HISTORY ───────────────────────────────────────────────────────────────
 
@@ -547,6 +552,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     showAlertOverlay,
     mapCenter, setMapCenter,
     mapZoom, setMapZoom,
+    syncInterval, setSyncInterval,
     // History
     historyState, historyVisible, setHistoryVisible,
     historyFilters, setHistoryFilters,

@@ -3,10 +3,11 @@
 export function isPointInPolygon(lat: number, lng: number, polygon: [number, number][]) {
   let inside = false;
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const xi = polygon[i][1], yi = polygon[i][0];
-    const xj = polygon[j][1], yj = polygon[j][0];
-    if ((yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi)
-      inside = !inside;
+    const xi = polygon[i][1],
+      yi = polygon[i][0];
+    const xj = polygon[j][1],
+      yj = polygon[j][0];
+    if (yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
   }
   return inside;
 }
@@ -15,11 +16,7 @@ export function getDistance(lat1: number, lon1: number, lat2: number, lon2: numb
   const R = 6371000;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) ** 2;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
@@ -37,7 +34,7 @@ export function getPolygonArea(coords: [number, number][]) {
   const [latRef, lngRef] = [coords[0][0], coords[0][1]];
   const pts = coords.map((c) => ({
     x: (c[1] - lngRef) * 111320 * Math.cos((latRef * Math.PI) / 180),
-    y: (c[0] - latRef) * 111320,
+    y: (c[0] - latRef) * 111320
   }));
   let area = 0;
   for (let i = 0; i < pts.length; i++) {
@@ -48,16 +45,14 @@ export function getPolygonArea(coords: [number, number][]) {
 }
 
 export function getPolygonCentroid(coords: [number, number][]): [number, number] {
-  return [
-    coords.reduce((s, c) => s + c[0], 0) / coords.length,
-    coords.reduce((s, c) => s + c[1], 0) / coords.length,
-  ];
+  return [coords.reduce((s, c) => s + c[0], 0) / coords.length, coords.reduce((s, c) => s + c[1], 0) / coords.length];
 }
 
 export function interpolatePoints(points: [number, number][], steps: number): [number, number][] {
   const result: [number, number][] = [];
   for (let i = 0; i < points.length; i++) {
-    const cur = points[i], nxt = points[(i + 1) % points.length];
+    const cur = points[i],
+      nxt = points[(i + 1) % points.length];
     for (let s = 0; s < steps; s++) {
       const t = s / steps;
       result.push([cur[0] + (nxt[0] - cur[0]) * t, cur[1] + (nxt[1] - cur[1]) * t]);
@@ -73,8 +68,10 @@ export function getAngle(p1: [number, number], p2: [number, number]) {
 /** Patrol path that exits a geofence and returns. dirIdx 0-3 controls exit direction. */
 export function generateDevicePath(center: [number, number], dirIdx: number): [number, number][] {
   const dirs: [number, number][] = [
-    [0.0006, 0.0006], [-0.0006, -0.0007],
-    [0.0006, -0.0005], [-0.0005, 0.0007],
+    [0.0006, 0.0006],
+    [-0.0006, -0.0007],
+    [0.0006, -0.0005],
+    [-0.0005, 0.0007]
   ];
   const [dLat, dLng] = dirs[dirIdx % dirs.length];
   const [lat, lng] = center;
@@ -91,7 +88,7 @@ export function generateDevicePath(center: [number, number], dirIdx: number): [n
     [lat + dLat * 0.4, lng + dLng * 0.4],
     [lat, lng],
     [lat - dLat * 0.3, lng - dLng * 0.3],
-    [lat, lng],
+    [lat, lng]
   ];
   return interpolatePoints(raw, 12);
 }
@@ -124,3 +121,17 @@ export function fmtPerimeter(p: number) {
 export function toIsoDate(dateStr: string, endOfDay = false) {
   return `${dateStr}T${endOfDay ? '23:59:59' : '00:00:00'}Z`;
 }
+
+// Helper to generate consistent mock biometric stats for a given device ID (bringing in the human surveillance element)
+export const getMockBiometrics = (devId: string) => {
+  let hash = 0;
+  for (let i = 0; i < devId.length; i++) {
+    hash = devId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const heartRate = 72 + Math.abs(hash % 16); // 72 - 88 bpm
+  const temp = (36.4 + Math.abs(hash % 8) / 10).toFixed(1); // 36.4 - 37.2 °C
+  const steps = 3000 + Math.abs(hash % 6200); // 3000 - 9200 steps
+  // Lock/Bracelet status: 1 out of 5 tampered for demo!
+  const isTampered = Math.abs(hash % 5) === 0;
+  return { heartRate, temp, steps, isTampered };
+};
