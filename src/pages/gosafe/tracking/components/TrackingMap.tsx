@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
-import { Box, Typography, Stack, Divider, Grid, Chip } from '@mui/material';
+import { useEffect, useState } from 'react';
+import { Box, Typography, Stack, Divider, Grid, Chip, Button, Switch, FormControlLabel } from '@mui/material';
 import { MapContainer, TileLayer, Polygon, Polyline, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { Map, Eye, Sun1, Moon, Global, Location, Flash } from 'iconsax-react';
 import { createDeviceIcon, createVertexIcon, createCenterMoveIcon, createHistoryMarkerIcon } from '../mapIcons';
 import { getPolygonCentroid, getMockBiometrics } from '../utils';
 import type { TrackingStore } from '../useTracking';
@@ -58,6 +59,14 @@ export default function TrackingMap({ store }: Props) {
     setActiveTab
   } = store;
 
+  const [mapLayer, setMapLayer] = useState<'light' | 'dark' | 'satellite'>(isDark ? 'dark' : 'light');
+  const [showGeofences, setShowGeofences] = useState(true);
+  const [showTrails, setShowTrails] = useState(true);
+
+  useEffect(() => {
+    setMapLayer(isDark ? 'dark' : 'light');
+  }, [isDark]);
+
   return (
     <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
       {/* Floating hint — chỉ hiện khi đang chỉnh sửa geofence */}
@@ -100,9 +109,12 @@ export default function TrackingMap({ store }: Props) {
         }}
       >
         <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography variant="subtitle2" sx={{ fontWeight: 800, fontSize: '0.85rem', letterSpacing: 0.5, textTransform: 'uppercase' }}>
-            ⚡ BẢNG CHỈ HUY DI ĐỘNG
-          </Typography>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Flash size="16" variant="Bold" color={store.primaryColor} />
+            <Typography variant="subtitle2" sx={{ fontWeight: 800, fontSize: '0.85rem', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+              BẢNG CHỈ HUY DI ĐỘNG
+            </Typography>
+          </Stack>
           <Chip
             label="LIVE SYNC"
             color="success"
@@ -201,7 +213,7 @@ export default function TrackingMap({ store }: Props) {
                     />
                   </Stack>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem', mt: 0.25 }}>
-                    Tim: {bio.heartRate} bpm · Pin: {dev.status.battery}%
+                    Vận tốc: {dev.status.speed} km/h · Pin: {dev.status.battery}% · Sóng: {dev.status.signalStrength}/4
                   </Typography>
                 </Box>
               );
@@ -216,54 +228,184 @@ export default function TrackingMap({ store }: Props) {
         </Box>
       </Box>
 
+      {/* ═══ MAP CONTROL PANEL ═══ */}
+      <Box
+        className="gs-glass-panel"
+        sx={{
+          position: 'absolute',
+          bottom: 16,
+          left: 16,
+          zIndex: 1000,
+          width: 260,
+          bgcolor: isDark ? 'rgba(15, 23, 42, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+          borderRadius: 2,
+          p: 1.75,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1.25,
+          color: isDark ? '#f8fafc' : '#0f172a'
+        }}
+      >
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          <Map size="16" variant="Bold" color={store.primaryColor} />
+          <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.7rem', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+            Lớp bản đồ
+          </Typography>
+        </Stack>
+        <Stack direction="row" spacing={1}>
+          {[
+            { id: 'light', label: 'Sáng', icon: <Sun1 size="16" /> },
+            { id: 'dark', label: 'Tối', icon: <Moon size="16" /> },
+            { id: 'satellite', label: 'Vệ tinh', icon: <Global size="16" /> }
+          ].map((layer) => {
+            const isSelected = mapLayer === layer.id;
+            return (
+              <Button
+                key={layer.id}
+                size="small"
+                onClick={() => setMapLayer(layer.id as any)}
+                variant={isSelected ? 'contained' : 'outlined'}
+                sx={{
+                  flex: 1,
+                  fontSize: '0.75rem',
+                  py: 0.5,
+                  px: 0.5,
+                  borderRadius: 1.5,
+                  minWidth: 0,
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  bgcolor: isSelected ? store.primaryColor : 'transparent',
+                  color: isSelected ? '#fff' : 'text.secondary',
+                  borderColor: isSelected ? store.primaryColor : isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)',
+                  '&:hover': {
+                    bgcolor: isSelected ? store.primaryColor : isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'
+                  }
+                }}
+              >
+                <Stack spacing={0.25} alignItems="center">
+                  {layer.icon}
+                  <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 700 }}>
+                    {layer.label}
+                  </Typography>
+                </Stack>
+              </Button>
+            );
+          })}
+        </Stack>
+
+        <Divider sx={{ borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
+
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          <Eye size="16" variant="Bold" color={store.primaryColor} />
+          <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.7rem', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+            Hiển thị trên bản đồ
+          </Typography>
+        </Stack>
+
+        <Stack spacing={0.5}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={showGeofences}
+                onChange={(e) => setShowGeofences(e.target.checked)}
+                size="small"
+                sx={{
+                  '& .MuiSwitch-switchBase.Mui-checked': {
+                    color: store.primaryColor
+                  },
+                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                    backgroundColor: store.primaryColor
+                  }
+                }}
+              />
+            }
+            label={
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                Hiển thị vùng cấm (Geofences)
+              </Typography>
+            }
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={showTrails}
+                onChange={(e) => setShowTrails(e.target.checked)}
+                size="small"
+                sx={{
+                  '& .MuiSwitch-switchBase.Mui-checked': {
+                    color: store.primaryColor
+                  },
+                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                    backgroundColor: store.primaryColor
+                  }
+                }}
+              />
+            }
+            label={
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                Hiển thị vệt di chuyển (Trails)
+              </Typography>
+            }
+          />
+        </Stack>
+      </Box>
+
       <MapContainer center={mapCenter} zoom={mapZoom} attributionControl={false} style={{ width: '100%', height: '100%' }}>
-        {isDark ? (
-          <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
-        ) : (
-          <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
-        )}
+        <TileLayer
+          key={mapLayer}
+          url={
+            mapLayer === 'satellite'
+              ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+              : mapLayer === 'dark'
+              ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+              : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+          }
+        />
         <MapViewUpdater center={mapCenter} zoom={mapZoom} follow={followDevice} target={followTarget} />
 
         {/* Geofence polygons */}
-        {geofences.map((gf) => {
-          if (!gf.active) return null;
-          const isEditing = editingGeofenceId === gf.id;
-          return (
-            <Polygon
-              key={gf.id}
-              positions={gf.coordinates}
-              pathOptions={{
-                color: gf.color,
-                fillColor: gf.color,
-                fillOpacity: isEditing ? 0.1 : 0.18,
-                weight: isEditing ? 3 : 2,
-                dashArray: isEditing ? '7,6' : undefined
-              }}
-            >
-              <Popup>
-                <Box sx={{ minWidth: 200, p: 0.5 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    {gf.name}
-                  </Typography>
-                  {gf.address && (
-                    <Typography variant="caption" display="block" color="text.secondary">
-                      {gf.address}
+        {showGeofences &&
+          geofences.map((gf) => {
+            if (!gf.active) return null;
+            const isEditing = editingGeofenceId === gf.id;
+            return (
+              <Polygon
+                key={gf.id}
+                positions={gf.coordinates}
+                pathOptions={{
+                  color: gf.color,
+                  fillColor: gf.color,
+                  fillOpacity: isEditing ? 0.1 : 0.18,
+                  weight: isEditing ? 3 : 2,
+                  dashArray: isEditing ? '7,6' : undefined
+                }}
+              >
+                <Popup>
+                  <Box sx={{ minWidth: 200, p: 0.5 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                      {gf.name}
                     </Typography>
-                  )}
-                  <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-                    Diện tích: {gfMetrics[gf.id]?.area} · Chu vi: {gfMetrics[gf.id]?.perimeter}
-                  </Typography>
-                  <Typography variant="caption" display="block">
-                    Thiết bị: {(geofenceDevicesMap[gf.id] ?? []).map((d) => d.name).join(', ') || 'Chưa có'}
-                  </Typography>
-                </Box>
-              </Popup>
-            </Polygon>
-          );
-        })}
+                    {gf.address && (
+                      <Typography variant="caption" display="block" color="text.secondary">
+                        {gf.address}
+                      </Typography>
+                    )}
+                    <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                      Diện tích: {gfMetrics[gf.id]?.area} · Chu vi: {gfMetrics[gf.id]?.perimeter}
+                    </Typography>
+                    <Typography variant="caption" display="block">
+                      Thiết bị: {(geofenceDevicesMap[gf.id] ?? []).map((d) => d.name).join(', ') || 'Chưa có'}
+                    </Typography>
+                  </Box>
+                </Popup>
+              </Polygon>
+            );
+          })}
 
         {/* Geofence edit handles */}
-        {editingGeofenceId &&
+        {showGeofences &&
+          editingGeofenceId &&
           (() => {
             const gf = geofences.find((g) => g.id === editingGeofenceId);
             if (!gf?.active) return null;
@@ -356,20 +498,21 @@ export default function TrackingMap({ store }: Props) {
         })}
 
         {/* Live path trails */}
-        {devices.map((dev) =>
-          dev.pathHistory.length > 1 ? (
-            <Polyline
-              key={`trail-${dev.id}`}
-              positions={dev.pathHistory}
-              pathOptions={{
-                color: deviceViolations[dev.id] ? '#ef4444' : dev.color,
-                weight: 2,
-                dashArray: '5,10',
-                opacity: 0.7
-              }}
-            />
-          ) : null
-        )}
+        {showTrails &&
+          devices.map((dev) =>
+            dev.pathHistory.length > 1 ? (
+              <Polyline
+                key={`trail-${dev.id}`}
+                positions={dev.pathHistory}
+                pathOptions={{
+                  color: deviceViolations[dev.id] ? '#ef4444' : dev.color,
+                  weight: 2,
+                  dashArray: '5,10',
+                  opacity: 0.7
+                }}
+              />
+            ) : null
+          )}
 
         {/* Device markers */}
         {devices.map((dev) => (
@@ -386,9 +529,12 @@ export default function TrackingMap({ store }: Props) {
           >
             <Popup>
               <Box sx={{ minWidth: 210, p: 0.5 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5 }}>
-                  📍 {dev.name}
-                </Typography>
+                <Stack direction="row" spacing={0.5} alignItems="center" mb={0.5}>
+                  <Location size="16" variant="Bold" color={dev.color} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                    {dev.name}
+                  </Typography>
+                </Stack>
                 {dev.subject && (
                   <Box sx={{ bgcolor: 'rgba(0,0,0,0.04)', borderRadius: 1.5, p: 1, mb: 1 }}>
                     <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -403,10 +549,20 @@ export default function TrackingMap({ store }: Props) {
                   </Box>
                 )}
 
-                {/* Biometrics info inside Map Popup */}
+                {/* Hardware Telemetry inside Map Popup */}
                 {dev.subject &&
                   (() => {
                     const bio = getMockBiometrics(dev.id);
+                    const dbmVal =
+                      dev.status.signalStrength === 4
+                        ? '-65 dBm'
+                        : dev.status.signalStrength === 3
+                        ? '-80 dBm'
+                        : dev.status.signalStrength === 2
+                        ? '-95 dBm'
+                        : dev.status.signalStrength === 1
+                        ? '-108 dBm'
+                        : 'Mất sóng';
                     return (
                       <Box sx={{ mt: 1, borderTop: '1px solid rgba(0,0,0,0.06)', pt: 1, pb: 1 }}>
                         <Typography
@@ -420,39 +576,12 @@ export default function TrackingMap({ store }: Props) {
                             fontSize: '0.65rem'
                           }}
                         >
-                          Sinh trắc học & Sức khỏe
+                          Cảm biến & Phần cứng
                         </Typography>
                         <Stack spacing={0.25}>
                           <Stack direction="row" justifyContent="space-between">
                             <Typography variant="caption" color="text.secondary">
-                              Nhịp tim:
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              sx={{ fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 0.5 }}
-                            >
-                              <span className="gs-pulse-heart-icon">❤️</span> {bio.heartRate} bpm
-                            </Typography>
-                          </Stack>
-                          <Stack direction="row" justifyContent="space-between">
-                            <Typography variant="caption" color="text.secondary">
-                              Nhiệt độ:
-                            </Typography>
-                            <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                              {bio.temp} °C
-                            </Typography>
-                          </Stack>
-                          <Stack direction="row" justifyContent="space-between">
-                            <Typography variant="caption" color="text.secondary">
-                              Vận động:
-                            </Typography>
-                            <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                              {bio.steps.toLocaleString()} bước
-                            </Typography>
-                          </Stack>
-                          <Stack direction="row" justifyContent="space-between">
-                            <Typography variant="caption" color="text.secondary">
-                              Khóa chân:
+                              Khóa vòng chân:
                             </Typography>
                             <Typography
                               variant="caption"
@@ -462,7 +591,47 @@ export default function TrackingMap({ store }: Props) {
                                 color: bio.isTampered ? '#ef4444' : '#22c55e'
                               }}
                             >
-                              {bio.isTampered ? '⚠ CẢNH BÁO THÁO' : '✓ Ổn định'}
+                              {bio.isTampered ? '⚠ PHÁT HIỆN THÁO' : '✓ Ổn định'}
+                            </Typography>
+                          </Stack>
+                          <Stack direction="row" justifyContent="space-between">
+                            <Typography variant="caption" color="text.secondary">
+                              Điện áp Pin:
+                            </Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                              {dev.status.batteryVoltage != null ? `${dev.status.batteryVoltage.toFixed(2)}V` : '—'}
+                            </Typography>
+                          </Stack>
+                          <Stack direction="row" justifyContent="space-between">
+                            <Typography variant="caption" color="text.secondary">
+                              Vận tốc:
+                            </Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                              {dev.status.speed || 0} km/h
+                            </Typography>
+                          </Stack>
+                          <Stack direction="row" justifyContent="space-between">
+                            <Typography variant="caption" color="text.secondary">
+                              Độ cao:
+                            </Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                              {dev.status.altitude || 0} m
+                            </Typography>
+                          </Stack>
+                          <Stack direction="row" justifyContent="space-between">
+                            <Typography variant="caption" color="text.secondary">
+                              GSM / Vệ tinh:
+                            </Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                              {dbmVal} · {dev.status.satelliteCount} vệ tinh
+                            </Typography>
+                          </Stack>
+                          <Stack direction="row" justifyContent="space-between">
+                            <Typography variant="caption" color="text.secondary">
+                              Trạng thái GPS:
+                            </Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: dev.status.gpsFix ? '#22c55e' : '#f59e0b' }}>
+                              {dev.status.gpsFix ? 'Đã định vị (Fix)' : 'Chưa định vị (No Fix)'}
                             </Typography>
                           </Stack>
                         </Stack>

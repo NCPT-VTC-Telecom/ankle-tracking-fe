@@ -268,10 +268,20 @@ export default function DeviceList({ store }: Props) {
                     />
                   </Stack>
 
-                  {/* Biometrics */}
+                  {/* Bracelet Lock & Device Hardware Telemetry */}
                   {dev.subject &&
                     (() => {
-                      const bio = getMockBiometrics(dev.id);
+                      const bio = getMockBiometrics(dev.id); // for tamper state
+                      const dbmVal =
+                        dev.status.signalStrength === 4
+                          ? '-65 dBm'
+                          : dev.status.signalStrength === 3
+                          ? '-80 dBm'
+                          : dev.status.signalStrength === 2
+                          ? '-95 dBm'
+                          : dev.status.signalStrength === 1
+                          ? '-108 dBm'
+                          : 'Mất sóng';
                       return (
                         <Box
                           sx={{
@@ -295,39 +305,12 @@ export default function DeviceList({ store }: Props) {
                               fontSize: '0.65rem'
                             }}
                           >
-                            Sinh trắc & Sức khỏe
+                            Cảm biến & Mạng di động
                           </Typography>
                           <Stack spacing={1}>
                             <Stack direction="row" justifyContent="space-between" alignItems="center">
                               <Typography variant="caption" color="text.secondary">
-                                Nhịp tim:
-                              </Typography>
-                              <Stack direction="row" spacing={0.5} alignItems="center">
-                                <span className="gs-pulse-heart-icon">❤️</span>
-                                <Typography variant="caption" sx={{ fontWeight: 700, color: '#ef4444' }}>
-                                  {bio.heartRate} bpm
-                                </Typography>
-                              </Stack>
-                            </Stack>
-                            <Stack direction="row" justifyContent="space-between" alignItems="center">
-                              <Typography variant="caption" color="text.secondary">
-                                Nhiệt độ:
-                              </Typography>
-                              <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                                {bio.temp} °C
-                              </Typography>
-                            </Stack>
-                            <Stack direction="row" justifyContent="space-between" alignItems="center">
-                              <Typography variant="caption" color="text.secondary">
-                                Vận động:
-                              </Typography>
-                              <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                                {bio.steps.toLocaleString()} bước
-                              </Typography>
-                            </Stack>
-                            <Stack direction="row" justifyContent="space-between" alignItems="center">
-                              <Typography variant="caption" color="text.secondary">
-                                Khóa vòng:
+                                Khóa vòng chân:
                               </Typography>
                               <Chip
                                 label={bio.isTampered ? 'PHÁT HIỆN THÁO' : 'Khóa ổn định'}
@@ -336,37 +319,46 @@ export default function DeviceList({ store }: Props) {
                                 sx={{
                                   fontWeight: 700,
                                   fontSize: '0.6rem',
-                                  height: 16,
+                                  height: 18,
                                   borderRadius: 0.5,
-                                  bgcolor: bio.isTampered ? 'rgba(239, 68, 68, 0.08)' : 'rgba(34, 197, 94, 0.08)',
+                                  bgcolor: bio.isTampered ? 'rgba(239, 68, 68, 0.12)' : 'rgba(34, 197, 94, 0.12)',
                                   color: bio.isTampered ? '#ef4444' : '#22c55e',
                                   border: '1px solid',
-                                  borderColor: bio.isTampered ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)'
+                                  borderColor: bio.isTampered ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'
                                 }}
                               />
+                            </Stack>
+                            <Stack direction="row" justifyContent="space-between" alignItems="center">
+                              <Typography variant="caption" color="text.secondary">
+                                Cường độ sóng:
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{ fontWeight: 700, color: dev.status.signalStrength <= 1 ? '#ef4444' : 'text.primary' }}
+                              >
+                                {dbmVal}
+                              </Typography>
+                            </Stack>
+                            <Stack direction="row" justifyContent="space-between" alignItems="center">
+                              <Typography variant="caption" color="text.secondary">
+                                Vận tốc:
+                              </Typography>
+                              <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                {dev.status.speed || 0} km/h
+                              </Typography>
+                            </Stack>
+                            <Stack direction="row" justifyContent="space-between" alignItems="center">
+                              <Typography variant="caption" color="text.secondary">
+                                Độ cao:
+                              </Typography>
+                              <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                {dev.status.altitude || 0} m
+                              </Typography>
                             </Stack>
                           </Stack>
                         </Box>
                       );
                     })()}
-
-                  <Stack direction="row" justifyContent="space-between" py={0.8}>
-                    <Typography variant="body2" color="text.secondary">
-                      Tốc độ:
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {dev.status.speed} km/h
-                    </Typography>
-                  </Stack>
-
-                  <Stack direction="row" justifyContent="space-between" py={0.8}>
-                    <Typography variant="body2" color="text.secondary">
-                      Độ cao:
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {dev.status.altitude} m
-                    </Typography>
-                  </Stack>
 
                   <Stack direction="row" justifyContent="space-between" py={0.8}>
                     <Typography variant="body2" color="text.secondary">

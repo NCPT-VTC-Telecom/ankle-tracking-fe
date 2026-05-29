@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, Dispatch, MouseEvent, SetStateAction } fr
 import { useLocation, useNavigate } from 'react-router-dom';
 
 // material-ui
-import { styled, useTheme } from '@mui/material/styles';
+import { alpha, styled, useTheme } from '@mui/material/styles';
 import {
   Box,
   Collapse,
@@ -13,6 +13,7 @@ import {
   ListItemText,
   Paper,
   Popper,
+  Tooltip,
   Typography,
   useMediaQuery
 } from '@mui/material';
@@ -44,7 +45,7 @@ type VirtualElement = {
 const PopperStyled = styled(Popper)(({ theme }) => ({
   overflow: 'visible',
   zIndex: 1202,
-  minWidth: 180,
+  minWidth: 200,
   '&:before': {
     content: '""',
     display: 'block',
@@ -219,12 +220,12 @@ const NavCollapse = ({ menu, level, parentId, setSelectedItems, selectedItems, s
   });
 
   const isSelected = selected === menu.id;
-  const borderIcon = level === 1 ? <Copy variant="Bulk" size={drawerOpen ? 22 : 24} /> : false;
+  const borderIcon = level === 1 ? <Copy variant="Bulk" size={drawerOpen ? 26 : 28} /> : false;
   const menuIcon = menu.icon ? (
     <IconWrapper
       icon={menu.icon}
       variant="Bulk"
-      size={drawerOpen ? 20 : 22}
+      size={drawerOpen ? 26 : 28}
       color={isSelected ? theme.palette.primary.main : theme.palette.secondary.main}
     />
   ) : (
@@ -235,163 +236,211 @@ const NavCollapse = ({ menu, level, parentId, setSelectedItems, selectedItems, s
   const popperId = miniMenuOpened ? `collapse-pop-${menu.id}` : undefined;
   const FlexBox = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' };
 
+  const collapseButton = (
+    <ListItemButton
+      selected={isSelected}
+      {...(!drawerOpen && { onMouseEnter: handleClick, onMouseLeave: handleClose })}
+      onClick={handleClick}
+      sx={{
+        pl: drawerOpen ? `${level === 1 ? 20 : level * 20 - 10}px` : 1.5,
+        py: !drawerOpen && level === 1 ? 1.5 : 1.1,
+        borderRadius: '10px',
+        mx: drawerOpen ? 1.25 : 0.75,
+        my: 0.35,
+        transition: 'all 0.25s ease',
+        position: 'relative',
+        ...(drawerOpen && {
+          '&:hover': {
+            bgcolor: theme.palette.mode === ThemeMode.DARK
+              ? alpha(theme.palette.primary.main, 0.12)
+              : alpha(theme.palette.primary.main, 0.07)
+          },
+          '&.Mui-selected': {
+            background: theme.palette.mode === ThemeMode.DARK
+              ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.22)}, ${alpha(theme.palette.primary.dark, 0.1)})`
+              : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.14)}, ${alpha(theme.palette.primary.light, 0.06)})`,
+            color: iconSelectedColor,
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              left: 0,
+              top: '20%',
+              height: '60%',
+              width: 4,
+              borderRadius: '0 4px 4px 0',
+              bgcolor: 'primary.main'
+            }
+          }
+        }),
+        ...(!drawerOpen && {
+          justifyContent: 'center',
+          '&:hover': {
+            bgcolor: 'transparent'
+          },
+          '&.Mui-selected': {
+            '&:hover': {
+              bgcolor: 'transparent'
+            },
+            bgcolor: 'transparent'
+          }
+        })
+      }}
+    >
+      {menuIcon && (
+        <ListItemIcon
+          onClick={handlerIconLink}
+          sx={{
+            minWidth: drawerOpen ? 42 : 'auto',
+            color: isSelected ? 'primary.main' : textColor,
+            transition: 'all 0.25s ease',
+            ...(!drawerOpen && {
+              borderRadius: '12px',
+              width: 50,
+              height: 50,
+              alignItems: 'center',
+              justifyContent: 'center',
+              bgcolor: isSelected
+                ? theme.palette.mode === ThemeMode.DARK
+                  ? alpha(theme.palette.primary.main, 0.22)
+                  : alpha(theme.palette.primary.main, 0.12)
+                : 'transparent',
+              '&:hover': {
+                bgcolor: theme.palette.mode === ThemeMode.DARK ? 'secondary.light' : alpha(theme.palette.primary.main, 0.08)
+              }
+            })
+          }}
+        >
+          {menuIcon}
+        </ListItemIcon>
+      )}
+
+      {!menuIcon && drawerOpen && (
+        <ListItemIcon
+          sx={{
+            minWidth: 30
+          }}
+        >
+          <Dot size={isSelected ? 7 : 5} color={isSelected ? 'primary' : 'secondary'} />
+        </ListItemIcon>
+      )}
+
+      {(drawerOpen || (!drawerOpen && level !== 1)) && (
+        <ListItemText
+          primary={
+            <Typography
+              variant="h5"
+              color={isSelected ? 'primary' : textColor}
+              sx={{ fontWeight: isSelected ? 600 : 400, fontSize: '0.875rem', lineHeight: 1.4, transition: 'color 0.2s ease' }}
+            >
+              {menu.title}
+            </Typography>
+          }
+          secondary={
+            menu.caption && (
+              <Typography variant="caption" color="secondary" sx={{ fontSize: '0.72rem' }}>
+                {menu.caption}
+              </Typography>
+            )
+          }
+        />
+      )}
+      {(drawerOpen || (!drawerOpen && level !== 1)) &&
+        (miniMenuOpened || open ? (
+          <>
+            {miniMenuOpened ? (
+              <ArrowRight2 size={14} color={textColor} style={{ marginLeft: 4 }} />
+            ) : (
+              <ArrowUp2 size={14} color={textColor} style={{ marginLeft: 4 }} />
+            )}
+          </>
+        ) : (
+          <ArrowDown2 size={14} color={textColor} style={{ marginLeft: 4 }} />
+        ))}
+
+      {!drawerOpen && (
+        <PopperStyled
+          open={miniMenuOpened}
+          anchorEl={anchorEl}
+          placement="right-start"
+          style={{
+            zIndex: 2001
+          }}
+          popperOptions={{
+            modifiers: [
+              {
+                name: 'offset',
+                options: {
+                  offset: [-12, 1]
+                }
+              }
+            ]
+          }}
+        >
+          {({ TransitionProps }) => (
+            <Transitions in={miniMenuOpened} {...TransitionProps}>
+              <Paper
+                sx={{
+                  overflow: 'hidden',
+                  mt: 1.5,
+                  borderRadius: '12px',
+                  boxShadow: theme.customShadows.z1,
+                  backgroundImage: 'none',
+                  border: `1px solid ${theme.palette.divider}`
+                }}
+              >
+                <ClickAwayListener onClickAway={handleClose}>
+                  <>
+                    <SimpleBar
+                      sx={{
+                        overflowX: 'hidden',
+                        overflowY: 'auto',
+                        maxHeight: 'calc(100vh - 170px)'
+                      }}
+                    >
+                      {navCollapse}
+                    </SimpleBar>
+                  </>
+                </ClickAwayListener>
+              </Paper>
+            </Transitions>
+          )}
+        </PopperStyled>
+      )}
+    </ListItemButton>
+  );
+
   return (
     <>
       {menuOrientation === MenuOrientation.VERTICAL || downLG ? (
         <>
-          <ListItemButton
-            selected={isSelected}
-            {...(!drawerOpen && { onMouseEnter: handleClick, onMouseLeave: handleClose })}
-            onClick={handleClick}
-            sx={{
-              pl: drawerOpen ? `${level === 1 ? 20 : level * 20 - 10}px` : 1.5,
-              py: !drawerOpen && level === 1 ? 1.25 : 1,
-              ...(drawerOpen && {
-                mx: 1.25,
-                my: 0.5,
-                borderRadius: 1,
-                '&:hover': {
-                  bgcolor: theme.palette.mode === ThemeMode.DARK ? 'divider' : 'secondary.200'
-                },
-                '&.Mui-selected': {
-                  color: iconSelectedColor
-                }
-              }),
-              ...(!drawerOpen && {
-                px: 2.75,
-                justifyContent: 'center',
-                '&:hover': {
-                  bgcolor: 'transparent'
-                },
-                '&.Mui-selected': {
-                  '&:hover': {
-                    bgcolor: 'transparent'
-                  },
-                  bgcolor: 'transparent'
-                }
-              })
-            }}
-          >
-            {menuIcon && (
-              <ListItemIcon
-                onClick={handlerIconLink}
-                sx={{
-                  minWidth: 38,
-                  color: isSelected ? 'primary.main' : textColor,
-                  ...(!drawerOpen && {
-                    borderRadius: 1,
-                    width: 46,
-                    height: 46,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    '&:hover': {
-                      bgcolor: theme.palette.mode === ThemeMode.DARK ? 'secondary.light' : 'secondary.200'
-                    }
-                  }),
-                  ...(!drawerOpen &&
-                    isSelected && {
-                      bgcolor: theme.palette.mode === ThemeMode.DARK ? 'secondary.100' : 'primary.lighter',
-                      '&:hover': {
-                        bgcolor: theme.palette.mode === ThemeMode.DARK ? 'secondary.200' : 'primary.lighter'
-                      }
-                    })
-                }}
-              >
-                {menuIcon}
-              </ListItemIcon>
-            )}
-
-            {!menuIcon && drawerOpen && (
-              <ListItemIcon
-                sx={{
-                  minWidth: 30
-                }}
-              >
-                <Dot size={isSelected ? 6 : 5} color={isSelected ? 'primary' : 'secondary'} />
-              </ListItemIcon>
-            )}
-
-            {(drawerOpen || (!drawerOpen && level !== 1)) && (
-              <ListItemText
-                primary={
-                  <Typography variant="h6" color={isSelected ? 'primary' : textColor} sx={{ fontWeight: isSelected ? 500 : 400 }}>
-                    {menu.title}
-                  </Typography>
-                }
-                secondary={
-                  menu.caption && (
-                    <Typography variant="caption" color="secondary">
-                      {menu.caption}
-                    </Typography>
-                  )
-                }
-              />
-            )}
-            {(drawerOpen || (!drawerOpen && level !== 1)) &&
-              (miniMenuOpened || open ? (
-                <>
-                  {miniMenuOpened ? (
-                    <ArrowRight2 size={12} color={textColor} style={{ marginLeft: 1 }} />
-                  ) : (
-                    <ArrowUp2 size={12} color={textColor} style={{ marginLeft: 1 }} />
-                  )}
-                </>
-              ) : (
-                <ArrowDown2 size={12} color={textColor} style={{ marginLeft: 1 }} />
-              ))}
-
-            {!drawerOpen && (
-              <PopperStyled
-                open={miniMenuOpened}
-                anchorEl={anchorEl}
-                placement="right-start"
-                style={{
-                  zIndex: 2001
-                }}
-                popperOptions={{
-                  modifiers: [
-                    {
-                      name: 'offset',
-                      options: {
-                        offset: [-12, 1]
-                      }
-                    }
-                  ]
-                }}
-              >
-                {({ TransitionProps }) => (
-                  <Transitions in={miniMenuOpened} {...TransitionProps}>
-                    <Paper
-                      sx={{
-                        overflow: 'hidden',
-                        mt: 1.5,
-                        boxShadow: theme.customShadows.z1,
-                        backgroundImage: 'none',
-                        border: `1px solid ${theme.palette.divider}`
-                      }}
-                    >
-                      <ClickAwayListener onClickAway={handleClose}>
-                        <>
-                          <SimpleBar
-                            sx={{
-                              overflowX: 'hidden',
-                              overflowY: 'auto',
-                              maxHeight: 'calc(100vh - 170px)'
-                            }}
-                          >
-                            {navCollapse}
-                          </SimpleBar>
-                        </>
-                      </ClickAwayListener>
-                    </Paper>
-                  </Transitions>
-                )}
-              </PopperStyled>
-            )}
-          </ListItemButton>
+          {/* Tooltip khi sidebar thu gọn */}
+          {!drawerOpen && level === 1 ? (
+            <Tooltip title={menu.title} placement="right" arrow>
+              {collapseButton}
+            </Tooltip>
+          ) : (
+            collapseButton
+          )}
           {drawerOpen && (
             <Collapse in={open} timeout="auto" unmountOnExit>
-              <List sx={{ p: 0 }}>{navCollapse}</List>
+              <List
+                sx={{
+                  p: 0,
+                  position: 'relative',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    left: '32px',
+                    top: 4,
+                    bottom: 4,
+                    width: 2,
+                    borderRadius: 1,
+                    bgcolor: theme.palette.mode === ThemeMode.DARK ? 'divider' : alpha(theme.palette.primary.main, 0.18)
+                  }
+                }}
+              >
+                {navCollapse}
+              </List>
             </Collapse>
           )}
         </>
@@ -405,6 +454,8 @@ const NavCollapse = ({ menu, level, parentId, setSelectedItems, selectedItems, s
             onClick={handleHover}
             aria-describedby={popperId}
             sx={{
+              borderRadius: '8px',
+              mx: 0.5,
               '&:hover': {
                 bgcolor: 'transparent'
               },
@@ -418,18 +469,18 @@ const NavCollapse = ({ menu, level, parentId, setSelectedItems, selectedItems, s
           >
             <Box onClick={handlerIconLink} sx={FlexBox}>
               {menuIcon && (
-                <ListItemIcon sx={{ my: 'auto', minWidth: !menu.icon ? 18 : 36, color: theme.palette.secondary.dark }}>
+                <ListItemIcon sx={{ my: 'auto', minWidth: !menu.icon ? 18 : 38, color: theme.palette.secondary.dark }}>
                   {menuIcon}
                 </ListItemIcon>
               )}
               <ListItemText
                 primary={
-                  <Typography variant="h6" color={textColor} sx={{ fontWeight: isSelected ? 500 : 400 }}>
+                  <Typography variant="h5" color={textColor} sx={{ fontWeight: isSelected ? 600 : 400, fontSize: '0.875rem' }}>
                     {menu.title}
                   </Typography>
                 }
               />
-              {miniMenuOpened ? <ArrowRight2 size={12} color={textColor} /> : <ArrowDown2 size={12} color={textColor} />}
+              {miniMenuOpened ? <ArrowRight2 size={14} color={textColor} /> : <ArrowDown2 size={14} color={textColor} />}
             </Box>
 
             {anchorEl && (
@@ -457,6 +508,7 @@ const NavCollapse = ({ menu, level, parentId, setSelectedItems, selectedItems, s
                         overflow: 'hidden',
                         mt: 1.5,
                         py: 0.5,
+                        borderRadius: '12px',
                         boxShadow: theme.customShadows.z1,
                         border: `1px solid ${theme.palette.divider}`,
                         backgroundImage: 'none'

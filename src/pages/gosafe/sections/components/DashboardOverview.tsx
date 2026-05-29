@@ -18,7 +18,7 @@ import {
   ToggleButtonGroup,
   LinearProgress
 } from '@mui/material';
-import { Cpu, Wifi, Warning2, Danger, Profile2User, Simcard, Gps, Activity } from 'iconsax-react';
+import { Cpu, Wifi, Warning2, Danger, Profile2User, Simcard, Gps, BatteryFull, Flash, Activity } from 'iconsax-react';
 import ReactApexChart from 'react-apexcharts';
 import { TrackingStore } from '../../tracking/useTracking';
 import { getMockBiometrics } from '../../tracking/utils';
@@ -434,7 +434,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView }: D
         </Grid>
       </Grid>
 
-      {/* ═══ LIVE BIOMETRICS MONITORING PANEL ════════════════════════════ */}
+      {/* ═══ LIVE DEVICE TELEMETRY & NETWORK MONITORING PANEL ════════════════════════════ */}
       <Paper
         sx={{
           p: 2.5,
@@ -457,10 +457,10 @@ export default function DashboardOverview({ isDark, store, setDashboardView }: D
         }}
       >
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5, color: isDark ? '#f8fafc' : '#0f172a', fontSize: '0.95rem' }}>
-          Giám sát Sinh trắc học & Sức khỏe Phạm nhân (Thời gian thực)
+          Theo dõi Mạng & Trạng thái Định vị Thiết bị (Thời gian thực)
         </Typography>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-          Theo dõi tự động các chỉ số sinh mạng và cảm biến tiếp xúc da của khóa điện tử chân
+          Theo dõi tự động các thông số truyền tin phần cứng, pin, và khóa vòng đeo chân
         </Typography>
         <TableContainer>
           <Table size="small">
@@ -500,7 +500,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView }: D
                     letterSpacing: '0.05em'
                   }}
                 >
-                  Nhịp tim
+                  Trạng thái Pin
                 </TableCell>
                 <TableCell
                   sx={{
@@ -512,7 +512,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView }: D
                     letterSpacing: '0.05em'
                   }}
                 >
-                  Nhiệt độ cơ thể
+                  Vận tốc
                 </TableCell>
                 <TableCell
                   sx={{
@@ -524,7 +524,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView }: D
                     letterSpacing: '0.05em'
                   }}
                 >
-                  Vận động
+                  Vệ tinh & Định vị GPS
                 </TableCell>
                 <TableCell
                   sx={{
@@ -618,107 +618,86 @@ export default function DashboardOverview({ isDark, store, setDashboardView }: D
                             px: 1.5,
                             py: 0.75,
                             borderRadius: '8px',
-                            bgcolor: isDark ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.06)',
+                            bgcolor: isDark ? 'rgba(34, 197, 94, 0.12)' : 'rgba(34, 197, 94, 0.06)',
                             border: '1px solid',
-                            borderColor: isDark ? 'rgba(239, 68, 68, 0.3)' : 'rgba(239, 68, 68, 0.2)',
-                            boxShadow: isDark ? '0 0 12px rgba(239, 68, 68, 0.15)' : 'none'
+                            borderColor: isDark ? 'rgba(34, 197, 94, 0.3)' : 'rgba(34, 197, 94, 0.2)'
                           }}
                         >
-                          <Activity size="18" color="#ef4444" className="gs-pulse-heart-icon" style={{ flexShrink: 0 }} />
+                          <BatteryFull size="20" color="#22c55e" style={{ flexShrink: 0 }} />
                           <Stack spacing={0}>
-                            <Typography variant="body2" sx={{ fontWeight: 800, color: '#ef4444', fontSize: '0.95rem', lineHeight: 1.1 }}>
-                              {bio.heartRate} bpm
-                            </Typography>
                             <Typography
-                              variant="caption"
-                              sx={{ fontSize: '0.68rem', color: isDark ? '#f87171' : '#dc2626', fontWeight: 600 }}
+                              variant="body2"
+                              sx={{ fontWeight: 800, color: 'text.primary', fontSize: '0.95rem', lineHeight: 1.1 }}
                             >
-                              {Number(bio.heartRate) > 100 ? 'Nhịp nhanh' : Number(bio.heartRate) < 60 ? 'Nhịp chậm' : 'Ổn định'}
+                              {dev.status.battery}%
+                            </Typography>
+                            <Typography variant="caption" sx={{ fontSize: '0.68rem', color: 'text.secondary', fontWeight: 600 }}>
+                              {dev.status.batteryVoltage != null ? `${dev.status.batteryVoltage.toFixed(2)}V` : '—'}
                             </Typography>
                           </Stack>
                         </Box>
                       </TableCell>
                       <TableCell sx={{ py: 1.5 }}>
-                        {(() => {
-                          const tempVal = bio.temp;
-                          let color = '#22c55e';
-                          let label = 'Bình thường';
-                          let bg = 'rgba(34, 197, 94, 0.06)';
-                          let borderColor = 'rgba(34, 197, 94, 0.2)';
-
-                          if (Number(tempVal) > 37.2) {
-                            color = '#f97316';
-                            label = 'Sốt nhẹ';
-                            bg = 'rgba(249, 115, 22, 0.08)';
-                            borderColor = 'rgba(249, 115, 22, 0.2)';
-                          } else if (Number(tempVal) < 36.0) {
-                            color = '#3b82f6';
-                            label = 'Nhiệt độ thấp';
-                            bg = 'rgba(59, 130, 246, 0.08)';
-                            borderColor = 'rgba(59, 130, 246, 0.2)';
-                          }
-
-                          return (
-                            <Box
-                              sx={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 1,
-                                px: 1.25,
-                                py: 0.75,
-                                borderRadius: '8px',
-                                bgcolor: isDark ? bg.replace('0.06', '0.12').replace('0.08', '0.15') : bg,
-                                border: '1px solid',
-                                borderColor: isDark ? borderColor.replace('0.2', '0.3') : borderColor
-                              }}
+                        <Box
+                          sx={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            px: 1.25,
+                            py: 0.75,
+                            borderRadius: '8px',
+                            bgcolor: isDark ? 'rgba(59, 130, 246, 0.12)' : 'rgba(59, 130, 246, 0.06)',
+                            border: '1px solid',
+                            borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)'
+                          }}
+                        >
+                          <Flash size="20" color="#3b82f6" style={{ flexShrink: 0 }} />
+                          <Stack>
+                            <Typography variant="body2" sx={{ fontWeight: 800, color: '#3b82f6', fontSize: '0.95rem', lineHeight: 1.1 }}>
+                              {dev.status.speed || 0} km/h
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{ fontSize: '0.68rem', color: isDark ? '#cbd5e1' : '#64748b', fontWeight: 600 }}
                             >
-                              <Box sx={{ fontSize: '1.1rem', color }}>🌡️</Box>
-                              <Stack>
-                                <Typography variant="body2" sx={{ fontWeight: 800, color, fontSize: '0.95rem', lineHeight: 1.1 }}>
-                                  {tempVal} °C
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  sx={{ fontSize: '0.68rem', color: isDark ? '#cbd5e1' : '#64748b', fontWeight: 600 }}
-                                >
-                                  {label}
-                                </Typography>
-                              </Stack>
-                            </Box>
-                          );
-                        })()}
+                              Vận tốc thiết bị
+                            </Typography>
+                          </Stack>
+                        </Box>
                       </TableCell>
                       <TableCell sx={{ minWidth: 160, py: 1.5 }}>
                         <Stack spacing={0.5}>
                           <Stack direction="row" justifyContent="space-between" alignItems="baseline">
                             <Typography
                               variant="body2"
-                              sx={{ fontWeight: 800, fontSize: '0.95rem', color: isDark ? '#f8fafc' : '#0f172a' }}
+                              sx={{ fontWeight: 800, fontSize: '0.95rem', color: dev.status.gpsFix ? '#22c55e' : '#f59e0b' }}
                             >
-                              {bio.steps.toLocaleString()}
+                              {dev.status.gpsFix ? 'GPS Fix' : 'GPS No Fix'}
                             </Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
-                              / 10,000 bước
+                              {dev.status.satelliteCount} vệ tinh
                             </Typography>
                           </Stack>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Box sx={{ width: '100%' }}>
                               <LinearProgress
                                 variant="determinate"
-                                value={Math.min(100, (bio.steps / 10000) * 100)}
+                                value={Math.min(100, (dev.status.satelliteCount / 12) * 100)}
                                 sx={{
                                   height: 6,
                                   borderRadius: 3,
                                   bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
                                   '& .MuiLinearProgress-bar': {
                                     borderRadius: 3,
-                                    background: 'linear-gradient(90deg, #a855f7, #6366f1)'
+                                    background: dev.status.gpsFix
+                                      ? 'linear-gradient(90deg, #22c55e, #10b981)'
+                                      : 'linear-gradient(90deg, #f59e0b, #eab308)'
                                   }
                                 }}
                               />
                             </Box>
                             <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', minWidth: 32 }}>
-                              {((bio.steps / 10000) * 100).toFixed(0)}%
+                              {((dev.status.satelliteCount / 12) * 100).toFixed(0)}%
                             </Typography>
                           </Box>
                         </Stack>
@@ -893,13 +872,13 @@ export default function DashboardOverview({ isDark, store, setDashboardView }: D
                   ? 'rgba(34, 197, 94, 0.015)'
                   : 'rgba(59, 130, 246, 0.015)';
 
-                let severityIcon = '⚙️';
+                let severityIcon = <Cpu size="18" color="#3b82f6" />;
                 if (isError) {
-                  severityIcon = '🚨';
+                  severityIcon = <Danger size="18" color="#ef4444" />;
                 } else if (isSuccess) {
-                  severityIcon = '✅';
+                  severityIcon = <Activity size="18" color="#22c55e" />;
                 } else if (log.message.includes('GPS') || log.message.includes('kết nối')) {
-                  severityIcon = '📡';
+                  severityIcon = <Wifi size="18" color="#f59e0b" />;
                 }
 
                 return (
@@ -937,7 +916,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView }: D
                     </TableCell>
                     <TableCell sx={{ py: 1.5 }}>
                       <Stack direction="row" spacing={1} alignItems="center">
-                        <Box sx={{ fontSize: '1.2rem', mr: 0.5, flexShrink: 0 }}>{severityIcon}</Box>
+                        <Box sx={{ mr: 0.5, flexShrink: 0, display: 'flex', alignItems: 'center' }}>{severityIcon}</Box>
                         <Typography
                           variant="body1"
                           sx={{

@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 // material-ui
 import { useTheme } from '@mui/material/styles';
-import { Avatar, Chip, ListItemButton, ListItemIcon, ListItemText, Typography, useMediaQuery } from '@mui/material';
+import { alpha, Avatar, Chip, ListItemButton, ListItemIcon, ListItemText, Tooltip, Typography, useMediaQuery } from '@mui/material';
 
 // project-imports
 import Dot from 'components/@extended/Dot';
@@ -37,11 +37,12 @@ const NavItem = ({ item, level }: Props) => {
 
   const isSelected = openItem.findIndex((id: string) => id === item.id) > -1;
 
+  // Icon lớn hơn: 26 khi mở, 28 khi thu gọn
   const itemIcon = item.icon ? (
     <IconWrapper
       icon={item.icon}
       variant="Bulk"
-      size={drawerOpen ? 20 : 22}
+      size={drawerOpen ? 26 : 28}
       color={isSelected ? theme.palette.primary.main : theme.palette.secondary.main}
     />
   ) : (
@@ -73,121 +74,148 @@ const NavItem = ({ item, level }: Props) => {
   const textColor = theme.palette.mode === ThemeMode.DARK ? 'secondary.400' : 'secondary.main';
   const iconSelectedColor = 'primary.main';
 
+  const itemContent = (
+    <ListItemButton
+      component={Link}
+      to={item.url!}
+      target={itemTarget}
+      disabled={item.disabled}
+      selected={isSelected}
+      sx={{
+        zIndex: 1201,
+        pl: drawerOpen ? `${level * 20}px` : 1.5,
+        py: !drawerOpen && level === 1 ? 1.5 : 1.1,
+        borderRadius: '10px',
+        mx: drawerOpen ? 1.25 : 0.75,
+        my: 0.35,
+        transition: 'all 0.25s ease',
+        ...(drawerOpen && {
+          '&:hover': {
+            bgcolor: theme.palette.mode === ThemeMode.DARK
+              ? alpha(theme.palette.primary.main, 0.12)
+              : alpha(theme.palette.primary.main, 0.07)
+          },
+          '&.Mui-selected': {
+            background: theme.palette.mode === ThemeMode.DARK
+              ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.22)}, ${alpha(theme.palette.primary.dark, 0.1)})`
+              : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.14)}, ${alpha(theme.palette.primary.light, 0.06)})`,
+            '&:hover': {
+              background: theme.palette.mode === ThemeMode.DARK
+                ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.28)}, ${alpha(theme.palette.primary.dark, 0.14)})`
+                : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.18)}, ${alpha(theme.palette.primary.light, 0.10)})`
+            },
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              left: 0,
+              top: '20%',
+              height: '60%',
+              width: 4,
+              borderRadius: '0 4px 4px 0',
+              bgcolor: 'primary.main'
+            }
+          }
+        }),
+        ...(!drawerOpen && {
+          px: 2.75,
+          justifyContent: 'center',
+          '&:hover': {
+            bgcolor: 'transparent'
+          },
+          '&.Mui-selected': {
+            '&:hover': {
+              bgcolor: 'transparent'
+            },
+            bgcolor: 'transparent'
+          }
+        })
+      }}
+      {...(downLG && {
+        onClick: () => dispatch(openDrawer(false))
+      })}
+    >
+      {itemIcon && (
+        <ListItemIcon
+          sx={{
+            minWidth: drawerOpen ? 42 : 'auto',
+            color: isSelected ? iconSelectedColor : textColor,
+            transition: 'all 0.25s ease',
+            ...(!drawerOpen &&
+              level === 1 && {
+                borderRadius: '12px',
+                width: 50,
+                height: 50,
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: isSelected
+                  ? theme.palette.mode === ThemeMode.DARK
+                    ? alpha(theme.palette.primary.main, 0.22)
+                    : alpha(theme.palette.primary.main, 0.12)
+                  : 'transparent',
+                '&:hover': {
+                  bgcolor: theme.palette.mode === ThemeMode.DARK ? 'secondary.light' : alpha(theme.palette.primary.main, 0.08)
+                }
+              })
+          }}
+        >
+          {itemIcon}
+        </ListItemIcon>
+      )}
+
+      {!itemIcon && drawerOpen && (
+        <ListItemIcon
+          sx={{
+            minWidth: 30
+          }}
+        >
+          <Dot size={isSelected ? 7 : 5} color={isSelected ? 'primary' : 'secondary'} />
+        </ListItemIcon>
+      )}
+
+      {(drawerOpen || (!drawerOpen && level !== 1)) && (
+        <ListItemText
+          primary={
+            <Typography
+              variant="h5"
+              sx={{
+                color: isSelected ? iconSelectedColor : textColor,
+                fontWeight: isSelected ? 600 : 400,
+                fontSize: '0.875rem',
+                lineHeight: 1.4,
+                transition: 'color 0.2s ease'
+              }}
+            >
+              {item.title}
+            </Typography>
+          }
+        />
+      )}
+      {(drawerOpen || (!drawerOpen && level !== 1)) && item.chip && (
+        <Chip
+          color={item.chip.color}
+          variant={item.chip.variant}
+          size={item.chip.size}
+          label={item.chip.label}
+          avatar={item.chip.avatar && <Avatar>{item.chip.avatar}</Avatar>}
+          sx={{ fontSize: '0.7rem', height: 20 }}
+        />
+      )}
+    </ListItemButton>
+  );
+
   return (
     <>
       {menuOrientation === MenuOrientation.VERTICAL || downLG ? (
-        <ListItemButton
-          component={Link}
-          to={item.url!}
-          target={itemTarget}
-          disabled={item.disabled}
-          selected={isSelected}
-          sx={{
-            zIndex: 1201,
-            pl: drawerOpen ? `${level * 20}px` : 1.5,
-            py: !drawerOpen && level === 1 ? 1.25 : 1,
-            ...(drawerOpen && {
-              '&:hover': {
-                bgcolor: 'transparent'
-              },
-              '&.Mui-selected': {
-                '&:hover': {
-                  bgcolor: 'transparent'
-                },
-                bgcolor: 'transparent'
-              }
-            }),
-            ...(drawerOpen &&
-              level === 1 && {
-                mx: 1.25,
-                my: 0.5,
-                borderRadius: 1,
-                '&:hover': {
-                  bgcolor: theme.palette.mode === ThemeMode.DARK ? 'divider' : 'secondary.200'
-                },
-                '&.Mui-selected': {
-                  color: iconSelectedColor,
-                  '&:hover': {
-                    color: iconSelectedColor
-                  }
-                }
-              }),
-            ...(!drawerOpen && {
-              px: 2.75,
-              justifyContent: 'center',
-              '&:hover': {
-                bgcolor: 'transparent'
-              },
-              '&.Mui-selected': {
-                '&:hover': {
-                  bgcolor: 'transparent'
-                },
-                bgcolor: 'transparent'
-              }
-            })
-          }}
-          {...(downLG && {
-            onClick: () => dispatch(openDrawer(false))
-          })}
-        >
-          {itemIcon && (
-            <ListItemIcon
-              sx={{
-                minWidth: 38,
-                color: isSelected ? iconSelectedColor : textColor,
-                ...(!drawerOpen &&
-                  level === 1 && {
-                    borderRadius: 1,
-                    width: 46,
-                    height: 46,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    '&:hover': {
-                      bgcolor: theme.palette.mode === ThemeMode.DARK ? 'secondary.light' : 'secondary.200'
-                    }
-                  }),
-                ...(!drawerOpen &&
-                  isSelected && {
-                    bgcolor: theme.palette.mode === ThemeMode.DARK ? 'secondary.100' : 'primary.lighter',
-                    '&:hover': {
-                      bgcolor: theme.palette.mode === ThemeMode.DARK ? 'secondary.200' : 'primary.lighter'
-                    }
-                  })
-              }}
-            >
-              {itemIcon}
-            </ListItemIcon>
+        <>
+          {/* Tooltip khi sidebar thu gọn */}
+          {!drawerOpen && level === 1 ? (
+            <Tooltip title={item.title} placement="right" arrow>
+              {itemContent}
+            </Tooltip>
+          ) : (
+            itemContent
           )}
-
-          {!itemIcon && drawerOpen && (
-            <ListItemIcon
-              sx={{
-                minWidth: 30
-              }}
-            >
-              <Dot size={isSelected ? 6 : 5} color={isSelected ? 'primary' : 'secondary'} />
-            </ListItemIcon>
-          )}
-
-          {(drawerOpen || (!drawerOpen && level !== 1)) && (
-            <ListItemText
-              primary={
-                <Typography variant="h6" sx={{ color: isSelected ? iconSelectedColor : textColor, fontWeight: isSelected ? 500 : 400 }}>
-                  {item.title}
-                </Typography>
-              }
-            />
-          )}
-          {(drawerOpen || (!drawerOpen && level !== 1)) && item.chip && (
-            <Chip
-              color={item.chip.color}
-              variant={item.chip.variant}
-              size={item.chip.size}
-              label={item.chip.label}
-              avatar={item.chip.avatar && <Avatar>{item.chip.avatar}</Avatar>}
-            />
-          )}
-        </ListItemButton>
+        </>
       ) : (
         <ListItemButton
           component={Link}
@@ -197,6 +225,8 @@ const NavItem = ({ item, level }: Props) => {
           selected={isSelected}
           sx={{
             zIndex: 1201,
+            borderRadius: '8px',
+            mx: 0.5,
             ...(drawerOpen && {
               '&:hover': {
                 bgcolor: 'transparent'
@@ -252,7 +282,10 @@ const NavItem = ({ item, level }: Props) => {
 
           <ListItemText
             primary={
-              <Typography variant="h6" sx={{ color: isSelected ? iconSelectedColor : textColor, fontWeight: isSelected ? 500 : 400 }}>
+              <Typography
+                variant="h5"
+                sx={{ color: isSelected ? iconSelectedColor : textColor, fontWeight: isSelected ? 600 : 400, fontSize: '0.875rem' }}
+              >
                 {item.title}
               </Typography>
             }
@@ -264,7 +297,7 @@ const NavItem = ({ item, level }: Props) => {
               size={item.chip.size}
               label={item.chip.label}
               avatar={item.chip.avatar && <Avatar>{item.chip.avatar}</Avatar>}
-              sx={{ ml: 1 }}
+              sx={{ ml: 1, fontSize: '0.7rem', height: 20 }}
             />
           )}
         </ListItemButton>

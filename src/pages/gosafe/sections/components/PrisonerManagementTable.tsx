@@ -231,7 +231,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
 
                     <Divider sx={{ my: 1.5, borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }} />
 
-                    {/* Human Biometrics Stats */}
+                    {/* Hardware Telemetry Stats */}
                     <Typography
                       variant="caption"
                       sx={{
@@ -244,23 +244,35 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
                         mb: 1.2
                       }}
                     >
-                      Sinh trắc học & Vận động
+                      Cảm biến & Định vị thiết bị
                     </Typography>
 
                     <Grid container spacing={1.5} mb={2}>
                       <Grid item xs={6}>
                         <Stack direction="row" spacing={1} alignItems="center">
-                          <Activity size="16" color="#ef4444" className="gs-pulse-heart-icon" style={{ flexShrink: 0 }} />
+                          <Activity
+                            size="16"
+                            color={bio.isTampered ? '#ef4444' : '#22c55e'}
+                            className={bio.isTampered ? 'gs-blink' : ''}
+                            style={{ flexShrink: 0 }}
+                          />
                           <Box>
                             <Typography
                               variant="caption"
                               color="text.secondary"
                               sx={{ display: 'block', fontSize: '0.65rem', lineHeight: 1 }}
                             >
-                              Nhịp tim
+                              Khóa vòng chân
                             </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? '#f8fafc' : '#0f172a', fontSize: '0.8rem' }}>
-                              {bio.heartRate} bpm
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 700,
+                                color: bio.isTampered ? '#ef4444' : '#22c55e',
+                                fontSize: '0.8rem'
+                              }}
+                            >
+                              {bio.isTampered ? 'Cảnh báo tháo' : 'Khóa ổn định'}
                             </Typography>
                           </Box>
                         </Stack>
@@ -274,27 +286,27 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
                               color="text.secondary"
                               sx={{ display: 'block', fontSize: '0.65rem', lineHeight: 1 }}
                             >
-                              Nhiệt độ
+                              Vận tốc
                             </Typography>
                             <Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? '#f8fafc' : '#0f172a', fontSize: '0.8rem' }}>
-                              {bio.temp} °C
+                              {dev.status.speed || 0} km/h
                             </Typography>
                           </Box>
                         </Stack>
                       </Grid>
                       <Grid item xs={6}>
                         <Stack direction="row" spacing={1} alignItems="center">
-                          <Heart size="16" color="#22c55e" style={{ flexShrink: 0 }} />
+                          <Heart size="16" color="#a855f7" style={{ flexShrink: 0 }} />
                           <Box>
                             <Typography
                               variant="caption"
                               color="text.secondary"
                               sx={{ display: 'block', fontSize: '0.65rem', lineHeight: 1 }}
                             >
-                              Vận động
+                              Độ cao / Vệ tinh
                             </Typography>
                             <Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? '#f8fafc' : '#0f172a', fontSize: '0.8rem' }}>
-                              {bio.steps.toLocaleString()} bước
+                              {dev.status.altitude || 0}m · {dev.status.satelliteCount} vệ tinh
                             </Typography>
                           </Box>
                         </Stack>
@@ -311,7 +323,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
                               Pin/Tín hiệu
                             </Typography>
                             <Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? '#f8fafc' : '#0f172a', fontSize: '0.8rem' }}>
-                              {dev.status.battery}% • {dev.status.signalStrength}/4 vạch
+                              {dev.status.battery}% · {dev.status.signalStrength}/4 vạch
                             </Typography>
                           </Box>
                         </Stack>

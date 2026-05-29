@@ -311,44 +311,22 @@ export default function TrackingDialogs({ store }: Props) {
                     display: 'block'
                   }}
                 >
-                  Sinh trắc học & Vận động
+                  Cảm biến & Phần cứng thiết bị
                 </Typography>
                 {(() => {
                   const bio = getMockBiometrics(dev.id);
+                  const dbmVal =
+                    dev.status.signalStrength === 4
+                      ? '-65 dBm'
+                      : dev.status.signalStrength === 3
+                      ? '-80 dBm'
+                      : dev.status.signalStrength === 2
+                      ? '-95 dBm'
+                      : dev.status.signalStrength === 1
+                      ? '-108 dBm'
+                      : 'Mất sóng';
                   return (
                     <Stack spacing={1} sx={{ mt: 0.5 }}>
-                      <Stack direction="row" justifyContent="space-between" alignItems="center">
-                        <Typography variant="body2" color="text.secondary">
-                          Nhịp tim:
-                        </Typography>
-                        <Stack direction="row" spacing={0.5} alignItems="center">
-                          <span className="gs-pulse-heart-icon" style={{ display: 'inline-block' }}>
-                            ❤️
-                          </span>
-                          <Typography variant="body2" sx={{ fontWeight: 700, color: '#ef4444' }}>
-                            {bio.heartRate} bpm
-                          </Typography>
-                        </Stack>
-                      </Stack>
-
-                      <Stack direction="row" justifyContent="space-between" alignItems="center">
-                        <Typography variant="body2" color="text.secondary">
-                          Nhiệt độ da:
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {bio.temp} °C
-                        </Typography>
-                      </Stack>
-
-                      <Stack direction="row" justifyContent="space-between" alignItems="center">
-                        <Typography variant="body2" color="text.secondary">
-                          Số bước di chuyển:
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {bio.steps.toLocaleString()} bước
-                        </Typography>
-                      </Stack>
-
                       <Stack direction="row" justifyContent="space-between" alignItems="center">
                         <Typography variant="body2" color="text.secondary">
                           Tiếp xúc vòng chân:
@@ -368,6 +346,55 @@ export default function TrackingDialogs({ store }: Props) {
                             borderColor: bio.isTampered ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)'
                           }}
                         />
+                      </Stack>
+
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography variant="body2" color="text.secondary">
+                          Điện áp Pin:
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {dev.status.batteryVoltage != null
+                            ? `${dev.status.batteryVoltage.toFixed(2)}V (pin)`
+                            : dev.status.externalVoltage != null
+                            ? `${dev.status.externalVoltage.toFixed(2)}V (nguồn ngoài)`
+                            : '—'}
+                        </Typography>
+                      </Stack>
+
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography variant="body2" color="text.secondary">
+                          Vận tốc:
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {dev.status.speed || 0} km/h
+                        </Typography>
+                      </Stack>
+
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography variant="body2" color="text.secondary">
+                          Độ cao:
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {dev.status.altitude || 0} m
+                        </Typography>
+                      </Stack>
+
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography variant="body2" color="text.secondary">
+                          Tín hiệu mạng GSM:
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {dbmVal} (sóng {dev.status.signalStrength}/4)
+                        </Typography>
+                      </Stack>
+
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography variant="body2" color="text.secondary">
+                          Trạng thái định vị GPS:
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: dev.status.gpsFix ? '#22c55e' : '#f59e0b' }}>
+                          {dev.status.gpsFix ? `Đã Fix (${dev.status.satelliteCount} vệ tinh)` : 'Chưa định vị (No Fix)'}
+                        </Typography>
                       </Stack>
                     </Stack>
                   );

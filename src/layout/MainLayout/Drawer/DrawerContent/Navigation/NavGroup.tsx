@@ -147,7 +147,7 @@ const NavGroup = ({ item, lastItem, remItems, lastItemId, setSelectedItems, sele
 
   const Icon = currentItem?.icon!;
   const itemIcon = currentItem?.icon ? (
-    <Icon variant="Bulk" size={22} color={isSelected ? theme.palette.primary.main : theme.palette.secondary.main} />
+    <Icon variant="Bulk" size={26} color={isSelected ? theme.palette.primary.main : theme.palette.secondary.main} />
   ) : null;
 
   const navCollapse = item.children?.map((menuItem, index) => {
@@ -249,16 +249,18 @@ const NavGroup = ({ item, lastItem, remItems, lastItemId, setSelectedItems, sele
             item.title &&
             drawerOpen &&
             menuCaption && (
-              <Box sx={{ pl: 3, mb: 1.5 }}>
+              <Box sx={{ pl: 2.5, mb: 1, mt: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider', opacity: 0.6 }} />
                 <Typography
-                  variant="h5"
-                  color={theme.palette.mode === ThemeMode.DARK ? 'textSecondary' : 'secondary.dark'}
-                  sx={{ textTransform: 'uppercase', fontSize: '0.688rem' }}
+                  variant="caption"
+                  color={theme.palette.mode === ThemeMode.DARK ? 'secondary.400' : 'secondary.main'}
+                  sx={{ textTransform: 'uppercase', fontSize: '0.67rem', fontWeight: 600, letterSpacing: '0.08em', px: 0.5, whiteSpace: 'nowrap' }}
                 >
                   {item.title}
                 </Typography>
+                <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider', opacity: 0.6 }} />
                 {item.caption && (
-                  <Typography variant="caption" color="secondary">
+                  <Typography variant="caption" color="secondary" sx={{ display: 'none' }}>
                     {item.caption}
                   </Typography>
                 )}
@@ -288,14 +290,14 @@ const NavGroup = ({ item, lastItem, remItems, lastItemId, setSelectedItems, sele
             aria-describedby={popperId}
           >
             {itemIcon && (
-              <ListItemIcon sx={{ minWidth: 32 }}>
-                {currentItem.id === lastItemId ? <More2 size={22} variant="Bulk" /> : itemIcon}
+              <ListItemIcon sx={{ minWidth: 36 }}>
+                {currentItem.id === lastItemId ? <More2 size={26} variant="Bulk" /> : itemIcon}
               </ListItemIcon>
             )}
             <ListItemText
               sx={{ mr: 1 }}
               primary={
-                <Typography variant="h6" color={isSelected ? 'primary' : textColor} sx={{ fontWeight: isSelected ? 500 : 400 }}>
+                <Typography variant="h5" color={isSelected ? 'primary' : textColor} sx={{ fontWeight: isSelected ? 600 : 400, fontSize: '0.875rem' }}>
                   {currentItem.id === lastItemId ? <FormattedMessage id="More Items" /> : currentItem.title}
                 </Typography>
               }
