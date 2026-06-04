@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import L from 'leaflet';
 import { gosafeTrackingApi, normaliseHistoryResponse, type ApiDevice } from 'api/gosafe.tracking.api';
+import { useGosafeSSE, type SSEStatus } from 'hooks/useGosafeSSE';
 import {
   Device, Geofence, EventLog, DeviceFormState, GfFormState,
-  DeviceHistoryState, HistoryFilters,
+  DeviceHistoryState, HistoryFilters, CriticalAlert,
 } from './types';
 import {
   INITIAL_DEVICES, INITIAL_GEOFENCES, EMPTY_DEVICE_FORM,
@@ -15,6 +16,15 @@ import {
 } from './utils';
 
 const EMPTY_HISTORY: DeviceHistoryState = { loading: false, error: null, data: null };
+
+// ─── CRITICAL EVENT HELPERS ───────────────────────────────────────────────────
+
+function isSOS(name: string): boolean {
+  return /\bsos\b/i.test(name);
+}
+function isFiberCut(name: string): boolean {
+  return /fiber[\s_]*(optical[\s_]*)?cut/i.test(name);
+}
 
 // ─── SESSION STORAGE ──────────────────────────────────────────────────────────
 
@@ -165,6 +175,18 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
   const [syncInterval, setSyncInterval] = useState<number>(() =>
     ssGet(SS.INTERVAL, 30),
   );
+  const [sseStatus, setSseStatus] = useState<SSEStatus>('idle');
+  const [criticalAlerts, setCriticalAlerts] = useState<CriticalAlert[]>([]);
+
+  // Initialized from localStorage so page-reload doesn't re-fire existing events
+  const prevEventNamesRef = useRef<Record<string, string>>(
+    (() => {
+      const saved = ssGet<ReturnType<typeof deviceToSS>[]>(SS.DEVICES, []);
+      const init: Record<string, string> = {};
+      saved.forEach((d) => { init[d.uniqueId] = d.status.eventName ?? 'Normal'; });
+      return init;
+    })()
+  );
 
   // ── HISTORY ──
   const [historyState, setHistoryState] = useState<Record<string, DeviceHistoryState>>({});
@@ -304,6 +326,44 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
       osc.frequency.setValueAtTime(650, ctx.currentTime);
       gain.gain.setValueAtTime(0.15, ctx.currentTime);
       osc.start(); osc.stop(ctx.currentTime + 0.15);
+    } catch {}
+  }, [soundEnabled]);
+
+  // 3 rapid high-pitched beeps for SOS
+  const playSOSAlarm = useCallback(() => {
+    if (!soundEnabled) return;
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      [0, 0.22, 0.44].forEach((offset) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(880, ctx.currentTime + offset);
+        gain.gain.setValueAtTime(0.18, ctx.currentTime + offset);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.18);
+        osc.start(ctx.currentTime + offset);
+        osc.stop(ctx.currentTime + offset + 0.18);
+      });
+    } catch {}
+  }, [soundEnabled]);
+
+  // 2 warning beeps for fiber cut
+  const playFiberAlarm = useCallback(() => {
+    if (!soundEnabled) return;
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      [0, 0.3].forEach((offset) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(660, ctx.currentTime + offset);
+        gain.gain.setValueAtTime(0.18, ctx.currentTime + offset);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.24);
+        osc.start(ctx.currentTime + offset);
+        osc.stop(ctx.currentTime + offset + 0.24);
+      });
     } catch {}
   }, [soundEnabled]);
 
@@ -454,6 +514,16 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
 
   // ── GEOFENCE INFO ─────────────────────────────────────────────────────────────
 
+  // ── CRITICAL ALERT HANDLERS ───────────────────────────────────────────────────
+
+  const dismissCriticalAlert = useCallback((id: string) => {
+    setCriticalAlerts((prev) => prev.filter((a) => a.id !== id));
+  }, []);
+
+  const dismissAllCriticalAlerts = useCallback(() => {
+    setCriticalAlerts([]);
+  }, []);
+
   const handleSaveGfInfo = () => {
     if (!editGfId) return;
     setGeofences((prev) =>
@@ -482,34 +552,102 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
 
   // ── LIVE DEVICE FETCH ─────────────────────────────────────────────────────────
 
+  /**
+   * Merge ApiDevice[] vào state devices — dùng chung cho cả SSE lẫn polling.
+   * Giữ lại manual devices (device thêm tay, không có trên API).
+   * Phát hiện SOS và Fiber Cut từ event_name để kích hoạt critical alerts.
+   */
+  const applyApiDevices = useCallback((apiData: ApiDevice[]) => {
+    // ── Critical event detection (before state update to access prev names) ──
+    const newAlerts: CriticalAlert[] = [];
+
+    apiData.forEach((api) => {
+      const prev = prevEventNamesRef.current[api.device_imei] ?? 'Normal';
+      const curr = api.event_name ?? 'Normal';
+      prevEventNamesRef.current[api.device_imei] = curr;
+
+      if (isSOS(curr) && !isSOS(prev)) {
+        newAlerts.push({
+          id: `sos-${api.device_imei}-${Date.now()}`,
+          type: 'sos',
+          imei: api.device_imei,
+          coords: [api.latitude, api.longitude],
+          timestamp: new Date(),
+        });
+        addLog(`🚨 SOS KHẨN CẤP: Thiết bị ${api.device_imei} yêu cầu hỗ trợ!`, 'warning');
+      }
+
+      if (isFiberCut(curr) && !isFiberCut(prev)) {
+        newAlerts.push({
+          id: `fiber-${api.device_imei}-${Date.now()}`,
+          type: 'fiber_cut',
+          imei: api.device_imei,
+          coords: [api.latitude, api.longitude],
+          timestamp: new Date(),
+        });
+        addLog(`⚠️ CẢNH BÁO: Thiết bị ${api.device_imei} phát hiện tháo dây cáp quang!`, 'warning');
+      }
+    });
+
+    if (newAlerts.length > 0) {
+      setCriticalAlerts((prev) => [...prev, ...newAlerts]);
+      if (newAlerts.some((a) => a.type === 'sos')) {
+        playSOSAlarm();
+      } else {
+        playFiberAlarm();
+      }
+    }
+
+    // ── Merge into devices state ──────────────────────────────────────────────
+    setDevices((prev) => {
+      const prevByImei: Record<string, Device> = {};
+      prev.forEach((d) => { prevByImei[d.uniqueId] = d; });
+      const updatedImeis = new Set<string>();
+      const apiDevices = apiData.map((api: ApiDevice, idx: number) => {
+        updatedImeis.add(api.device_imei);
+        const existing = prevByImei[api.device_imei];
+        return mapApiDeviceToDevice(api, existing, DEVICE_PALETTE[idx % DEVICE_PALETTE.length]);
+      });
+      // Giữ lại device thêm tay (không có IMEI trên API)
+      const manualDevices = prev.filter((d) => !updatedImeis.has(d.uniqueId));
+      return [...apiDevices, ...manualDevices];
+    });
+  }, [addLog, playSOSAlarm, playFiberAlarm]);
+
+  /** Fetch thủ công qua REST — dùng làm fallback polling và nút refresh */
   const fetchLiveDevices = useCallback(async () => {
     try {
       const res = await gosafeTrackingApi.getDevices();
       const apiData = res.data;
       if (apiData?.code !== 0 || !Array.isArray(apiData?.data)) return;
-      setDevices((prev) => {
-        const prevByImei: Record<string, Device> = {};
-        prev.forEach((d) => { prevByImei[d.uniqueId] = d; });
-        const updatedImeis = new Set<string>();
-        const apiDevices = apiData.data.map((api: ApiDevice, idx: number) => {
-          updatedImeis.add(api.device_imei);
-          const existing = prevByImei[api.device_imei];
-          return mapApiDeviceToDevice(api, existing, DEVICE_PALETTE[idx % DEVICE_PALETTE.length]);
-        });
-        const manualDevices = prev.filter((d) => !updatedImeis.has(d.uniqueId));
-        return [...apiDevices, ...manualDevices];
-      });
+      applyApiDevices(apiData.data);
     } catch {
-      // silently ignore polling errors
+      // silently ignore — SSE hoặc lần poll sau sẽ bù lại
     }
-  }, []);
+  }, [applyApiDevices]);
 
-  // Poll live device positions based on syncInterval configuration
+  // ── SSE — primary real-time source ───────────────────────────────────────────
+
+  const { status: sseStatusValue, lastUpdate: sseLastUpdate } = useGosafeSSE(
+    applyApiDevices,
+    true, // luôn bật khi component mount
+  );
+
+  // Sync SSE status vào state để UI có thể hiển thị indicator
   useEffect(() => {
-    fetchLiveDevices();
+    setSseStatus(sseStatusValue);
+  }, [sseStatusValue]);
+
+  // ── Polling fallback — chỉ chạy khi SSE chưa/không kết nối được ─────────────
+  useEffect(() => {
+    // SSE đang hoạt động → không cần poll
+    if (sseStatusValue === 'connected') return;
+
+    // SSE chưa sẵn sàng (connecting/disconnected/unsupported) → dùng polling
+    fetchLiveDevices(); // fetch ngay lập tức
     const id = setInterval(fetchLiveDevices, syncInterval * 1000);
     return () => clearInterval(id);
-  }, [fetchLiveDevices, syncInterval]);
+  }, [fetchLiveDevices, syncInterval, sseStatusValue]);
 
   // ── GPS HISTORY ───────────────────────────────────────────────────────────────
 
@@ -553,6 +691,8 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     mapCenter, setMapCenter,
     mapZoom, setMapZoom,
     syncInterval, setSyncInterval,
+    sseStatus, sseLastUpdate,
+    criticalAlerts, dismissCriticalAlert, dismissAllCriticalAlerts,
     // History
     historyState, historyVisible, setHistoryVisible,
     historyFilters, setHistoryFilters,

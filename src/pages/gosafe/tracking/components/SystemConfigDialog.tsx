@@ -15,9 +15,12 @@ import {
   Radio,
   Checkbox,
   Divider,
-  Box
+  Box,
+  Chip,
+  alpha,
+  Tooltip,
 } from '@mui/material';
-import { Cpu, VolumeHigh, Map, Sms } from 'iconsax-react';
+import { Cpu, VolumeHigh, Map, Sms, Wifi, WifiSquare } from 'iconsax-react';
 import { enqueueSnackbar } from 'notistack';
 import type { TrackingStore } from '../useTracking';
 
@@ -30,7 +33,23 @@ interface SystemConfigDialogProps {
 }
 
 export default function SystemConfigDialog({ open, onClose, store, primaryColor, isDark }: SystemConfigDialogProps) {
-  const { soundEnabled, setSoundEnabled, followDevice, setFollowDevice, syncInterval, setSyncInterval } = store;
+  const { soundEnabled, setSoundEnabled, followDevice, setFollowDevice, syncInterval, setSyncInterval, sseStatus, sseLastUpdate } = store;
+
+  const sseConnected = sseStatus === 'connected';
+  const sseLabel: Record<typeof sseStatus, string> = {
+    idle:        'Chưa kết nối',
+    connecting:  'Đang kết nối...',
+    connected:   'Đang kết nối',
+    disconnected:'Mất kết nối — đang thử lại',
+    unsupported: 'Trình duyệt không hỗ trợ',
+  };
+  const sseColor: Record<typeof sseStatus, string> = {
+    idle:        '#64748b',
+    connecting:  '#f59e0b',
+    connected:   '#22c55e',
+    disconnected:'#ef4444',
+    unsupported: '#ef4444',
+  };
 
   // Local settings states (can be backed by local storage or just state-driven mockup for visual mapping)
   const [alarmVolume, setAlarmVolume] = useState<number>(80);
@@ -127,6 +146,51 @@ export default function SystemConfigDialog({ open, onClose, store, primaryColor,
               </Typography>
             </Stack>
 
+            {/* SSE Status Card */}
+            <Box
+              sx={{
+                mb: 2,
+                p: 1.5,
+                borderRadius: 1.5,
+                border: `1px solid ${alpha(sseColor[sseStatus], 0.3)}`,
+                bgcolor: alpha(sseColor[sseStatus], 0.06),
+              }}
+            >
+              <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  {sseConnected
+                    ? <Wifi size={16} color={sseColor[sseStatus]} />
+                    : <WifiSquare size={16} color={sseColor[sseStatus]} />
+                  }
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: sseColor[sseStatus] }}>
+                    Kết nối SSE real-time
+                  </Typography>
+                  <Chip
+                    label={sseLabel[sseStatus]}
+                    size="small"
+                    sx={{
+                      height: 20,
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      bgcolor: alpha(sseColor[sseStatus], 0.15),
+                      color: sseColor[sseStatus],
+                      border: `1px solid ${alpha(sseColor[sseStatus], 0.3)}`,
+                    }}
+                  />
+                </Stack>
+                {sseLastUpdate && (
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    Cập nhật: {sseLastUpdate.toLocaleTimeString('vi-VN')}
+                  </Typography>
+                )}
+              </Stack>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+                {sseConnected
+                  ? 'Dữ liệu GPS được đẩy từ server ngay khi có — không cần polling.'
+                  : 'Đang dùng polling làm fallback. Hệ thống sẽ tự chuyển sang SSE khi kết nối lại.'}
+              </Typography>
+            </Box>
+
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <FormControlLabel
@@ -137,16 +201,26 @@ export default function SystemConfigDialog({ open, onClose, store, primaryColor,
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ height: '100%' }}>
-                  <Typography variant="body2" sx={{ mr: 1 }}>
-                    Chu kỳ đồng bộ:
-                  </Typography>
-                  <RadioGroup row value={syncInterval} onChange={(e) => setSyncInterval(Number(e.target.value))}>
-                    <FormControlLabel value={10} control={<Radio size="small" />} label={<Typography variant="caption">10s</Typography>} />
-                    <FormControlLabel value={30} control={<Radio size="small" />} label={<Typography variant="caption">30s</Typography>} />
-                    <FormControlLabel value={60} control={<Radio size="small" />} label={<Typography variant="caption">60s</Typography>} />
-                  </RadioGroup>
-                </Stack>
+                <Tooltip
+                  title={sseConnected ? 'SSE đang hoạt động — polling tạm ngưng' : 'Chu kỳ polling khi SSE không khả dụng'}
+                  placement="top"
+                  arrow
+                >
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ height: '100%', opacity: sseConnected ? 0.45 : 1 }}>
+                    <Typography variant="body2" sx={{ mr: 1, whiteSpace: 'nowrap' }}>
+                      Chu kỳ fallback:
+                    </Typography>
+                    <RadioGroup
+                      row
+                      value={syncInterval}
+                      onChange={(e) => setSyncInterval(Number(e.target.value))}
+                    >
+                      <FormControlLabel value={10} control={<Radio size="small" disabled={sseConnected} />} label={<Typography variant="caption">10s</Typography>} />
+                      <FormControlLabel value={30} control={<Radio size="small" disabled={sseConnected} />} label={<Typography variant="caption">30s</Typography>} />
+                      <FormControlLabel value={60} control={<Radio size="small" disabled={sseConnected} />} label={<Typography variant="caption">60s</Typography>} />
+                    </RadioGroup>
+                  </Stack>
+                </Tooltip>
               </Grid>
               <Grid item xs={12}>
                 <Stack direction="row" spacing={1} alignItems="center">

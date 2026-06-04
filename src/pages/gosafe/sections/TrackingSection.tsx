@@ -45,6 +45,7 @@ import GpsHistoryPanel from '../tracking/components/GpsHistoryPanel';
 import TrackingDialogs from '../tracking/components/TrackingDialogs';
 import ProfileDialog from '../tracking/components/ProfileDialog';
 import SystemConfigDialog from '../tracking/components/SystemConfigDialog';
+import CriticalAlertOverlay from '../tracking/components/CriticalAlertOverlay';
 
 // Subcomponents
 import DashboardOverview from './components/DashboardOverview';
@@ -71,7 +72,11 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
     searchQuery,
     setSearchQuery,
     statusAlertCount,
-    setSelectedDeviceId
+    setSelectedDeviceId,
+    setMapCenter,
+    criticalAlerts,
+    dismissCriticalAlert,
+    dismissAllCriticalAlerts,
   } = store;
 
   // Dashboard views: overview (Tổng quan), tracking (Giám sát), devices (Thiết bị), prisoners (Phạm nhân), sims (Sim Card)
@@ -574,6 +579,22 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
         store={store}
         primaryColor={primaryColor}
         isDark={isDark}
+      />
+
+      {/* ── Critical alert overlay — SOS & Fiber Cut ── */}
+      <CriticalAlertOverlay
+        alerts={criticalAlerts}
+        devices={devices}
+        onDismiss={dismissCriticalAlert}
+        onDismissAll={dismissAllCriticalAlerts}
+        onFocusDevice={(imei) => {
+          const dev = devices.find((d) => d.uniqueId === imei);
+          if (dev) {
+            setSelectedDeviceId(dev.id);
+            setMapCenter(dev.coords);
+            setDashboardView('tracking');
+          }
+        }}
       />
     </Box>
   );

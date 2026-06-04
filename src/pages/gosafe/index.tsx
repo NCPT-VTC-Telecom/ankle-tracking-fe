@@ -18,6 +18,7 @@ import FAQSection from './sections/FAQSection';
 import { faqsGosafe } from 'pages/landing/data';
 import Footer from './sections/Footer';
 import TrackingSection from './sections/TrackingSection';
+import LiveDemoSection from './sections/LiveDemoSection';
 
 function ScrollTop(props: { children: React.ReactElement }) {
   const trigger = useScrollTrigger({
@@ -140,6 +141,7 @@ const GosafeLanding = ({ viewType = 'landing' }: GosafeLandingProps) => {
           <>
             <SolutionsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
             <HeroSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+            <LiveDemoSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
             <ProductsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
             <SpecsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
             <FAQSection faqs={faqsGosafe} isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />

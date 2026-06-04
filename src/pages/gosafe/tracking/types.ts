@@ -97,6 +97,21 @@ export interface HistoryFilters {
   limit: number;
 }
 
+// ─── CRITICAL ALERTS ──────────────────────────────────────────────────────────
+
+export type CriticalAlertType = 'sos' | 'fiber_cut';
+
+export interface CriticalAlert {
+  /** Unique per incident — includes IMEI + timestamp to avoid duplicates */
+  id: string;
+  type: CriticalAlertType;
+  /** device.uniqueId / ApiDevice.device_imei */
+  imei: string;
+  /** GPS coordinates at the moment the alert fired */
+  coords: [number, number];
+  timestamp: Date;
+}
+
 // ─── THEME PROPS (shared by sub-components) ───────────────────────────────────
 
 export interface ThemeProps {
