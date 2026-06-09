@@ -12,7 +12,13 @@
       "Bash(Select-Object -Last 40)",
       "Bash(tail -40 \"/mnt/f/Code/ankle-tracking-fe/src/utils/locales/en.json\")",
       "Bash(tail -30 \"/mnt/f/Code/ankle-tracking-fe/src/utils/locales/vi.json\")",
-      "Bash(cd /mnt/f/Code/ankle-tracking-fe && npx tsc --noEmit 2>&1 | head -60)"
+      "Bash(cd /mnt/f/Code/ankle-tracking-fe && npx tsc --noEmit 2>&1 | head -60)",
+      "Bash(findstr /I \"route\")",
+      "PowerShell(cd \"f:\\\\Code\\\\ankle-tracking-fe\"; npx tsc --noEmit --skipLibCheck 2>&1 | Select-String \"error TS\" | Where-Object { $_ -notmatch \"node_modules\" })",
+      "Bash(ls -la \"f:\\\\Code\\\\ankle-tracking-fe\\\\src\\\\menu-items\\\\\\\\\")",
+      "Bash(ls -la \"f:\\\\Code\\\\ankle-tracking-fe\\\\src\\\\pages\\\\\\\\\")",
+      "Bash(grep -E \"\\\\.\\(tsx|ts|jsx|js\\)$\")",
+      "Bash(xargs grep -l \"wifi-premium\\\\|wlan\\\\|ssid\\\\|voucher\")"
     ]
   }
 }

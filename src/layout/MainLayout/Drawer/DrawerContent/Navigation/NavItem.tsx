@@ -85,34 +85,34 @@ const NavItem = ({ item, level }: Props) => {
         zIndex: 1201,
         pl: drawerOpen ? `${level * 20}px` : 1.5,
         py: !drawerOpen && level === 1 ? 1.5 : 1.1,
-        borderRadius: '10px',
+        borderRadius: '12px',
         mx: drawerOpen ? 1.25 : 0.75,
         my: 0.35,
-        transition: 'all 0.25s ease',
+        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         ...(drawerOpen && {
           '&:hover': {
             bgcolor: theme.palette.mode === ThemeMode.DARK
-              ? alpha(theme.palette.primary.main, 0.12)
-              : alpha(theme.palette.primary.main, 0.07)
+              ? 'rgba(255, 255, 255, 0.06)'
+              : 'rgba(0, 0, 0, 0.04)',
+            transform: 'translateX(4px)'
           },
           '&.Mui-selected': {
             background: theme.palette.mode === ThemeMode.DARK
-              ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.22)}, ${alpha(theme.palette.primary.dark, 0.1)})`
-              : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.14)}, ${alpha(theme.palette.primary.light, 0.06)})`,
+              ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.22)}, ${alpha(theme.palette.primary.main, 0.08)})`
+              : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.12)}, ${alpha(theme.palette.primary.main, 0.04)})`,
+            border: `1px solid ${
+              theme.palette.mode === ThemeMode.DARK
+                ? alpha(theme.palette.primary.main, 0.25)
+                : alpha(theme.palette.primary.main, 0.18)
+            }`,
+            boxShadow: theme.palette.mode === ThemeMode.DARK
+              ? `0 4px 14px 0 ${alpha(theme.palette.primary.main, 0.12)}`
+              : `0 4px 14px 0 ${alpha(theme.palette.primary.main, 0.06)}`,
             '&:hover': {
               background: theme.palette.mode === ThemeMode.DARK
-                ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.28)}, ${alpha(theme.palette.primary.dark, 0.14)})`
-                : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.18)}, ${alpha(theme.palette.primary.light, 0.10)})`
-            },
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              left: 0,
-              top: '20%',
-              height: '60%',
-              width: 4,
-              borderRadius: '0 4px 4px 0',
-              bgcolor: 'primary.main'
+                ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.26)}, ${alpha(theme.palette.primary.main, 0.12)})`
+                : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.16)}, ${alpha(theme.palette.primary.main, 0.06)})`,
+              transform: 'translateX(4px)'
             }
           }
         }),
@@ -139,21 +139,37 @@ const NavItem = ({ item, level }: Props) => {
           sx={{
             minWidth: drawerOpen ? 42 : 'auto',
             color: isSelected ? iconSelectedColor : textColor,
-            transition: 'all 0.25s ease',
+            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
             ...(!drawerOpen &&
               level === 1 && {
                 borderRadius: '12px',
-                width: 50,
-                height: 50,
+                width: 46,
+                height: 46,
                 alignItems: 'center',
                 justifyContent: 'center',
                 bgcolor: isSelected
                   ? theme.palette.mode === ThemeMode.DARK
                     ? alpha(theme.palette.primary.main, 0.22)
-                    : alpha(theme.palette.primary.main, 0.12)
+                    : alpha(theme.palette.primary.main, 0.1)
                   : 'transparent',
+                border: isSelected
+                  ? `1px solid ${
+                      theme.palette.mode === ThemeMode.DARK
+                        ? alpha(theme.palette.primary.main, 0.3)
+                        : alpha(theme.palette.primary.main, 0.18)
+                    }`
+                  : '1px solid transparent',
+                boxShadow: isSelected
+                  ? theme.palette.mode === ThemeMode.DARK
+                    ? `0 4px 12px 0 ${alpha(theme.palette.primary.main, 0.15)}`
+                    : `0 4px 12px 0 ${alpha(theme.palette.primary.main, 0.08)}`
+                  : 'none',
                 '&:hover': {
-                  bgcolor: theme.palette.mode === ThemeMode.DARK ? 'secondary.light' : alpha(theme.palette.primary.main, 0.08)
+                  bgcolor: theme.palette.mode === ThemeMode.DARK 
+                    ? 'rgba(255, 255, 255, 0.08)' 
+                    : alpha(theme.palette.primary.main, 0.06),
+                  transform: 'scale(1.05)',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
                 }
               })
           }}

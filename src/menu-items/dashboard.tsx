@@ -28,8 +28,6 @@ import {
   Map1,
   HierarchySquare,
   Data,
-  Barcode,
-  Crown1,
   CpuSetting,
   Brodcast,
   ShieldSecurity,
@@ -38,8 +36,7 @@ import {
   ShieldTick,
   MirroringScreen,
   GlobalSearch,
-  Wifi,
-  ScanBarcode
+  Wifi
 } from 'iconsax-react';
 import { Server, RestrictionDevice, RestrictionDomain, SystemLog, Software } from 'components/atoms/icon';
 
@@ -77,8 +74,6 @@ const icons = {
   controller: Data,
   blockDomain: RestrictionDomain,
   blockDevice: RestrictionDevice,
-  voucher: Barcode,
-  premium: Crown1,
   systemLog: SystemLog,
   softwareLog: Software,
   hardwareLog: CpuSetting,
@@ -86,8 +81,7 @@ const icons = {
   security: ShieldSecurity,
   history: Clock,
   shield: ShieldTick,
-  ad: MirroringScreen,
-  scan: ScanBarcode
+  ad: MirroringScreen
 };
 
 const dashboard: NavItemType = {
@@ -380,86 +374,6 @@ const dashboard: NavItemType = {
           url: '/site-management/site-list',
           icon: icons.site
         }
-      ]
-    },
-    {
-      id: 'wifi-premium',
-      title: <FormattedMessage id="wifi-premium" />,
-      type: 'collapse',
-      icon: icons.premium,
-      children: [
-        {
-          id: 'wifi-premium/overview', // Match với access path từ DB
-          title: <FormattedMessage id="premium-overview" />,
-          type: 'item',
-          url: '/wifi-premium/overview',
-          icon: icons.home
-        },
-        {
-          id: 'wifi-premium/voucher/groups', // Match với access path từ DB
-          title: <FormattedMessage id="voucher-groups" />,
-          type: 'item',
-          url: '/wifi-premium/voucher/groups',
-          icon: icons.voucher
-        },
-        {
-          id: 'wifi-premium/voucher/orders', // Match với access path từ DB
-          title: <FormattedMessage id="voucher-orders" />,
-          type: 'item',
-          url: '/wifi-premium/voucher/orders',
-          icon: icons.voucher
-        },
-        {
-          id: 'wifi-premium/voucher/analytics', // Match với access path từ DB
-          title: <FormattedMessage id="voucher-analytics" />,
-          type: 'item',
-          url: '/wifi-premium/voucher/analytics',
-          icon: icons.chart2
-        },
-        {
-          id: 'wifi-premium/voucher/agents', // Match với access path từ DB
-          title: <FormattedMessage id="agent-management" />,
-          type: 'item',
-          url: '/wifi-premium/voucher/agents',
-          icon: icons.admin
-        },
-        {
-          id: 'wifi-premium/voucher/verification', // Match với access path từ DB
-          title: <FormattedMessage id="voucher-verification" />,
-          type: 'item',
-          url: '/wifi-premium/voucher/verification',
-          icon: icons.scan
-        },
-        {
-          id: 'wifi-premium/voucher/scan-summary', // Match với access path từ DB
-          title: <FormattedMessage id="voucher-scan-summary" />,
-          type: 'item',
-          url: '/wifi-premium/voucher/scan-summary',
-          icon: icons.chart2
-        },
-        {
-          id: 'wifi-premium/voucher/usage-history', // Match với access path từ DB
-          title: <FormattedMessage id="voucher-usage-history" />,
-          type: 'item',
-          url: '/wifi-premium/voucher/usage-history',
-          icon: icons.history
-        },
-        {
-          id: 'wifi-premium/passpoint/profiles', // Match với access path từ DB
-          title: <FormattedMessage id="passpoint-profiles" />,
-          type: 'item',
-          url: '/wifi-premium/passpoint/profiles',
-          icon: icons.shield
-        },
-        // Legacy menu items (keep for backward compatibility)
-        {
-          id: 'voucher-management',
-          title: <FormattedMessage id="voucher-management" />,
-          type: 'item',
-          url: '/wifi-premium/voucher-management',
-          icon: icons.voucher
-        }
-        // TODO: Add future passpoint items (orders, certificates, roaming-partners)
       ]
     },
     {

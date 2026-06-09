@@ -13,6 +13,7 @@ import { DRAWER_WIDTH } from 'config';
 import { ArrowLeft2, ArrowRight2 } from 'iconsax-react';
 import { dispatch, useSelector } from 'store';
 import { openDrawer } from 'store/reducers/menu';
+import { ThemeMode } from 'types/config';
 
 // ==============================|| MAIN LAYOUT - DRAWER ||============================== //
 
@@ -46,9 +47,20 @@ const MainDrawer = ({ window }: Props) => {
               left: '16px',
               bottom: '16px',
               height: 'calc(100vh - 32px)',
-              borderRadius: '20px',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
-              border: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
+              borderRadius: '24px',
+              boxShadow: theme.palette.mode === ThemeMode.DARK 
+                ? '0 8px 32px 0 rgba(0, 0, 0, 0.35)' 
+                : '0 8px 32px 0 rgba(31, 38, 135, 0.06)',
+              border: `1px solid ${
+                theme.palette.mode === ThemeMode.DARK 
+                  ? 'rgba(255, 255, 255, 0.08)' 
+                  : 'rgba(255, 255, 255, 0.45)'
+              }`,
+              background: theme.palette.mode === ThemeMode.DARK 
+                ? 'rgba(28, 28, 30, 0.65)' 
+                : 'rgba(255, 255, 255, 0.45)',
+              backdropFilter: 'blur(24px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
               transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
             }
           }}
@@ -59,22 +71,37 @@ const MainDrawer = ({ window }: Props) => {
               sx={{
                 position: 'absolute',
                 top: '50%',
-                right: -20,
+                right: -18,
                 zIndex: 20,
                 transform: 'translateY(-50%)',
-                background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                background: theme.palette.mode === ThemeMode.DARK 
+                  ? 'rgba(40, 40, 42, 0.75)' 
+                  : 'rgba(255, 255, 255, 0.75)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                border: `1px solid ${
+                  theme.palette.mode === ThemeMode.DARK 
+                    ? 'rgba(255, 255, 255, 0.12)' 
+                    : 'rgba(0, 0, 0, 0.08)'
+                }`,
                 borderRadius: '50%',
-                boxShadow: `0 4px 16px ${alpha(theme.palette.primary.main, 0.45)}`,
-                width: 40,
-                height: 40,
+                boxShadow: theme.palette.mode === ThemeMode.DARK 
+                  ? '0 4px 12px rgba(0, 0, 0, 0.4)' 
+                  : '0 4px 12px rgba(0, 0, 0, 0.08)',
+                width: 36,
+                height: 36,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                color: theme.palette.mode === ThemeMode.DARK ? '#fff' : '#1c1c1e',
                 '&:hover': {
-                  transform: 'translateY(-50%) scale(1.12)',
-                  boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.6)}`
+                  transform: 'translateY(-50%) scale(1.1)',
+                  background: theme.palette.primary.main,
+                  color: '#fff',
+                  borderColor: theme.palette.primary.main,
+                  boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.45)}`
                 },
                 '&:active': {
                   transform: 'translateY(-50%) scale(0.95)'
@@ -83,9 +110,9 @@ const MainDrawer = ({ window }: Props) => {
               onClick={() => dispatch(openDrawer(!drawerOpen))}
             >
               {!drawerOpen ? (
-                <ArrowRight2 size={20} color="#fff" />
+                <ArrowRight2 size={18} color="currentColor" />
               ) : (
-                <ArrowLeft2 size={20} color="#fff" />
+                <ArrowLeft2 size={18} color="currentColor" />
               )}
             </Box>
           </Tooltip>
