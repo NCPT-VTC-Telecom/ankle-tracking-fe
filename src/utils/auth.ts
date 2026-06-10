@@ -6,7 +6,10 @@ const ACCESS_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 
 export const setAccessToken = (token: string) => {
-  if (!token) return;
+  if (!token) {
+    clearAccessToken();
+    return;
+  }
   const formatted = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
   cookies.set(ACCESS_TOKEN_KEY, formatted, { path: '/' });
 };

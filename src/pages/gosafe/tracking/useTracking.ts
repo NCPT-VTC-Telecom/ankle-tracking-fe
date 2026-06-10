@@ -431,6 +431,27 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     centerDragStartRef.current = null;
   };
 
+  const handleAddVertex = (gfId: string, afterIdx: number, coord: [number, number]) => {
+    setGeofences((prev) =>
+      prev.map((g) => {
+        if (g.id !== gfId) return g;
+        const coords = [...g.coordinates];
+        coords.splice(afterIdx + 1, 0, coord);
+        return { ...g, coordinates: coords };
+      }),
+    );
+  };
+
+  const handleDeleteVertex = (gfId: string, vidx: number) => {
+    setGeofences((prev) =>
+      prev.map((g) => {
+        if (g.id !== gfId) return g;
+        if (g.coordinates.length <= 3) return g;
+        return { ...g, coordinates: g.coordinates.filter((_, i) => i !== vidx) };
+      }),
+    );
+  };
+
   const handleToggleGeofenceActive = (id: string) =>
     setGeofences((prev) => prev.map((g) => (g.id === id ? { ...g, active: !g.active } : g)));
 
@@ -717,6 +738,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     handleAssignDeviceToGeofence,
     handleToggleGeofenceActive,
     handleDragVertexEnd, handleCenterDragStart, handleCenterDragEnd,
+    handleAddVertex, handleDeleteVertex,
     handleSaveGfInfo, handleAddGeofence,
   };
 }

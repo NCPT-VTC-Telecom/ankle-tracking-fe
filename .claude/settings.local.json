@@ -18,7 +18,9 @@
       "Bash(ls -la \"f:\\\\Code\\\\ankle-tracking-fe\\\\src\\\\menu-items\\\\\\\\\")",
       "Bash(ls -la \"f:\\\\Code\\\\ankle-tracking-fe\\\\src\\\\pages\\\\\\\\\")",
       "Bash(grep -E \"\\\\.\\(tsx|ts|jsx|js\\)$\")",
-      "Bash(xargs grep -l \"wifi-premium\\\\|wlan\\\\|ssid\\\\|voucher\")"
+      "Bash(xargs grep -l \"wifi-premium\\\\|wlan\\\\|ssid\\\\|voucher\")",
+      "Bash(npx vite *)",
+      "Bash(node -e \"const rl = require\\('react-leaflet'\\); console.log\\(['ScaleControl','Tooltip','Circle','useMap'].map\\(k => k + ':' + \\(k in rl\\)\\).join\\('\\\\n'\\)\\)\")"
     ]
   }
 }

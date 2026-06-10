@@ -56,3 +56,15 @@ export const createHistoryMarkerIcon = (label: string, color: string) =>
     iconSize: [18, 18],
     iconAnchor: [9, 9],
   });
+
+export const createMidpointIcon = (color: string) =>
+  new L.DivIcon({
+    html: `<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="8" cy="8" r="7" fill="white" stroke="${color}" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.92"/>
+      <line x1="8" y1="3.5" x2="8" y2="12.5" stroke="${color}" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="3.5" y1="8" x2="12.5" y2="8" stroke="${color}" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>`,
+    className: '',
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+  });

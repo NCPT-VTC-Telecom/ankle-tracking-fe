@@ -250,17 +250,32 @@ export const JWTProvider = ({ children }: { children: ReactElement }) => {
         password
       });
 
-      dispatch(loginStore({ isLoggedIn: true, user: res.data.data.user }));
-      setAccessToken(res.data.data.accessToken);
+      if (res.data.code === 0 && res.data.data) {
+        dispatch(loginStore({ isLoggedIn: true, user: res.data.data.user }));
+        setAccessToken(res.data.data.accessToken);
 
-      // Store refresh token if present in response
-      if (res.data.data.refreshToken) {
-        setRefreshToken(res.data.data.refreshToken);
+        // Store refresh token if present in response
+        if (res.data.data.refreshToken) {
+          setRefreshToken(res.data.data.refreshToken);
+        }
+      } else {
+        dispatch(logoutStore());
       }
 
       return { code: res.data.code };
-    } catch (err) {
+    } catch (err: any) {
       dispatch(logoutStore());
+      // Handle server/network errors
+      if (axios.isAxiosError(err)) {
+        if (!err.response) {
+          // Network connection error
+          return { code: -5 };
+        }
+        if (err.response.status >= 500) {
+          // Internal server error
+          return { code: -4 };
+        }
+      }
       return { code: -1 };
     }
   };
@@ -274,16 +289,26 @@ export const JWTProvider = ({ children }: { children: ReactElement }) => {
     lastName: string,
     isAdmin: boolean
   ): Promise<{ code: number; message: string }> => {
-    const res = await axios.post(`${import.meta.env.VITE_APP_BACKEND_API_TEST_WIFI + API_PATH_AUTHENTICATE.registerUser}`, {
-      phoneNumber: phoneNumber,
-      email,
-      isAdmin,
-      username,
-      password,
-      fullname: `${firstName} ${lastName}`
-    });
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_APP_BACKEND_API_TEST_WIFI + API_PATH_AUTHENTICATE.registerUser}`, {
+        phoneNumber: phoneNumber,
+        email,
+        isAdmin,
+        username,
+        password,
+        fullname: `${firstName} ${lastName}`
+      });
 
-    return { code: res.data.code, message: res.data.message };
+      return { code: res.data.code, message: res.data.message };
+    } catch (err: any) {
+      if (err.response && err.response.data) {
+        return {
+          code: err.response.data.code ?? -1,
+          message: err.response.data.message ?? err.message
+        };
+      }
+      return { code: -1, message: err.message };
+    }
   };
 
   const logout = async (silent: boolean = false) => {

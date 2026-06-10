@@ -1,4 +1,4 @@
-import { ReactNode, useMemo } from 'react';
+import { ReactNode, useMemo, useState, useEffect } from 'react';
 
 // material-ui
 import { CssBaseline, StyledEngineProvider, ThemeProvider, createTheme, Theme, ThemeOptions } from '@mui/material';
@@ -11,7 +11,6 @@ import CustomShadows from './shadows';
 import componentsOverride from './overrides';
 
 import useConfig from 'hooks/useConfig';
-import getWindowScheme from 'utils/getWindowScheme';
 
 // types
 import { ThemeMode } from 'types/config';
@@ -27,10 +26,21 @@ type ThemeCustomizationProps = {
 export default function ThemeCustomization({ children }: ThemeCustomizationProps) {
   const { themeDirection, mode, presetColor, fontFamily, themeContrast } = useConfig();
 
+  const [systemDark, setSystemDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  useEffect(() => {
+    if (mode !== ThemeMode.AUTO) return;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      setSystemDark(e.matches);
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [mode]);
+
   let themeMode = mode;
   if (themeMode === ThemeMode.AUTO) {
-    const autoMode = getWindowScheme();
-    themeMode = autoMode ? ThemeMode.DARK : ThemeMode.LIGHT;
+    themeMode = systemDark ? ThemeMode.DARK : ThemeMode.LIGHT;
   }
 
   // MUI theme

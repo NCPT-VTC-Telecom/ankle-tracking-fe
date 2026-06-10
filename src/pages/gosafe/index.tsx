@@ -48,14 +48,34 @@ interface GosafeLandingProps {
 
 const GosafeLanding = ({ viewType = 'landing' }: GosafeLandingProps) => {
   const { onChangeMode, mode, onChangeLocalization, i18n } = useConfig();
-  const [isDark, setIsDark] = useState(mode === ThemeMode.DARK);
+  const [isDark, setIsDark] = useState(() => {
+    if (mode === ThemeMode.AUTO) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return mode === ThemeMode.DARK;
+  });
   const primaryColor = '#2772ed';
   const secondaryColor = '#4a90e2';
   const navigate = useNavigate();
   const { isLoggedIn } = useAuth();
 
   useEffect(() => {
-    setIsDark(mode === ThemeMode.DARK);
+    const updateTheme = () => {
+      if (mode === ThemeMode.AUTO) {
+        setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
+      } else {
+        setIsDark(mode === ThemeMode.DARK);
+      }
+    };
+
+    updateTheme();
+
+    if (mode === ThemeMode.AUTO) {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = () => updateTheme();
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
   }, [mode]);
 
   useEffect(() => {
@@ -130,7 +150,15 @@ const GosafeLanding = ({ viewType = 'landing' }: GosafeLandingProps) => {
             secondaryColor={secondaryColor}
             isDark={isDark}
             currentLang={i18n}
-            onToggleTheme={() => onChangeMode(mode === ThemeMode.DARK ? ThemeMode.LIGHT : ThemeMode.DARK)}
+            onToggleTheme={() => {
+              if (mode === ThemeMode.LIGHT) {
+                onChangeMode(ThemeMode.DARK);
+              } else if (mode === ThemeMode.DARK) {
+                onChangeMode(ThemeMode.AUTO);
+              } else {
+                onChangeMode(ThemeMode.LIGHT);
+              }
+            }}
             onToggleLanguage={() => onChangeLocalization(i18n === 'vi' ? 'en' : 'vi')}
             activeView={viewType}
             onViewChange={(v) => navigate(v === 'tracking' ? '/gosafe/tracking' : '/gosafe')}

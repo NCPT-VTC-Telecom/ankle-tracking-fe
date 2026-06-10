@@ -11,9 +11,10 @@ import {
   Divider,
   Button,
   Switch,
-  FormControlLabel
+  FormControlLabel,
+  Grid
 } from '@mui/material';
-import { Add, Edit, Trash, DocumentText } from 'iconsax-react';
+import { Add, Edit, Trash, DocumentText, Gps, Clock, Flash, Lock1 } from 'iconsax-react';
 import { getBatteryColor, timeAgo, getMockBiometrics } from '../utils';
 import type { TrackingStore } from '../useTracking';
 
@@ -44,11 +45,24 @@ export default function DeviceList({ store }: Props) {
       <Button
         fullWidth
         variant="outlined"
-        startIcon={<Add size="22" />}
+        startIcon={<Add size={18} />}
         onClick={() => setAddDeviceOpen(true)}
-        sx={{ borderRadius: 2, fontWeight: 700, py: 1, borderStyle: 'dashed' }}
+        sx={{
+          borderRadius: '10px',
+          fontWeight: 700,
+          fontSize: '12.5px',
+          py: 1.1,
+          borderStyle: 'dashed',
+          borderColor: isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1',
+          color: isDark ? '#ffffff' : '#111827',
+          bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'transparent',
+          '&:hover': {
+            borderColor: primaryColor,
+            bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'
+          }
+        }}
       >
-        Thêm thiết bị
+        Thêm thiết bị mới
       </Button>
 
       {filteredDevices.map((dev) => {
@@ -58,51 +72,53 @@ export default function DeviceList({ store }: Props) {
         return (
           <Card
             key={dev.id}
-            variant="outlined"
             onClick={() => setSelectedDeviceId(dev.id)}
             sx={{
-              borderRadius: 2,
+              borderRadius: '12px',
               cursor: 'pointer',
-              transition: 'all 0.2s',
-              border: isSelected ? `2px solid ${dev.color}` : isViolating ? '2px solid #ef4444' : undefined,
+              transition: 'all 0.22s ease-in-out',
+              border: '1.5px solid',
+              borderColor: isSelected ? dev.color : isViolating ? '#ef4444' : (isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0'),
+              boxShadow: isSelected ? `0 4px 16px ${dev.color}18` : 'none',
               bgcolor: isViolating
                 ? isDark
-                  ? 'rgba(239,68,68,0.07)'
+                  ? 'rgba(239,68,68,0.06)'
                   : '#fef2f2'
                 : isSelected
                 ? isDark
-                  ? `${dev.color}11`
-                  : `${dev.color}08`
-                : 'transparent',
+                  ? `${dev.color}15`
+                  : `${dev.color}05`
+                : (isDark ? 'rgba(15, 23, 42, 0.25)' : '#ffffff'),
               '&:hover': {
                 borderColor: dev.color,
-                transform: 'translateY(-1px)',
-                boxShadow: `0 4px 16px ${dev.color}22`
+                transform: 'translateY(-1.5px)',
+                boxShadow: `0 6px 20px ${dev.color}25`
               }
             }}
           >
-            <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
               {/* Header */}
-              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5}>
-                <Stack direction="row" spacing={1.5} alignItems="center">
+              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.2}>
+                <Stack direction="row" spacing={1.2} alignItems="center">
                   <Box
                     className="gs-status-dot"
                     sx={{
-                      width: 11,
-                      height: 11,
+                      width: 9,
+                      height: 9,
+                      borderRadius: '50%',
                       bgcolor: isViolating ? '#ef4444' : dev.status.connectionStatus === 'online' ? '#22c55e' : '#94a3b8',
-                      boxShadow: `0 0 6px ${isViolating ? '#ef4444' : '#22c55e'}`
+                      boxShadow: `0 0 6px ${isViolating ? '#ef4444' : dev.status.connectionStatus === 'online' ? '#22c55e' : '#94a3b8'}`
                     }}
                   />
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: isDark ? '#ffffff' : '#111827', fontSize: '13.5px' }}>
                     {dev.name}
                   </Typography>
-                  <Box sx={{ width: 14, height: 14, borderRadius: '3px', bgcolor: dev.color }} />
+                  <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: dev.color }} />
                   {isViolating && (
-                    <Chip label="VI PHẠM" color="error" size="small" sx={{ height: 18, fontSize: '0.65rem', fontWeight: 800 }} />
+                    <Chip label="VI PHẠM" color="error" size="small" sx={{ height: 16, fontSize: '0.62rem', fontWeight: 800 }} />
                   )}
                 </Stack>
-                <Stack direction="row" spacing={0.5}>
+                <Stack direction="row" spacing={0.25}>
                   <Tooltip title="Sửa thiết bị">
                     <IconButton
                       size="small"
@@ -110,9 +126,9 @@ export default function DeviceList({ store }: Props) {
                         e.stopPropagation();
                         openEditDevice(dev);
                       }}
-                      sx={{ color: primaryColor }}
+                      sx={{ color: primaryColor, p: 0.5 }}
                     >
-                      <Edit size="18" />
+                      <Edit size="16" />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Xoá thiết bị">
@@ -122,9 +138,9 @@ export default function DeviceList({ store }: Props) {
                         e.stopPropagation();
                         setRemoveConfirmId(dev.id);
                       }}
-                      sx={{ color: '#ef4444' }}
+                      sx={{ color: '#ef4444', p: 0.5 }}
                     >
-                      <Trash size="18" />
+                      <Trash size="16" />
                     </IconButton>
                   </Tooltip>
                 </Stack>
@@ -134,10 +150,12 @@ export default function DeviceList({ store }: Props) {
               {dev.subject && (
                 <Box
                   sx={{
-                    bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-                    borderRadius: 1.5,
-                    p: 1.5,
-                    mb: 1.5
+                    bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
+                    borderRadius: '8px',
+                    border: '1.2px solid',
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#f1f5f9',
+                    p: 1.25,
+                    mb: 1.25
                   }}
                 >
                   <Stack direction="row" spacing={1.5} alignItems="flex-start">
@@ -182,226 +200,206 @@ export default function DeviceList({ store }: Props) {
 
               {/* Expanded (selected) */}
               {isSelected ? (
-                <Stack spacing={0} sx={{ mt: 0.5 }}>
-                  {/* Battery */}
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" py={0.8}>
-                    <Typography variant="body2" color="text.secondary">
-                      Pin:
-                    </Typography>
-                    <Box
-                      className="gs-battery"
-                      style={
-                        {
-                          '--battery-color': getBatteryColor(dev.status.battery)
-                        } as React.CSSProperties
-                      }
-                    >
-                      <Box className="gs-battery__shell">
-                        <Box className="gs-battery__fill" style={{ width: `${dev.status.battery}%` }} />
-                      </Box>
-                      <span className="gs-battery__label">{dev.status.battery}%</span>
-                    </Box>
-                  </Stack>
+                <Box sx={{ mt: 1 }}>
+                  {(() => {
+                    const bio = getMockBiometrics(dev.id);
+                    const dbmVal =
+                      dev.status.signalStrength === 4 ? '-65'
+                      : dev.status.signalStrength === 3 ? '-80'
+                      : dev.status.signalStrength === 2 ? '-95'
+                      : dev.status.signalStrength === 1 ? '-108'
+                      : '—';
+                    const syncLate = (syncMinutesMap[dev.id] ?? 0) > 30;
+                    const voltageLabel = dev.status.batteryVoltage != null
+                      ? `${dev.status.batteryVoltage.toFixed(2)}V`
+                      : dev.status.externalVoltage != null
+                      ? `${dev.status.externalVoltage.toFixed(2)}V`
+                      : '—';
 
-                  {/* Signal */}
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" py={0.8}>
-                    <Typography variant="body2" color="text.secondary">
-                      GSM:
-                    </Typography>
-                    <Stack direction="row" alignItems="center" spacing={0.5}>
-                      <Box className="gs-signal">
-                        {[1, 2, 3, 4].map((b) => (
-                          <Box
-                            key={b}
-                            className="gs-signal__bar"
-                            style={{
-                              height: b * 3.5,
-                              backgroundColor:
-                                b <= dev.status.signalStrength ? '#22c55e' : isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.14)'
+                    return (
+                      <>
+                        {/* ── Row 1: Geofence + Lock status chips ── */}
+                        <Stack direction="row" spacing={0.75} sx={{ mb: 1.5, flexWrap: 'wrap', gap: 0.75 }}>
+                          <Chip
+                            icon={<Gps size={12} />}
+                            label={isViolating ? 'Ngoài Vùng' : dev.assignedGeofenceId ? 'Trong Vùng' : 'Chưa gán vùng'}
+                            size="small"
+                            sx={{
+                              fontWeight: 700, fontSize: '0.68rem', height: 22,
+                              bgcolor: isViolating ? 'rgba(239,68,68,0.12)' : dev.assignedGeofenceId ? 'rgba(34,197,94,0.12)' : 'rgba(100,116,139,0.10)',
+                              color: isViolating ? '#ef4444' : dev.assignedGeofenceId ? '#22c55e' : '#64748b',
+                              border: '1px solid',
+                              borderColor: isViolating ? 'rgba(239,68,68,0.3)' : dev.assignedGeofenceId ? 'rgba(34,197,94,0.3)' : 'rgba(100,116,139,0.2)',
+                              '& .MuiChip-icon': { color: 'inherit', ml: 0.5 }
                             }}
                           />
-                        ))}
-                      </Box>
-                      <Typography variant="caption" sx={{ fontWeight: 600, lineHeight: 1 }}>
-                        {dev.status.signalStrength}/4
-                      </Typography>
-                    </Stack>
-                  </Stack>
+                          {dev.subject && (
+                            <Chip
+                              icon={<Lock1 size={12} />}
+                              label={bio.isTampered ? 'Phát hiện tháo' : 'Khóa ổn định'}
+                              size="small"
+                              className={bio.isTampered ? 'gs-blink' : ''}
+                              sx={{
+                                fontWeight: 700, fontSize: '0.68rem', height: 22,
+                                bgcolor: bio.isTampered ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.10)',
+                                color: bio.isTampered ? '#ef4444' : '#22c55e',
+                                border: '1px solid',
+                                borderColor: bio.isTampered ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)',
+                                '& .MuiChip-icon': { color: 'inherit', ml: 0.5 }
+                              }}
+                            />
+                          )}
+                        </Stack>
 
-                  <Stack direction="row" justifyContent="space-between" py={0.8}>
-                    <Typography variant="body2" color="text.secondary">
-                      GPS:
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {timeAgo(dev.status.lastGpsUpdate)}
-                      {' · '}
-                      <span style={{ color: dev.status.gpsFix ? '#22c55e' : '#f59e0b' }}>{dev.status.gpsFix ? 'Fix' : 'No Fix'}</span>
-                      {' · '}
-                      {dev.status.satelliteCount} sats
-                    </Typography>
-                  </Stack>
-
-                  <Stack direction="row" justifyContent="space-between" py={0.8}>
-                    <Typography variant="body2" color="text.secondary">
-                      Server sync:
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontWeight: 600,
-                        color: (syncMinutesMap[dev.id] ?? 0) > 30 ? '#f59e0b' : 'inherit'
-                      }}
-                    >
-                      {timeAgo(dev.status.lastServerSync)}
-                    </Typography>
-                  </Stack>
-
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" py={0.8}>
-                    <Typography variant="body2" color="text.secondary">
-                      Vùng:
-                    </Typography>
-                    <Chip
-                      label={isViolating ? 'Ngoài Vùng' : dev.assignedGeofenceId ? 'Trong Vùng' : 'Chưa gán'}
-                      color={isViolating ? 'error' : dev.assignedGeofenceId ? 'success' : 'default'}
-                      size="small"
-                      sx={{ fontWeight: 700, height: 22, fontSize: '0.7rem' }}
-                    />
-                  </Stack>
-
-                  {/* Bracelet Lock & Device Hardware Telemetry */}
-                  {dev.subject &&
-                    (() => {
-                      const bio = getMockBiometrics(dev.id); // for tamper state
-                      const dbmVal =
-                        dev.status.signalStrength === 4
-                          ? '-65 dBm'
-                          : dev.status.signalStrength === 3
-                          ? '-80 dBm'
-                          : dev.status.signalStrength === 2
-                          ? '-95 dBm'
-                          : dev.status.signalStrength === 1
-                          ? '-108 dBm'
-                          : 'Mất sóng';
-                      return (
-                        <Box
-                          sx={{
-                            mt: 1,
-                            mb: 1.5,
-                            p: 1.25,
-                            bgcolor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-                            borderRadius: 1.5,
-                            border: '1px solid',
-                            borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'
-                          }}
-                        >
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              fontWeight: 800,
-                              color: primaryColor,
-                              textTransform: 'uppercase',
-                              display: 'block',
-                              mb: 1,
-                              fontSize: '0.65rem'
-                            }}
-                          >
-                            Cảm biến & Mạng di động
-                          </Typography>
-                          <Stack spacing={1}>
-                            <Stack direction="row" justifyContent="space-between" alignItems="center">
-                              <Typography variant="caption" color="text.secondary">
-                                Khóa vòng chân:
+                        {/* ── Row 2: 2×2 Primary stat cards ── */}
+                        <Grid container spacing={0.75} sx={{ mb: 0.75 }}>
+                          {/* Pin */}
+                          <Grid item xs={6}>
+                            <Box sx={{
+                              p: 1, borderRadius: '8px', border: '1px solid',
+                              borderColor: isDark ? 'rgba(255,255,255,0.07)' : '#f1f5f9',
+                              bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc'
+                            }}>
+                              <Typography sx={{ fontSize: '9.5px', fontWeight: 600, color: isDark ? '#64748b' : '#94a3b8', mb: 0.5, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                                Pin
                               </Typography>
-                              <Chip
-                                label={bio.isTampered ? 'PHÁT HIỆN THÁO' : 'Khóa ổn định'}
-                                size="small"
-                                className={bio.isTampered ? 'gs-blink' : ''}
-                                sx={{
-                                  fontWeight: 700,
-                                  fontSize: '0.6rem',
-                                  height: 18,
-                                  borderRadius: 0.5,
-                                  bgcolor: bio.isTampered ? 'rgba(239, 68, 68, 0.12)' : 'rgba(34, 197, 94, 0.12)',
-                                  color: bio.isTampered ? '#ef4444' : '#22c55e',
-                                  border: '1px solid',
-                                  borderColor: bio.isTampered ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'
-                                }}
-                              />
-                            </Stack>
-                            <Stack direction="row" justifyContent="space-between" alignItems="center">
-                              <Typography variant="caption" color="text.secondary">
-                                Cường độ sóng:
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                sx={{ fontWeight: 700, color: dev.status.signalStrength <= 1 ? '#ef4444' : 'text.primary' }}
-                              >
-                                {dbmVal}
-                              </Typography>
-                            </Stack>
-                            <Stack direction="row" justifyContent="space-between" alignItems="center">
-                              <Typography variant="caption" color="text.secondary">
-                                Vận tốc:
-                              </Typography>
-                              <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                                {dev.status.speed || 0} km/h
-                              </Typography>
-                            </Stack>
-                            <Stack direction="row" justifyContent="space-between" alignItems="center">
-                              <Typography variant="caption" color="text.secondary">
-                                Độ cao:
-                              </Typography>
-                              <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                                {dev.status.altitude || 0} m
-                              </Typography>
-                            </Stack>
-                          </Stack>
-                        </Box>
-                      );
-                    })()}
+                              <Stack direction="row" alignItems="center" spacing={0.75}>
+                                <Box
+                                  className="gs-battery"
+                                  style={{ '--battery-color': getBatteryColor(dev.status.battery) } as React.CSSProperties}
+                                >
+                                  <Box className="gs-battery__shell">
+                                    <Box className="gs-battery__fill" style={{ width: `${dev.status.battery}%` }} />
+                                  </Box>
+                                </Box>
+                                <Typography sx={{ fontSize: '13px', fontWeight: 800, color: getBatteryColor(dev.status.battery) }}>
+                                  {dev.status.battery}%
+                                </Typography>
+                              </Stack>
+                            </Box>
+                          </Grid>
 
-                  <Stack direction="row" justifyContent="space-between" py={0.8}>
-                    <Typography variant="body2" color="text.secondary">
-                      Điện áp:
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {dev.status.batteryVoltage != null
-                        ? `${dev.status.batteryVoltage.toFixed(2)}V (pin)`
-                        : dev.status.externalVoltage != null
-                        ? `${dev.status.externalVoltage.toFixed(2)}V (ngoài)`
-                        : '—'}
-                    </Typography>
-                  </Stack>
+                          {/* GSM */}
+                          <Grid item xs={6}>
+                            <Box sx={{
+                              p: 1, borderRadius: '8px', border: '1px solid',
+                              borderColor: isDark ? 'rgba(255,255,255,0.07)' : '#f1f5f9',
+                              bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc'
+                            }}>
+                              <Typography sx={{ fontSize: '9.5px', fontWeight: 600, color: isDark ? '#64748b' : '#94a3b8', mb: 0.5, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                                GSM
+                              </Typography>
+                              <Stack direction="row" alignItems="center" spacing={0.75}>
+                                <Box className="gs-signal">
+                                  {[1,2,3,4].map((b) => (
+                                    <Box key={b} className="gs-signal__bar" style={{
+                                      height: b * 3.5,
+                                      backgroundColor: b <= dev.status.signalStrength ? '#22c55e' : isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'
+                                    }} />
+                                  ))}
+                                </Box>
+                                <Typography sx={{ fontSize: '12px', fontWeight: 800, color: dev.status.signalStrength <= 1 ? '#ef4444' : (isDark ? '#f8fafc' : '#111827') }}>
+                                  {dbmVal} <Typography component="span" sx={{ fontSize: '9px', fontWeight: 500, color: isDark ? '#64748b' : '#94a3b8' }}>dBm</Typography>
+                                </Typography>
+                              </Stack>
+                            </Box>
+                          </Grid>
 
-                  <Stack direction="row" justifyContent="space-between" py={0.8}>
-                    <Typography variant="body2" color="text.secondary">
-                      Sự kiện:
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {dev.status.eventName || '—'}
-                    </Typography>
-                  </Stack>
+                          {/* GPS */}
+                          <Grid item xs={6}>
+                            <Box sx={{
+                              p: 1, borderRadius: '8px', border: '1px solid',
+                              borderColor: isDark ? 'rgba(255,255,255,0.07)' : '#f1f5f9',
+                              bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc'
+                            }}>
+                              <Typography sx={{ fontSize: '9.5px', fontWeight: 600, color: isDark ? '#64748b' : '#94a3b8', mb: 0.5, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                                GPS
+                              </Typography>
+                              <Stack direction="row" alignItems="center" spacing={0.5}>
+                                <Gps size={13} color={dev.status.gpsFix ? '#22c55e' : '#f59e0b'} variant="Bold" />
+                                <Typography sx={{ fontSize: '11px', fontWeight: 700, color: dev.status.gpsFix ? '#22c55e' : '#f59e0b' }}>
+                                  {dev.status.gpsFix ? 'Fix' : 'No Fix'}
+                                </Typography>
+                                <Typography sx={{ fontSize: '10px', color: isDark ? '#64748b' : '#94a3b8' }}>
+                                  · {dev.status.satelliteCount}s
+                                </Typography>
+                              </Stack>
+                            </Box>
+                          </Grid>
 
-                  <Stack direction="row" justifyContent="space-between" py={0.8}>
-                    <Typography variant="body2" color="text.secondary">
-                      Model / FW:
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600, textAlign: 'right' }}>
-                      {dev.status.deviceModel}
-                      {dev.status.firmwareVersion ? ` · ${dev.status.firmwareVersion}` : ''}
-                    </Typography>
-                  </Stack>
+                          {/* Sync */}
+                          <Grid item xs={6}>
+                            <Box sx={{
+                              p: 1, borderRadius: '8px', border: '1px solid',
+                              borderColor: isDark ? 'rgba(255,255,255,0.07)' : '#f1f5f9',
+                              bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc'
+                            }}>
+                              <Typography sx={{ fontSize: '9.5px', fontWeight: 600, color: isDark ? '#64748b' : '#94a3b8', mb: 0.5, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                                Sync
+                              </Typography>
+                              <Stack direction="row" alignItems="center" spacing={0.5}>
+                                <Clock size={13} color={syncLate ? '#f59e0b' : '#22c55e'} variant="Bold" />
+                                <Typography sx={{ fontSize: '11px', fontWeight: 700, color: syncLate ? '#f59e0b' : (isDark ? '#f8fafc' : '#111827') }}>
+                                  {timeAgo(dev.status.lastServerSync)}
+                                </Typography>
+                              </Stack>
+                            </Box>
+                          </Grid>
+                        </Grid>
 
-                  <Divider sx={{ my: 1 }} />
+                        {/* ── Row 3: 2×2 Telemetry cards ── */}
+                        <Grid container spacing={0.75} sx={{ mb: 1.25 }}>
+                          {[
+                            { label: 'Vận tốc', value: `${dev.status.speed || 0}`, unit: 'km/h', color: '#3b82f6' },
+                            { label: 'Độ cao', value: `${dev.status.altitude || 0}`, unit: 'm', color: '#8b5cf6' },
+                            { label: 'Điện áp', value: voltageLabel, unit: dev.status.batteryVoltage != null ? 'pin' : dev.status.externalVoltage != null ? 'ext' : '', color: '#f59e0b', icon: <Flash size={11} variant="Bold" /> },
+                            { label: 'Sự kiện', value: dev.status.eventName || '—', unit: '', color: '#10b981' }
+                          ].map((item, i) => (
+                            <Grid item xs={6} key={i}>
+                              <Box sx={{
+                                p: 1, borderRadius: '8px', border: '1px solid',
+                                borderColor: isDark ? 'rgba(255,255,255,0.07)' : '#f1f5f9',
+                                bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc'
+                              }}>
+                                <Stack direction="row" alignItems="center" spacing={0.4} sx={{ mb: 0.3 }}>
+                                  {item.icon && <Box sx={{ color: item.color, display: 'flex' }}>{item.icon}</Box>}
+                                  <Typography sx={{ fontSize: '9.5px', fontWeight: 600, color: isDark ? '#64748b' : '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                                    {item.label}
+                                  </Typography>
+                                </Stack>
+                                <Stack direction="row" alignItems="baseline" spacing={0.4}>
+                                  <Typography sx={{ fontSize: '13px', fontWeight: 800, color: item.color, lineHeight: 1 }}>
+                                    {item.value}
+                                  </Typography>
+                                  {item.unit && (
+                                    <Typography sx={{ fontSize: '9px', fontWeight: 500, color: isDark ? '#64748b' : '#94a3b8' }}>
+                                      {item.unit}
+                                    </Typography>
+                                  )}
+                                </Stack>
+                              </Box>
+                            </Grid>
+                          ))}
+                        </Grid>
 
-                  <FormControlLabel
-                    sx={{ mt: 0.5 }}
-                    control={<Switch checked={followDevice} onChange={(e) => setFollowDevice(e.target.checked)} size="small" />}
-                    label={<Typography variant="body2">Bám theo thiết bị đang chọn</Typography>}
-                  />
+                        {/* ── Footer: Model / FW ── */}
+                        <Typography sx={{ fontSize: '10px', color: isDark ? '#475569' : '#94a3b8', textAlign: 'center', mb: 1.25 }}>
+                          {dev.status.deviceModel}{dev.status.firmwareVersion ? ` · ${dev.status.firmwareVersion}` : ''}
+                        </Typography>
 
-                  {/* GPS History */}
-                </Stack>
+                        <Divider sx={{ mb: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9' }} />
+
+                        <FormControlLabel
+                          control={<Switch checked={followDevice} onChange={(e) => setFollowDevice(e.target.checked)} size="small" sx={{
+                            '& .MuiSwitch-switchBase.Mui-checked': { color: primaryColor },
+                            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: primaryColor }
+                          }} />}
+                          label={<Typography sx={{ fontSize: '12px', fontWeight: 600 }}>Bám theo thiết bị</Typography>}
+                        />
+                      </>
+                    );
+                  })()}
+                </Box>
               ) : (
                 /* Compact row */
                 <Stack direction="row" spacing={1.5} alignItems="center" mt={0.5}>

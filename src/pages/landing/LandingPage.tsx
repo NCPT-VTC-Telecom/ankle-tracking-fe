@@ -25,10 +25,30 @@ import VideoDemoSection from './components/VideoDemoSection';
 
 const LandingPage = () => {
   const { onChangeMode, mode, onChangeLocalization, i18n } = useConfig();
-  const [isDark, setIsDark] = useState(mode === ThemeMode.DARK);
+  const [isDark, setIsDark] = useState(() => {
+    if (mode === ThemeMode.AUTO) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return mode === ThemeMode.DARK;
+  });
 
   useEffect(() => {
-    setIsDark(mode === ThemeMode.DARK);
+    const updateTheme = () => {
+      if (mode === ThemeMode.AUTO) {
+        setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
+      } else {
+        setIsDark(mode === ThemeMode.DARK);
+      }
+    };
+
+    updateTheme();
+
+    if (mode === ThemeMode.AUTO) {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = () => updateTheme();
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
   }, [mode]);
 
   const theme = useMemo(
@@ -101,7 +121,15 @@ const LandingPage = () => {
           isDark={isDark}
           primaryColor={primaryColor}
           currentLang={i18n}
-          onToggleTheme={() => onChangeMode(mode === ThemeMode.DARK ? ThemeMode.LIGHT : ThemeMode.DARK)}
+          onToggleTheme={() => {
+            if (mode === ThemeMode.LIGHT) {
+              onChangeMode(ThemeMode.DARK);
+            } else if (mode === ThemeMode.DARK) {
+              onChangeMode(ThemeMode.AUTO);
+            } else {
+              onChangeMode(ThemeMode.LIGHT);
+            }
+          }}
           onToggleLanguage={() => onChangeLocalization(i18n === 'vi' ? 'en' : 'vi')}
           secondaryColor={secondaryColor}
         />
