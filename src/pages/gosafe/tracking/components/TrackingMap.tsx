@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
-import { Box, Typography, Stack, Divider, Grid, Chip, Button, Switch, FormControlLabel } from '@mui/material';
+import { Box, Typography, Stack, Divider, Grid, Button, Switch, FormControlLabel } from '@mui/material';
 import { MapContainer, TileLayer, Polygon, Polyline, Marker, Popup, Tooltip, Circle, ScaleControl, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Map, Eye, Sun1, Moon, Global, Location, Flash } from 'iconsax-react';
+import { Map, Eye, Location } from 'iconsax-react';
 import { createDeviceIcon, createVertexIcon, createCenterMoveIcon, createHistoryMarkerIcon, createMidpointIcon } from '../mapIcons';
 import { getPolygonCentroid, getMockBiometrics, getPolygonArea, getPolygonPerimeter, fmtArea, fmtPerimeter } from '../utils';
 import type { TrackingStore } from '../useTracking';
@@ -24,14 +24,82 @@ const TILE_URLS: Record<MapLayer, string> = {
 const HYBRID_LABELS_URL =
   'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}';
 
-const LAYER_OPTS: Array<{ id: MapLayer; label: string; icon: React.ReactNode }> = [
-  { id: 'light',     label: 'Sáng',     icon: <Sun1 size="14" />     },
-  { id: 'dark',      label: 'Tối',      icon: <Moon size="14" />     },
-  { id: 'satellite', label: 'Vệ tinh',  icon: <Global size="14" />   },
-  { id: 'hybrid',    label: 'Hỗn hợp', icon: <Location size="14" /> },
-  { id: 'terrain',   label: 'Địa hình', icon: <Map size="14" />      },
-  { id: 'osm',       label: 'OSM',      icon: <Eye size="14" />      },
-];
+const LAYER_PREVIEWS: Record<MapLayer, { label: string; bg: string; pattern?: React.ReactNode }> = {
+  light: {
+    label: 'Sáng',
+    bg: 'linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%)',
+    pattern: (
+      <svg width="100%" height="100%" style={{ opacity: 0.15, position: 'absolute', inset: 0 }}>
+        <line x1="10" y1="0" x2="10" y2="50" stroke="#000" strokeWidth="2" />
+        <line x1="35" y1="0" x2="35" y2="50" stroke="#000" strokeWidth="1" />
+        <line x1="0" y1="15" x2="100" y2="15" stroke="#000" strokeWidth="2.5" />
+        <line x1="0" y1="35" x2="100" y2="35" stroke="#000" strokeWidth="1" />
+      </svg>
+    )
+  },
+  dark: {
+    label: 'Tối',
+    bg: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+    pattern: (
+      <svg width="100%" height="100%" style={{ opacity: 0.2, position: 'absolute', inset: 0 }}>
+        <line x1="15" y1="0" x2="15" y2="50" stroke="#0ea5e9" strokeWidth="1.5" />
+        <line x1="50" y1="0" x2="50" y2="50" stroke="#0ea5e9" strokeWidth="0.8" />
+        <line x1="0" y1="20" x2="100" y2="20" stroke="#0ea5e9" strokeWidth="2" />
+        <line x1="0" y1="40" x2="100" y2="40" stroke="#0ea5e9" strokeWidth="0.8" />
+      </svg>
+    )
+  },
+  satellite: {
+    label: 'Vệ tinh',
+    bg: 'linear-gradient(135deg, #15803d 0%, #1e3a8a 100%)',
+    pattern: (
+      <svg width="100%" height="100%" style={{ opacity: 0.3, position: 'absolute', inset: 0 }}>
+        <circle cx="20" cy="15" r="10" fill="#166534" />
+        <circle cx="70" cy="35" r="18" fill="#14532d" />
+        <circle cx="50" cy="10" r="12" fill="#1e40af" />
+      </svg>
+    )
+  },
+  hybrid: {
+    label: 'Hỗn hợp',
+    bg: 'linear-gradient(135deg, #15803d 0%, #1e3a8a 100%)',
+    pattern: (
+      <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
+        <g opacity="0.3">
+          <circle cx="25" cy="20" r="15" fill="#166534" />
+          <circle cx="65" cy="30" r="12" fill="#1e40af" />
+        </g>
+        <g opacity="0.4">
+          <line x1="30" y1="0" x2="30" y2="50" stroke="#eab308" strokeWidth="1.2" />
+          <line x1="0" y1="25" x2="100" y2="25" stroke="#eab308" strokeWidth="1.5" />
+        </g>
+      </svg>
+    )
+  },
+  terrain: {
+    label: 'Địa hình',
+    bg: 'linear-gradient(135deg, #78350f 0%, #15803d 100%)',
+    pattern: (
+      <svg width="100%" height="100%" style={{ opacity: 0.25, position: 'absolute', inset: 0 }}>
+        <path d="M 0,10 Q 25,25 50,15 T 100,35" fill="none" stroke="#f59e0b" strokeWidth="1.2" />
+        <path d="M 0,25 Q 35,40 70,30 T 100,45" fill="none" stroke="#f59e0b" strokeWidth="1" />
+        <path d="M 0,5 Q 15,10 30,5 T 100,15" fill="none" stroke="#f59e0b" strokeWidth="0.8" />
+      </svg>
+    )
+  },
+  osm: {
+    label: 'OSM',
+    bg: 'linear-gradient(135deg, #bae6fd 0%, #fef08a 100%)',
+    pattern: (
+      <svg width="100%" height="100%" style={{ opacity: 0.35, position: 'absolute', inset: 0 }}>
+        <line x1="20" y1="0" x2="20" y2="50" stroke="#ffffff" strokeWidth="3" />
+        <line x1="20" y1="0" x2="20" y2="50" stroke="#f97316" strokeWidth="1.2" />
+        <line x1="0" y1="15" x2="100" y2="15" stroke="#ffffff" strokeWidth="4" />
+        <line x1="0" y1="15" x2="100" y2="15" stroke="#f97316" strokeWidth="1.5" />
+      </svg>
+    )
+  }
+};
 
 // ── Map sub-components ────────────────────────────────────────────────────────
 
@@ -101,6 +169,10 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
   const [showAccuracyCircles, setShowAccuracyCircles] = useState(false);
 
   const mapRef = useRef<L.Map | null>(null);
+  // Ref tới polygon đang sửa + điểm bắt đầu kéo tâm — để cập nhật biên realtime
+  // (setLatLngs trực tiếp trên layer Leaflet, không qua React state → không giật).
+  const editPolygonRef = useRef<L.Polygon | null>(null);
+  const centerStartRef = useRef<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     setMapLayer(isDark ? 'dark' : 'light');
@@ -218,211 +290,124 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
         </Box>
       )}
 
-      {/* ═══ COMMAND CENTER OVERLAY ═══ */}
-      {!hideOverlays && (
-        <Box
-          className="gs-glass-panel"
-          sx={{
-            position: 'absolute',
-            top: 16,
-            right: 16,
-            zIndex: 1000,
-            width: 300,
-            bgcolor: glassBg,
-            backdropFilter: glassBlur,
-            WebkitBackdropFilter: glassBlur,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
-            borderRadius: 2,
-            border: `1px solid ${glassBdr}`,
-            p: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1.5,
-            color: txtColor,
-          }}
-        >
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <Flash size="16" variant="Bold" color={store.primaryColor} />
-              <Typography variant="subtitle2" sx={{ fontWeight: 800, fontSize: '0.85rem', letterSpacing: 0.5, textTransform: 'uppercase' }}>
-                BẢNG CHỈ HUY DI ĐỘNG
-              </Typography>
-            </Stack>
-            <Chip
-              label="LIVE SYNC"
-              color="success"
-              size="small"
-              variant="outlined"
-              className="gs-blink"
-              sx={{ height: 16, fontSize: '0.6rem', fontWeight: 800 }}
-            />
-          </Stack>
-
-          <Divider sx={{ borderColor: glassBdr }} />
-
-          {/* Quick Stats Grid */}
-          <Grid container spacing={1}>
-            {[
-              { label: 'Trực tuyến',   count: devices.filter((d) => d.status.connectionStatus === 'online').length,  color: '#22c55e' },
-              { label: 'Vi phạm',      count: Object.values(deviceViolations).filter(Boolean).length,                 color: '#ef4444', blink: true },
-              { label: 'Pin yếu (<20%)', count: devices.filter((d) => d.status.battery < 20).length,                 color: '#f59e0b' },
-              { label: 'Ngoại tuyến', count: devices.filter((d) => d.status.connectionStatus === 'offline').length,  color: '#94a3b8' },
-            ].map((item) => (
-              <Grid item xs={6} key={item.label}>
-                <Box
-                  sx={{
-                    p: 1,
-                    borderRadius: 1.5,
-                    bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-                    border: '1px solid',
-                    borderColor: glassBdr,
-                    textAlign: 'center',
-                  }}
-                >
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem', fontWeight: 600 }}>
-                    {item.label}
-                  </Typography>
-                  <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center" sx={{ mt: 0.25 }}>
-                    <Box className={item.blink ? 'gs-blink' : ''} sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: item.color }} />
-                    <Typography variant="body2" sx={{ fontWeight: 800, fontSize: '0.95rem' }}>
-                      {item.count}
-                    </Typography>
-                  </Stack>
-                </Box>
-              </Grid>
-            ))}
-          </Grid>
-
-          {/* Active Violations List */}
-          <Box sx={{ mt: 0.5 }}>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ fontWeight: 700, textTransform: 'uppercase', display: 'block', mb: 1 }}
-            >
-              🚨 Cảnh báo khẩn cấp (
-              {Object.values(deviceViolations).filter(Boolean).length +
-                devices.filter((d) => getMockBiometrics(d.id).isTampered).length}
-              )
-            </Typography>
-
-            <Stack spacing={1} sx={{ maxHeight: 160, overflowY: 'auto', pr: 0.5 }}>
-              {devices.map((dev) => {
-                const isViolating = deviceViolations[dev.id];
-                const bio = getMockBiometrics(dev.id);
-                if (!isViolating && !bio.isTampered) return null;
-                const alertType = bio.isTampered ? 'Tháo vòng chân' : 'Ra ngoài Vùng';
-                return (
-                  <Box
-                    key={dev.id}
-                    onClick={() => {
-                      setSelectedDeviceId(dev.id);
-                      store.setMapCenter(dev.coords);
-                      store.setMapZoom(17);
-                    }}
-                    sx={{
-                      p: 1,
-                      borderRadius: 1.5,
-                      border: '1px solid rgba(239,68,68,0.2)',
-                      bgcolor: 'rgba(239,68,68,0.05)',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      '&:hover': { bgcolor: 'rgba(239,68,68,0.1)', borderColor: '#ef4444' },
-                    }}
-                  >
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Typography variant="caption" sx={{ fontWeight: 800, color: '#ef4444' }}>
-                        {dev.subject?.fullName || dev.name}
-                      </Typography>
-                      <Chip
-                        label={alertType.toUpperCase()}
-                        color="error"
-                        size="small"
-                        className="gs-blink"
-                        sx={{ height: 16, fontSize: '0.55rem', fontWeight: 800 }}
-                      />
-                    </Stack>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem', mt: 0.25 }}>
-                      Vận tốc: {dev.status.speed} km/h · Pin: {dev.status.battery}% · Sóng: {dev.status.signalStrength}/4
-                    </Typography>
-                  </Box>
-                );
-              })}
-              {Object.values(deviceViolations).filter(Boolean).length === 0 &&
-                devices.filter((d) => getMockBiometrics(d.id).isTampered).length === 0 && (
-                  <Typography align="center" variant="caption" color="text.secondary" sx={{ display: 'block', py: 1, fontStyle: 'italic' }}>
-                    ✓ Chưa phát hiện vi phạm
-                  </Typography>
-                )}
-            </Stack>
-          </Box>
-        </Box>
-      )}
-
-      {/* ═══ MAP CONTROL PANEL ═══ */}
+      {/* ═══ MAP CONTROL PANEL (Moved to bottom-right, made larger with normal weight) ═══ */}
       {!hideOverlays && (
         <Box
           className="gs-glass-panel"
           sx={{
             position: 'absolute',
             bottom: 16,
-            left: 16,
+            right: 16,
             zIndex: 1000,
-            width: 290,
+            width: 320,
             bgcolor: glassBg,
             backdropFilter: glassBlur,
             WebkitBackdropFilter: glassBlur,
             boxShadow: `0 8px 32px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.12)`,
-            borderRadius: 2,
+            borderRadius: 3,
             border: `1px solid ${glassBdr}`,
-            p: 1.75,
+            p: 2.5,
             display: 'flex',
             flexDirection: 'column',
-            gap: 1.25,
+            gap: 1.75,
             color: txtColor,
           }}
         >
           {/* ── Tile layer selector ── */}
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <Map size="14" variant="Bold" color={store.primaryColor} />
-            <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.68rem', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+          <Stack direction="row" spacing={0.75} alignItems="center">
+            <Map size="16" variant="Bold" color={store.primaryColor} />
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 500,
+                fontSize: '0.8rem',
+                letterSpacing: 0.8,
+                textTransform: 'uppercase',
+                fontFamily: 'system-ui, sans-serif'
+              }}
+            >
               Lớp bản đồ
             </Typography>
           </Stack>
 
-          <Grid container spacing={0.75}>
-            {LAYER_OPTS.map((layer) => {
-              const sel = mapLayer === layer.id;
+          <Grid container spacing={1}>
+            {Object.entries(LAYER_PREVIEWS).map(([layerId, config]) => {
+              const id = layerId as MapLayer;
+              const sel = mapLayer === id;
               return (
-                <Grid item xs={4} key={layer.id}>
-                  <Button
-                    size="small"
-                    fullWidth
-                    onClick={() => setMapLayer(layer.id)}
+                <Grid item xs={4} key={id}>
+                  <Box
+                    onClick={() => setMapLayer(id)}
                     sx={{
-                      py: 0.75,
-                      px: 0.25,
-                      borderRadius: 1.5,
-                      minWidth: 0,
-                      fontWeight: 700,
-                      textTransform: 'none',
-                      fontSize: '0.65rem',
+                      cursor: 'pointer',
+                      display: 'flex',
                       flexDirection: 'column',
-                      gap: 0.25,
-                      border: '1.5px solid',
-                      borderColor: sel ? store.primaryColor : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'),
-                      bgcolor: sel ? `${store.primaryColor}1a` : 'transparent',
-                      color: sel ? store.primaryColor : 'text.secondary',
-                      '&:hover': {
-                        bgcolor: sel
-                          ? `${store.primaryColor}2e`
-                          : isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-                      },
+                      alignItems: 'center',
+                      gap: 0.5,
                     }}
                   >
-                    {layer.icon}
-                    {layer.label}
-                  </Button>
+                    {/* Visual Thumbnail Card */}
+                    <Box
+                      sx={{
+                        width: '100%',
+                        height: 48,
+                        borderRadius: 1.5,
+                        position: 'relative',
+                        overflow: 'hidden',
+                        background: config.bg,
+                        border: '2px solid',
+                        borderColor: sel ? store.primaryColor : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'),
+                        boxShadow: sel ? `0 0 10px ${store.primaryColor}50` : 'none',
+                        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                        transform: sel ? 'scale(1.03)' : 'none',
+                        '&:hover': {
+                          borderColor: sel ? store.primaryColor : (isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)'),
+                          transform: 'scale(1.03)',
+                        },
+                      }}
+                    >
+                      {/* SVG Pattern */}
+                      {config.pattern}
+
+                      {/* Checkmark badge if selected */}
+                      {sel && (
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            top: 2,
+                            right: 2,
+                            width: 14,
+                            height: 14,
+                            borderRadius: '50%',
+                            bgcolor: store.primaryColor,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                          }}
+                        >
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="4">
+                            <path d="M20 6L9 17L4 12" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </Box>
+                      )}
+                    </Box>
+
+                    {/* Label */}
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        color: sel ? store.primaryColor : 'text.secondary',
+                        textAlign: 'center',
+                        whiteSpace: 'nowrap',
+                        fontFamily: 'system-ui, sans-serif'
+                      }}
+                    >
+                      {config.label}
+                    </Typography>
+                  </Box>
                 </Grid>
               );
             })}
@@ -431,14 +416,23 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
           <Divider sx={{ borderColor: glassBdr }} />
 
           {/* ── Display toggles ── */}
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <Eye size="14" variant="Bold" color={store.primaryColor} />
-            <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.68rem', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+          <Stack direction="row" spacing={0.75} alignItems="center">
+            <Eye size="16" variant="Bold" color={store.primaryColor} />
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 500,
+                fontSize: '0.8rem',
+                letterSpacing: 0.8,
+                textTransform: 'uppercase',
+                fontFamily: 'system-ui, sans-serif'
+              }}
+            >
               Hiển thị
             </Typography>
           </Stack>
 
-          <Stack spacing={0.15}>
+          <Stack spacing={0.25}>
             {([
               { label: 'Vùng cấm (Geofences)', value: showGeofences,        setter: setShowGeofences },
               { label: 'Nhãn tên vùng',         value: showGfLabels,          setter: setShowGfLabels },
@@ -451,7 +445,7 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
                   <Switch
                     checked={item.value}
                     onChange={(e) => item.setter(e.target.checked)}
-                    size="small"
+                    size="medium"
                     sx={{
                       '& .MuiSwitch-switchBase.Mui-checked': { color: store.primaryColor },
                       '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: store.primaryColor },
@@ -459,11 +453,11 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
                   />
                 }
                 label={
-                  <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.71rem' }}>
+                  <Typography sx={{ fontWeight: 500, fontSize: '0.875rem', fontFamily: 'system-ui, sans-serif' }}>
                     {item.label}
                   </Typography>
                 }
-                sx={{ mx: 0, my: 0 }}
+                sx={{ mx: 0, my: 0.2 }}
               />
             ))}
           </Stack>
@@ -472,19 +466,20 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
 
           {/* ── Fit all button ── */}
           <Button
-            size="small"
+            size="medium"
             variant="outlined"
             onClick={fitAll}
             fullWidth
-            startIcon={<Location size="14" />}
+            startIcon={<Location size="16" />}
             sx={{
-              borderRadius: 1.5,
-              fontSize: '0.73rem',
-              fontWeight: 700,
+              borderRadius: 2,
+              fontSize: '0.85rem',
+              fontWeight: 500,
               textTransform: 'none',
-              py: 0.75,
+              py: 1,
               borderColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.14)',
               color: isDark ? '#cbd5e1' : '#475569',
+              fontFamily: 'system-ui, sans-serif',
               '&:hover': {
                 borderColor: store.primaryColor,
                 color: store.primaryColor,
@@ -498,7 +493,7 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
       )}
 
       {/* ═══ MAP ═══ */}
-      <MapContainer center={mapCenter} zoom={mapZoom} attributionControl={false} style={{ width: '100%', height: '100%' }}>
+      <MapContainer center={mapCenter} zoom={mapZoom} attributionControl={false} zoomControl={false} style={{ width: '100%', height: '100%' }}>
         <MapRefCapture mapRef={mapRef} />
         <ScaleControl position="bottomright" metric imperial={false} />
 
@@ -520,6 +515,7 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
             return (
               <Polygon
                 key={gf.id}
+                ref={isEditing ? editPolygonRef : undefined}
                 positions={gf.coordinates}
                 pathOptions={{
                   color: gf.color,
@@ -585,6 +581,12 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
                     draggable
                     icon={createVertexIcon(gf.color)}
                     eventHandlers={{
+                      drag: (e) => {
+                        // Cập nhật biên polygon theo con trỏ ngay lập tức (không qua state).
+                        const pos = (e.target as L.Marker).getLatLng();
+                        const next = gf.coordinates.map((c, i) => (i === idx ? [pos.lat, pos.lng] : c)) as [number, number][];
+                        editPolygonRef.current?.setLatLngs(next);
+                      },
                       dragend: (e) => handleDragVertexEnd(gf.id, idx, e),
                       contextmenu: () => handleDeleteVertex(gf.id, idx),
                     }}
@@ -622,8 +624,24 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
                   draggable
                   icon={createCenterMoveIcon(gf.color)}
                   eventHandlers={{
-                    dragstart: handleCenterDragStart,
-                    dragend: (e) => handleCenterDragEnd(gf.id, e),
+                    dragstart: (e) => {
+                      const pos = (e.target as L.Marker).getLatLng();
+                      centerStartRef.current = { lat: pos.lat, lng: pos.lng };
+                      handleCenterDragStart(e);
+                    },
+                    drag: (e) => {
+                      // Dời cả vùng theo con trỏ realtime.
+                      if (!centerStartRef.current) return;
+                      const pos = (e.target as L.Marker).getLatLng();
+                      const dLat = pos.lat - centerStartRef.current.lat;
+                      const dLng = pos.lng - centerStartRef.current.lng;
+                      const next = gf.coordinates.map((c) => [c[0] + dLat, c[1] + dLng]) as [number, number][];
+                      editPolygonRef.current?.setLatLngs(next);
+                    },
+                    dragend: (e) => {
+                      centerStartRef.current = null;
+                      handleCenterDragEnd(gf.id, e);
+                    },
                   }}
                 />
               </>
@@ -649,10 +667,10 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
                     {hd.items.length} điểm · Trang {hd.page}/{hd.totalPages}
                   </Typography>
                   <Typography variant="caption" display="block">
-                    Từ: {new Date(hd.items[0].timestamp).toLocaleString('vi-VN')}
+                    Từ: {hd.items[0]?.timestamp ? new Date(hd.items[0].timestamp).toLocaleString('vi-VN') : '—'}
                   </Typography>
                   <Typography variant="caption" display="block">
-                    Đến: {new Date(hd.items[hd.items.length - 1].timestamp).toLocaleString('vi-VN')}
+                    Đến: {hd.items[hd.items.length - 1]?.timestamp ? new Date(hd.items[hd.items.length - 1].timestamp).toLocaleString('vi-VN') : '—'}
                   </Typography>
                 </Box>
               </Popup>
@@ -674,9 +692,9 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
               <Marker key={`hs-${dev.id}`} position={[first.lat, first.lng]} icon={createHistoryMarkerIcon('S', dev.color)}>
                 <Popup>
                   <Typography variant="caption">
-                    Bắt đầu: {new Date(first.timestamp).toLocaleString('vi-VN')}
+                    Bắt đầu: {first.timestamp ? new Date(first.timestamp).toLocaleString('vi-VN') : '—'}
                     {(first.batteryVoltage != null || first.externalVoltage != null) &&
-                      ` · ${(first.batteryVoltage ?? first.externalVoltage)?.toFixed(2)}V`}
+                      ` · ${((first.batteryVoltage ?? first.externalVoltage) as number)?.toFixed(2) ?? '—'}V`}
                   </Typography>
                 </Popup>
               </Marker>
@@ -685,9 +703,9 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
             <Marker key={`he-${dev.id}`} position={[last.lat, last.lng]} icon={createHistoryMarkerIcon('E', '#ef4444')}>
               <Popup>
                 <Typography variant="caption">
-                  Kết thúc: {new Date(last.timestamp).toLocaleString('vi-VN')}
+                  Kết thúc: {last.timestamp ? new Date(last.timestamp).toLocaleString('vi-VN') : '—'}
                   {(last.batteryVoltage != null || last.externalVoltage != null) &&
-                    ` · ${(last.batteryVoltage ?? last.externalVoltage)?.toFixed(2)}V`}
+                    ` · ${((last.batteryVoltage ?? last.externalVoltage) as number)?.toFixed(2) ?? '—'}V`}
                 </Typography>
               </Popup>
             </Marker>
@@ -767,11 +785,6 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
                 {dev.subject &&
                   (() => {
                     const bio = getMockBiometrics(dev.id);
-                    const dbmVal =
-                      dev.status.signalStrength === 4 ? '-65 dBm' :
-                      dev.status.signalStrength === 3 ? '-80 dBm' :
-                      dev.status.signalStrength === 2 ? '-95 dBm' :
-                      dev.status.signalStrength === 1 ? '-108 dBm' : 'Mất sóng';
                     return (
                       <Box sx={{ mt: 1, borderTop: '1px solid rgba(0,0,0,0.06)', pt: 1 }}>
                         <Typography variant="caption" sx={{ fontWeight: 700, color: '#2b5eaf', textTransform: 'uppercase', display: 'block', mb: 0.5, fontSize: '0.65rem' }}>
@@ -781,9 +794,7 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
                           {[
                             { k: 'Khóa vòng chân', v: bio.isTampered ? '⚠ PHÁT HIỆN THÁO' : '✓ Ổn định', c: bio.isTampered ? '#ef4444' : '#22c55e', blink: bio.isTampered },
                             { k: 'Điện áp Pin',    v: dev.status.batteryVoltage != null ? `${dev.status.batteryVoltage.toFixed(2)}V` : '—' },
-                            { k: 'Vận tốc',        v: `${dev.status.speed || 0} km/h` },
-                            { k: 'Độ cao',         v: `${dev.status.altitude || 0} m` },
-                            { k: 'GSM / Vệ tinh',  v: `${dbmVal} · ${dev.status.satelliteCount} vệ tinh` },
+                            { k: 'Số vệ tinh',     v: `${dev.status.satelliteCount} vệ tinh` },
                             { k: 'Trạng thái GPS', v: dev.status.gpsFix ? 'Đã định vị (Fix)' : 'Chưa định vị', c: dev.status.gpsFix ? '#22c55e' : '#f59e0b' },
                           ].map((row) => (
                             <Stack key={row.k} direction="row" justifyContent="space-between">

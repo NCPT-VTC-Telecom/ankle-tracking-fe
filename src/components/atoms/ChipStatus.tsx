@@ -24,19 +24,61 @@ const ChipStatus = ({
     case 9:
     case 10:
     case 31:
-      return <Chip color="warning" label={<FormattedMessage id={warningLabel} />} size="small" variant="light" />;
+      return (
+        <Chip
+          color="warning"
+          label={<FormattedMessage id={warningLabel} />}
+          size="small"
+          variant="light"
+        />
+      );
     case 1:
     case 8:
     case 14:
-      return <Chip color="success" label={<FormattedMessage id={successLabel} />} size="small" variant="light" />;
+      return (
+        <Chip
+          color="success"
+          label={<FormattedMessage id={successLabel} />}
+          size="small"
+          variant="light"
+        />
+      );
     case 27:
-      return <Chip sx={{ bgcolor: '#FE9900' }} label={<FormattedMessage id={dangerLabel} />} size="small" variant="light" />;
+      return (
+        <Chip
+          sx={{ bgcolor: '#FE9900' }}
+          label={<FormattedMessage id={dangerLabel} />}
+          size="small"
+          variant="light"
+        />
+      );
     case 33:
-      return <Chip color="info" label={<FormattedMessage id={infoLabel} />} size="small" variant="light" />;
+      return (
+        <Chip
+          color="info"
+          label={<FormattedMessage id={infoLabel} />}
+          size="small"
+          variant="light"
+        />
+      );
     case 11:
-      return <Chip color="warning" label={<FormattedMessage id={isolatedLabel} />} size="small" variant="light" />;
+      return (
+        <Chip
+          color="warning"
+          label={<FormattedMessage id={isolatedLabel} />}
+          size="small"
+          variant="light"
+        />
+      );
     default:
-      return <Chip color="error" label={<FormattedMessage id={errorLabel} />} size="small" variant="light" />;
+      return (
+        <Chip
+          color="error"
+          label={<FormattedMessage id={errorLabel} />}
+          size="small"
+          variant="light"
+        />
+      );
   }
 };
 

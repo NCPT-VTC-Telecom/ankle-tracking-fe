@@ -1,3 +1,6 @@
+import type { Device } from './types';
+import type { ApiDevice } from 'api/gosafe.tracking.api';
+
 // ─── GEOGRAPHIC ───────────────────────────────────────────────────────────────
 
 export function isPointInPolygon(lat: number, lng: number, polygon: [number, number][]) {
@@ -16,7 +19,9 @@ export function getDistance(lat1: number, lon1: number, lat2: number, lon2: numb
   const R = 6371000;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
@@ -45,7 +50,10 @@ export function getPolygonArea(coords: [number, number][]) {
 }
 
 export function getPolygonCentroid(coords: [number, number][]): [number, number] {
-  return [coords.reduce((s, c) => s + c[0], 0) / coords.length, coords.reduce((s, c) => s + c[1], 0) / coords.length];
+  return [
+    coords.reduce((s, c) => s + c[0], 0) / coords.length,
+    coords.reduce((s, c) => s + c[1], 0) / coords.length
+  ];
 }
 
 export function interpolatePoints(points: [number, number][], steps: number): [number, number][] {
@@ -135,3 +143,211 @@ export const getMockBiometrics = (devId: string) => {
   const isTampered = Math.abs(hash % 5) === 0;
   return { heartRate, temp, steps, isTampered };
 };
+
+// ─── CRITICAL EVENT DETECTION ───────────────────────────────────────────────────
+
+export function isSOS(name: string): boolean {
+  return /\bsos\b/i.test(name);
+}
+export function isFiberCut(name: string): boolean {
+  return /fiber[\s_]*(optical[\s_]*)?cut/i.test(name);
+}
+/** Thiết bị test cứng từ backend (IMEI 'TEST...') — ẩn khỏi danh sách & cảnh báo */
+export function isTestDevice(imei: string | null | undefined): boolean {
+  return /^test/i.test((imei ?? '').trim());
+}
+
+// ─── SESSION STORAGE ──────────────────────────────────────────────────────────
+
+export const SS = {
+  DEVICES: 'gosafe:devices',
+  GEOFENCES: 'gosafe:geofences',
+  LOGS: 'gosafe:logs',
+  SOUND: 'gosafe:soundEnabled',
+  FOLLOW: 'gosafe:followDevice',
+  SELECTED: 'gosafe:selectedDeviceId',
+  INTERVAL: 'gosafe:syncInterval'
+};
+
+export function ssGet<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw !== null ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export function ssSet(key: string, value: unknown): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {}
+}
+
+/** Serialize Device → JSON-safe (Date fields → ISO strings) */
+export function deviceToSS(d: Device) {
+  return {
+    ...d,
+    status: {
+      ...d.status,
+      lastGpsUpdate: d.status.lastGpsUpdate?.toISOString() ?? null,
+      lastServerSync: d.status.lastServerSync?.toISOString() ?? null
+    }
+  };
+}
+
+/** Deserialize: restore Date fields after JSON.parse + ép coords về number */
+export function deviceFromSS(raw: ReturnType<typeof deviceToSS>): Device {
+  const toNum = (v: unknown) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+  return {
+    ...raw,
+    coords: [toNum(raw.coords?.[0]), toNum(raw.coords?.[1])] as [number, number],
+    pathHistory: Array.isArray(raw.pathHistory)
+      ? raw.pathHistory.map((p: any) => [toNum(p?.[0]), toNum(p?.[1])] as [number, number])
+      : [],
+    status: {
+      ...raw.status,
+      lastGpsUpdate: raw.status.lastGpsUpdate ? new Date(raw.status.lastGpsUpdate) : null,
+      lastServerSync: raw.status.lastServerSync ? new Date(raw.status.lastServerSync) : null
+    }
+  };
+}
+
+// ─── BATTERY (voltage → %) ──────────────────────────────────────────────────────
+
+/**
+ * Bảng OCV→SoC cho pin Li-ion/LiPo 1 cell (điện áp nghỉ, nhiệt độ phòng).
+ * Đường xả Li-ion phi tuyến nên dùng tra bảng + nội suy chính xác hơn tuyến tính.
+ */
+const LIION_OCV_SOC: ReadonlyArray<[number, number]> = [
+  [4.2, 100],
+  [4.15, 95],
+  [4.11, 90],
+  [4.08, 85],
+  [4.02, 80],
+  [3.98, 75],
+  [3.95, 70],
+  [3.91, 65],
+  [3.87, 60],
+  [3.85, 55],
+  [3.84, 50],
+  [3.82, 45],
+  [3.8, 40],
+  [3.79, 35],
+  [3.77, 30],
+  [3.75, 25],
+  [3.73, 20],
+  [3.71, 15],
+  [3.69, 10],
+  [3.61, 5],
+  [3.5, 0]
+];
+
+/** Điện áp Li-ion → % pin (tra bảng OCV→SoC + nội suy). ≥4.2V→100%, ≤3.5V→0%. */
+export function voltageToPercent(v: number | null, fallback = 50): number {
+  if (v == null || v <= 0) return fallback;
+  if (v >= LIION_OCV_SOC[0][0]) return 100;
+  const last = LIION_OCV_SOC[LIION_OCV_SOC.length - 1];
+  if (v <= last[0]) return 0;
+  for (let i = 0; i < LIION_OCV_SOC.length - 1; i++) {
+    const [vHi, sHi] = LIION_OCV_SOC[i];
+    const [vLo, sLo] = LIION_OCV_SOC[i + 1];
+    if (v <= vHi && v >= vLo) {
+      const pct = sLo + ((v - vLo) / (vHi - vLo)) * (sHi - sLo);
+      return Math.max(0, Math.min(100, Math.round(pct)));
+    }
+  }
+  return fallback;
+}
+
+// ─── API DEVICE MAPPING ─────────────────────────────────────────────────────────
+
+/** Ép kiểu số an toàn (API có thể trả string) */
+export function num(v: unknown, fallback = 0): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+/** Map 1 thiết bị từ API GPS (snake_case hoặc camelCase) → domain Device. */
+export function mapApiDeviceToDevice(
+  api: ApiDevice,
+  existing: Device | undefined,
+  fallbackColor: string
+): Device {
+  const a = api as any;
+  const pick = (...keys: string[]) => {
+    for (const k of keys) if (a[k] !== undefined && a[k] !== null && a[k] !== '') return a[k];
+    return undefined;
+  };
+
+  const lastSeen = new Date(pick('last_seen', 'lastSeen', 'last_seen_at', 'updatedAt') ?? NaN);
+  const lastDeviceTime = new Date(
+    pick('last_device_time', 'lastDeviceTime', 'device_time', 'deviceTime') ?? NaN
+  );
+  const lastSeenMs = lastSeen.getTime();
+  const minutesSinceSync = Number.isFinite(lastSeenMs)
+    ? (Date.now() - lastSeenMs) / 60000
+    : Infinity;
+
+  const rawBatV = pick('battery_voltage', 'batteryVoltage');
+  const rawExtV = pick('external_voltage', 'externalVoltage');
+  const batteryVoltage = rawBatV != null ? num(rawBatV) : null;
+  const externalVoltage = rawExtV != null ? num(rawExtV) : null;
+  const voltage = batteryVoltage ?? externalVoltage;
+  // API có field % pin riêng (battery_percent) → ưu tiên dùng trực tiếp;
+  // chỉ ước tính từ điện áp khi BE không trả % pin.
+  const rawBatPct = pick('battery_percent', 'batteryPercent');
+  const battery =
+    rawBatPct != null
+      ? Math.max(0, Math.min(100, Math.round(num(rawBatPct))))
+      : voltageToPercent(voltage, existing?.status.battery ?? 50);
+
+  const lat = num(pick('latitude', 'lat'), existing?.coords[0] ?? 0);
+  const lng = num(pick('longitude', 'lng', 'lon'), existing?.coords[1] ?? 0);
+  const next: [number, number] = [lat, lng];
+  const prev = existing?.coords;
+  const moved = !prev || prev[0] !== lat || prev[1] !== lng;
+
+  const imei = String(pick('device_imei', 'deviceImei', 'imei') ?? '').trim();
+  const deviceModel = String(pick('device_model', 'deviceModel', 'model') ?? '');
+  const id = pick('id', '_id', 'deviceId') ?? imei;
+
+  return {
+    id: existing?.id ?? `api-${id}`,
+    name: existing?.name || imei || `Thiết bị ${id}`,
+    type: existing?.type ?? 'Person',
+    deviceType: deviceModel,
+    uniqueId: existing?.uniqueId || imei,
+    phoneNumber: existing?.phoneNumber ?? '',
+    color: existing?.color ?? fallbackColor,
+    subject: existing?.subject ?? null,
+    status: {
+      battery,
+      batteryVoltage,
+      externalVoltage,
+      signalStrength: Math.min(4, Math.max(0, num(pick('gsm_signal', 'gsmSignal')) - 1)),
+      connectionStatus:
+        minutesSinceSync > 10 ? 'offline' : minutesSinceSync > 2 ? 'unstable' : 'online',
+      lastGpsUpdate: Number.isFinite(lastDeviceTime.getTime()) ? lastDeviceTime : null,
+      lastServerSync: Number.isFinite(lastSeenMs) ? lastSeen : null,
+      gpsAccuracy: 5,
+      gpsFix: Boolean(pick('gps_fixed', 'gpsFixed', 'gpsFix')),
+      satelliteCount: num(pick('satellite_count', 'satelliteCount')),
+      speed: num(pick('speed')),
+      altitude: num(pick('altitude')),
+      eventId: num(pick('event_id', 'eventId')),
+      eventName: String(pick('event_name', 'eventName') ?? 'Normal'),
+      deviceModel,
+      firmwareVersion: String(pick('firmware_version', 'firmwareVersion') ?? '')
+    },
+    coords: next,
+    angle: moved && prev ? getAngle(prev, next) : existing?.angle ?? 0,
+    pathHistory: moved
+      ? [...(existing?.pathHistory ?? []), next].slice(-50)
+      : existing?.pathHistory ?? [],
+    assignedGeofenceId: existing?.assignedGeofenceId ?? null
+  };
+}

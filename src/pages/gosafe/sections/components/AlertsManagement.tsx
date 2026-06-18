@@ -1,0 +1,304 @@
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import {
+  Box, Stack, Typography, Chip, Button, IconButton, Tooltip, TextField, MenuItem,
+  Table, TableHead, TableBody, TableRow, TableCell, CircularProgress, Grid
+} from '@mui/material';
+import { Danger, TickCircle, CloseCircle, Refresh, SearchNormal1, Setting2, Add, Notification, Clock } from 'iconsax-react';
+import { alertsApi, alertTypesApi, extractList } from 'api/gosafe.management.api';
+import SideDrawer from '../../components/SideDrawer';
+
+interface Props {
+  isDark: boolean;
+  scopeRegionId?: string | null;
+}
+
+interface AlertRow {
+  id: string;
+  title: string;
+  offender: string;
+  level: number | string;
+  status: string;
+  createdAt: string;
+  raw: any;
+}
+
+const LEVELS = [
+  { value: '', label: 'Tất cả mức' },
+  { value: '1', label: 'P1 · Khẩn cấp' },
+  { value: '2', label: 'P2 · Cảnh báo' },
+  { value: '3', label: 'P3 · Thông tin' }
+];
+const STATUSES = [
+  { value: '', label: 'Tất cả trạng thái' },
+  { value: 'PENDING', label: 'Chờ xử lý' },
+  { value: 'PROCESSING', label: 'Đang xử lý' },
+  { value: 'CLOSED', label: 'Đã đóng' }
+];
+
+/** level có thể là SỐ (1=cao nhất) hoặc CHUỖI (HIGH/MEDIUM/LOW). */
+function levelMeta(level: number | string | null | undefined): { label: string; color: string; bg: string } {
+  const n = typeof level === 'number' ? level : Number(level);
+  let key: 'P1' | 'P2' | 'P3';
+  if (Number.isFinite(n) && n >= 1) {
+    key = n <= 1 ? 'P1' : n === 2 ? 'P2' : 'P3';
+  } else {
+    const l = String(level ?? '').toUpperCase();
+    key = l.includes('HIGH') || l.includes('CRIT') || l.includes('P1') ? 'P1' : l.includes('MED') || l.includes('WARN') || l.includes('P2') ? 'P2' : 'P3';
+  }
+  if (key === 'P1') return { label: 'P1', color: '#dc2626', bg: 'rgba(220,38,38,0.1)' };
+  if (key === 'P2') return { label: 'P2', color: '#ea580c', bg: 'rgba(234,88,12,0.1)' };
+  return { label: 'P3', color: '#ca8a04', bg: 'rgba(202,138,4,0.12)' };
+}
+function statusMeta(status: unknown): { label: string; color: string } {
+  const s = String(status ?? '').toUpperCase();
+  if (s.includes('PEND') || s.includes('NEW') || s.includes('OPEN')) return { label: 'Chờ xử lý', color: '#dc2626' };
+  if (s.includes('PROCESS') || s.includes('ACK')) return { label: 'Đang xử lý', color: '#ea580c' };
+  if (s.includes('CLOSE') || s.includes('RESOLV') || s.includes('DONE')) return { label: 'Đã đóng', color: '#16a34a' };
+  return { label: s ? String(status) : '—', color: '#64748b' };
+}
+
+export default function AlertsManagement({ isDark, scopeRegionId }: Props) {
+  const [rows, setRows] = useState<AlertRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [level, setLevel] = useState('');
+  const [status, setStatus] = useState('');
+  const [search, setSearch] = useState('');
+  const [typesOpen, setTypesOpen] = useState(false);
+
+  const cardBg = isDark ? 'rgba(255,255,255,0.03)' : '#ffffff';
+  const cardBorder = isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0';
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await alertsApi.list({ pageSize: 100, level: level || undefined, status: status || undefined, regionId: scopeRegionId || undefined });
+      const items = extractList(res.data).map((a: any): AlertRow => ({
+        id: String(a.id),
+        title: a.alertType?.name ?? a.alertTypeName ?? a.alertTypeCode ?? a.title ?? a.type ?? 'Cảnh báo',
+        offender: a.offender?.fullname ?? a.offenderName ?? a.offenderId ?? '—',
+        level: a.level ?? a.alertType?.level ?? a.severity ?? '',
+        status: a.status ?? 'PENDING',
+        createdAt: a.createdDate ?? a.createdAt ?? a.created_at ?? '',
+        raw: a
+      }));
+      setRows(items);
+    } catch {
+      setRows([]);
+      setError('Chưa kết nối được API cảnh báo (cần đăng nhập tài khoản GoSafe thật).');
+    } finally {
+      setLoading(false);
+    }
+  }, [level, status, scopeRegionId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = useMemo(() => {
+    if (!search) return rows;
+    const q = search.toLowerCase();
+    return rows.filter((r) => r.title.toLowerCase().includes(q) || r.offender.toLowerCase().includes(q));
+  }, [rows, search]);
+
+  const kpis = useMemo(() => {
+    const p1 = rows.filter((r) => levelMeta(r.level).label === 'P1').length;
+    const processing = rows.filter((r) => statusMeta(r.status).label === 'Đang xử lý').length;
+    const closed = rows.filter((r) => statusMeta(r.status).label === 'Đã đóng').length;
+    return { total: rows.length, p1, processing, closed };
+  }, [rows]);
+
+  const handleAck = (row: AlertRow) => {
+    setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, status: 'PROCESSING' } : r)));
+    alertsApi.acknowledge({ alertId: row.id }).catch(() => {});
+  };
+  const handleClose = (row: AlertRow) => {
+    setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, status: 'CLOSED' } : r)));
+    alertsApi.close({ alertId: row.id }).catch(() => {});
+  };
+
+  return (
+    <Box>
+      {/* KPIs */}
+      <Grid container spacing={2} sx={{ mb: 2.5 }}>
+        {[
+          { label: 'Tổng cảnh báo', value: kpis.total, color: '#1e6fd9', icon: <Notification size={22} variant="Bold" /> },
+          { label: 'P1 khẩn cấp', value: kpis.p1, color: '#dc2626', icon: <Danger size={22} variant="Bold" /> },
+          { label: 'Đang xử lý', value: kpis.processing, color: '#ea580c', icon: <Clock size={22} variant="Bold" /> },
+          { label: 'Đã đóng', value: kpis.closed, color: '#16a34a', icon: <TickCircle size={22} variant="Bold" /> }
+        ].map((k) => (
+          <Grid item xs={6} md={3} key={k.label}>
+            <Box sx={{ p: 2.25, borderRadius: '14px', border: '1px solid', borderColor: cardBorder, bgcolor: cardBg, borderLeft: `4px solid ${k.color}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography sx={{ fontSize: '2.1rem', fontWeight: 800, color: isDark ? '#f8fafc' : '#0f172a', lineHeight: 1 }}>{k.value}</Typography>
+                <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: isDark ? '#94a3b8' : '#64748b', mt: 0.75 }}>{k.label}</Typography>
+              </Box>
+              <Box sx={{ width: 46, height: 46, borderRadius: '12px', display: 'grid', placeItems: 'center', bgcolor: `${k.color}14`, color: k.color, flexShrink: 0 }}>{k.icon}</Box>
+            </Box>
+          </Grid>
+        ))}
+      </Grid>
+
+      {/* Toolbar */}
+      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2, flexWrap: 'wrap', gap: 1.25 }}>
+        <TextField
+          placeholder="Tìm theo đối tượng / loại cảnh báo..." value={search} onChange={(e) => setSearch(e.target.value)}
+          InputProps={{ startAdornment: <SearchNormal1 size={18} style={{ marginRight: 8, color: '#94a3b8' }} /> }}
+          sx={{ minWidth: 300, flexGrow: 1, maxWidth: 420 }}
+        />
+        <TextField select label="Mức độ" value={level} onChange={(e) => setLevel(e.target.value)} sx={{ minWidth: 170 }}>
+          {LEVELS.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+        </TextField>
+        <TextField select label="Trạng thái" value={status} onChange={(e) => setStatus(e.target.value)} sx={{ minWidth: 180 }}>
+          {STATUSES.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+        </TextField>
+        <Tooltip title="Tải lại">
+          <IconButton onClick={load} sx={{ border: '1px solid', borderColor: cardBorder, borderRadius: '10px', width: 44, height: 44 }}><Refresh size={20} /></IconButton>
+        </Tooltip>
+        <Button
+          variant="outlined" startIcon={<Setting2 size={18} />} onClick={() => setTypesOpen(true)}
+          sx={{ borderRadius: '10px', fontWeight: 600, fontSize: '0.9rem', py: 1, px: 2, ml: 'auto' }}
+        >
+          Loại cảnh báo
+        </Button>
+      </Stack>
+
+      {/* Table */}
+      <Box sx={{ borderRadius: '12px', border: '1px solid', borderColor: cardBorder, bgcolor: cardBg, overflow: 'hidden' }}>
+        {loading ? (
+          <Stack alignItems="center" sx={{ py: 6 }}><CircularProgress size={24} /></Stack>
+        ) : (
+          <Table>
+            <TableHead>
+              <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.8rem', color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase', letterSpacing: 0.4, borderColor: cardBorder, py: 1.5 } }}>
+                <TableCell>Thời gian</TableCell>
+                <TableCell>Loại cảnh báo</TableCell>
+                <TableCell>Đối tượng</TableCell>
+                <TableCell>Mức</TableCell>
+                <TableCell>Trạng thái</TableCell>
+                <TableCell align="right">Hành động</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filtered.map((r) => {
+                const lm = levelMeta(r.level);
+                const sm = statusMeta(r.status);
+                const closed = sm.label === 'Đã đóng';
+                return (
+                  <TableRow key={r.id} hover sx={{ '& td': { borderColor: cardBorder, fontSize: '0.92rem', py: 1.5 } }}>
+                    <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.82rem', color: isDark ? '#94a3b8' : '#64748b' }}>
+                      {r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN') : '—'}
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Danger size={20} color={lm.color} variant="Bold" /> {r.title}
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 500 }}>{r.offender}</TableCell>
+                    <TableCell><Chip label={lm.label} size="small" sx={{ height: 26, fontWeight: 800, fontSize: '0.78rem', color: lm.color, bgcolor: lm.bg, borderRadius: '7px' }} /></TableCell>
+                    <TableCell><Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: sm.color }}>{sm.label}</Typography></TableCell>
+                    <TableCell align="right">
+                      <Stack direction="row" spacing={0.75} justifyContent="flex-end">
+                        <Tooltip title="Nhận xử lý">
+                          <span>
+                            <IconButton disabled={closed} onClick={() => handleAck(r)} sx={{ color: '#ea580c', border: '1px solid', borderColor: cardBorder, borderRadius: '9px', width: 38, height: 38 }}>
+                              <TickCircle size={18} />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        <Tooltip title="Đóng cảnh báo">
+                          <span>
+                            <IconButton disabled={closed} onClick={() => handleClose(r)} sx={{ color: '#16a34a', border: '1px solid', borderColor: cardBorder, borderRadius: '9px', width: 38, height: 38 }}>
+                              <CloseCircle size={18} />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} sx={{ textAlign: 'center', py: 6, fontSize: '0.9rem', color: isDark ? '#64748b' : '#94a3b8', borderColor: cardBorder }}>
+                    {error ?? 'Không có cảnh báo nào.'}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </Box>
+
+      <AlertTypesDialog open={typesOpen} onClose={() => setTypesOpen(false)} isDark={isDark} />
+    </Box>
+  );
+}
+
+// ── Alert types config dialog ──────────────────────────────────────────────────
+function AlertTypesDialog({ open, onClose, isDark }: { open: boolean; onClose: () => void; isDark: boolean }) {
+  const [types, setTypes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({ code: '', name: '', level: 'MEDIUM', penaltyPoints: 0 });
+
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    alertTypesApi.list({ pageSize: 100 })
+      .then((res) => setTypes(extractList(res.data)))
+      .catch(() => setTypes([]))
+      .finally(() => setLoading(false));
+  }, [open]);
+
+  const handleAdd = () => {
+    if (!form.code || !form.name) return;
+    const optimistic = { ...form, id: `tmp-${form.code}` };
+    setTypes((prev) => [...prev, optimistic]);
+    alertTypesApi.create({ ...form, isActive: true }).catch(() => {});
+    setForm({ code: '', name: '', level: 'MEDIUM', penaltyPoints: 0 });
+  };
+
+  return (
+    <SideDrawer
+      open={open}
+      onClose={onClose}
+      isDark={isDark}
+      width={500}
+      title="Loại cảnh báo"
+      subtitle="Cấu hình mức độ & điểm phạt"
+      footer={<Button onClick={onClose} variant="contained" sx={{ borderRadius: 2, fontWeight: 700 }}>Đóng</Button>}
+    >
+      <Box>
+        {loading ? (
+          <Stack alignItems="center" sx={{ py: 3 }}><CircularProgress size={20} /></Stack>
+        ) : (
+          <Stack spacing={1} sx={{ mb: 2 }}>
+            {types.map((t, i) => (
+              <Stack key={t.id ?? i} direction="row" alignItems="center" spacing={1} sx={{ p: 1, borderRadius: 1.5, border: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0' }}>
+                <Chip label={levelMeta(t.level).label} size="small" sx={{ height: 20, fontWeight: 800, color: levelMeta(t.level).color, bgcolor: levelMeta(t.level).bg }} />
+                <Box sx={{ flexGrow: 1 }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: '0.82rem' }}>{t.name}</Typography>
+                  <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', fontFamily: 'monospace' }}>{t.code} · phạt {t.penaltyPoints ?? 0}đ</Typography>
+                </Box>
+              </Stack>
+            ))}
+            {types.length === 0 && <Typography variant="body2" color="text.secondary" align="center">Chưa có loại cảnh báo.</Typography>}
+          </Stack>
+        )}
+        <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', mb: 1 }}>Thêm loại mới</Typography>
+        <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+          <TextField size="small" label="Mã" value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} sx={{ width: 110 }} />
+          <TextField size="small" label="Tên" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} fullWidth />
+        </Stack>
+        <Stack direction="row" spacing={1}>
+          <TextField size="small" select label="Mức" value={form.level} onChange={(e) => setForm((f) => ({ ...f, level: e.target.value }))} sx={{ width: 130 }}>
+            <MenuItem value="HIGH">P1</MenuItem>
+            <MenuItem value="MEDIUM">P2</MenuItem>
+            <MenuItem value="LOW">P3</MenuItem>
+          </TextField>
+          <TextField size="small" type="number" label="Điểm phạt" value={form.penaltyPoints} onChange={(e) => setForm((f) => ({ ...f, penaltyPoints: Number(e.target.value) }))} sx={{ width: 120 }} />
+          <Button variant="contained" startIcon={<Add size={16} />} onClick={handleAdd} sx={{ borderRadius: 2, fontWeight: 700 }}>Thêm</Button>
+        </Stack>
+      </Box>
+    </SideDrawer>
+  );
+}

@@ -20,7 +20,15 @@
       "Bash(grep -E \"\\\\.\\(tsx|ts|jsx|js\\)$\")",
       "Bash(xargs grep -l \"wifi-premium\\\\|wlan\\\\|ssid\\\\|voucher\")",
       "Bash(npx vite *)",
-      "Bash(node -e \"const rl = require\\('react-leaflet'\\); console.log\\(['ScaleControl','Tooltip','Circle','useMap'].map\\(k => k + ':' + \\(k in rl\\)\\).join\\('\\\\n'\\)\\)\")"
+      "Bash(node -e \"const rl = require\\('react-leaflet'\\); console.log\\(['ScaleControl','Tooltip','Circle','useMap'].map\\(k => k + ':' + \\(k in rl\\)\\).join\\('\\\\n'\\)\\)\")",
+      "Read(//c/Users/PC-01/Downloads/**)",
+      "Bash(ls -la \"Thông tin API.xlsx\")",
+      "Bash(cd \"/f/Code/ankle-tracking-fe\" && find src/pages/gosafe -type f | head -200)",
+      "Bash(python -c \"import openpyxl; wb=openpyxl.load_workbook\\('Thông tin API.xlsx'\\); print\\([ws.title for ws in wb.worksheets]\\)\")",
+      "Bash(node -e ' *)",
+      "Read(//f/f/Code/ankle-tracking-fe/**)",
+      "Bash(cd \"/f/Code/ankle-tracking-fe\" && echo \"=== API/services ===\" && find src -type d \\\\\\( -iname \"*api*\" -o -iname \"*service*\" -o -iname \"*hook*\" \\\\\\) | head && echo \"---\" && find src -iname \"axios*\" -o -iname \"*client*\" -o -iname \"apiConfig*\" | head)",
+      "PowerShell(npx tsc --noEmit -p tsconfig.json 2>&1)"
     ]
   }
 }

@@ -29,10 +29,12 @@ import {
   Danger,
   Cpu,
   Profile2User,
-  Simcard,
-  Clock
+  Clock,
+  SecuritySafe,
+  Buildings2,
+  Calendar
 } from 'iconsax-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import useAuth from 'hooks/useAuth';
 
 import { useTracking } from '../tracking/useTracking';
@@ -50,7 +52,10 @@ import CriticalAlertOverlay from '../tracking/components/CriticalAlertOverlay';
 import DashboardOverview from './components/DashboardOverview';
 import DeviceManagementTable from './components/DeviceManagementTable';
 import PrisonerManagementTable from './components/PrisonerManagementTable';
-import SimManagementTable from './components/SimManagementTable';
+import AlertsManagement from './components/AlertsManagement';
+import UserManagement from './components/UserManagement';
+import RegionManagement from './components/RegionManagement';
+import ComplianceManagement from './components/ComplianceManagement';
 
 interface TrackingSectionProps {
   isDark: boolean;
@@ -58,9 +63,18 @@ interface TrackingSectionProps {
   secondaryColor: string;
 }
 
+// Các view chỉ dành cho superadmin (quản trị hệ thống: thiết bị, SIM/NCC, địa bàn, người dùng).
+const SUPER_ONLY_VIEWS = ['devices', 'regions', 'users'] as const;
+
 export default function TrackingSection({ isDark, primaryColor, secondaryColor }: TrackingSectionProps) {
   const store = useTracking(isDark, primaryColor, secondaryColor);
   const { user, logout } = useAuth();
+  // Phân quyền: superadmin thấy toàn bộ; admin (cán bộ địa bàn) chỉ quản lý đối tượng trong phạm vi.
+  const isSuperAdmin = Boolean(
+    (user as any)?.gosafeIsSuperAdmin ||
+      /super/i.test(String((user as any)?.role ?? '')) ||
+      (Array.isArray((user as any)?.gosafeRoles) && (user as any).gosafeRoles.some((r: string) => /super/i.test(r)))
+  );
   const {
     showAlertOverlay,
     devices,
@@ -79,8 +93,40 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
   } = store;
 
   // Dashboard views: overview (Tổng quan), tracking (Giám sát), devices (Thiết bị), prisoners (Phạm nhân), sims (Sim Card)
-  const [dashboardView, setDashboardView] = useState<'overview' | 'tracking' | 'devices' | 'prisoners' | 'sims'>('overview');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [dashboardView, setDashboardView] = useState<
+    'overview' | 'tracking' | 'devices' | 'prisoners' | 'alerts' | 'users' | 'regions' | 'compliance'
+  >('overview');
+  const [scopeRegionId, setScopeRegionId] = useState<string | null>(null);
+  const [scopeRegions, setScopeRegions] = useState<{ id: string; name: string }[]>([]);
+
+  // Nạp danh sách địa bàn cho bộ lọc phạm vi (chỉ superadmin mới có quyền + cần selector).
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+    let cancelled = false;
+    import('api/gosafe.management.api')
+      .then(({ regionsApi, extractList }) =>
+        regionsApi.list({ pageSize: 200 }).then((res) => {
+          if (!cancelled) setScopeRegions(extractList(res.data).map((r: any) => ({ id: String(r.id), name: r.name ?? r.code ?? r.id })));
+        })
+      )
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [isSuperAdmin]);
+
+  // Admin không được vào các view super-only → ép về Tổng quan.
+  useEffect(() => {
+    if (!isSuperAdmin && (SUPER_ONLY_VIEWS as readonly string[]).includes(dashboardView)) {
+      setDashboardView('overview');
+    }
+  }, [isSuperAdmin, dashboardView]);
+
+  // Admin bị khoá phạm vi theo địa bàn được gán (nếu có).
+  useEffect(() => {
+    if (!isSuperAdmin) {
+      const rid = (user as any)?.gosafeRegionIds?.[0];
+      if (rid) setScopeRegionId(String(rid));
+    }
+  }, [isSuperAdmin, user]);
 
   // Map page sidebar collapsible & overflow menu state
   const [isMapSidebarCollapsed, setIsMapSidebarCollapsed] = useState(false);
@@ -104,6 +150,18 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
 
   // Derived stats
   const totalViolating = useMemo(() => Object.values(deviceViolations).filter(Boolean).length, [deviceViolations]);
+
+  // Breadcrumb + tiêu đề theo view
+  const VIEW_META: Record<string, { crumb: string; title: string }> = {
+    overview: { crumb: 'Tổng quan', title: 'Tổng quan hệ thống' },
+    devices: { crumb: 'Quản lý thiết bị', title: 'Thông tin các thiết bị' },
+    prisoners: { crumb: 'Thông tin phạm nhân', title: 'Hồ sơ giám sát phạm nhân' },
+    alerts: { crumb: 'Quản lý cảnh báo', title: 'Trung tâm cảnh báo' },
+    compliance: { crumb: 'Lịch trình bắt buộc', title: 'Quy tắc tuân thủ & lịch bắt buộc' },
+    regions: { crumb: 'Địa bàn quản lý', title: 'Quản lý địa bàn' },
+    users: { crumb: 'Người dùng & phân quyền', title: 'Người dùng & phân quyền (RBAC)' }
+  };
+  const viewMeta = VIEW_META[dashboardView] ?? VIEW_META.overview;
 
   return (
     <Box
@@ -133,36 +191,38 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
         }}
       >
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <IconButton
-            size="small"
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          <ShieldSecurity size={28} variant="Bold" color={primaryColor} />
+          <Typography
+            variant="h6"
             sx={{
-              color: isDark ? '#94a3b8' : '#475569',
-              bgcolor: isSidebarCollapsed ? (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)') : 'transparent',
-              '&:hover': {
-                bgcolor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'
-              },
-              transition: 'all 0.2s'
+              fontWeight: 600,
+              letterSpacing: 0.5,
+              fontSize: '0.925rem',
+              color: isDark ? '#f8fafc' : '#0f172a',
+              display: { xs: 'none', sm: 'block' }
             }}
           >
-            <HambergerMenu size={22} />
-          </IconButton>
-          <ShieldSecurity size={28} variant="Bold" color={primaryColor} />
-          {!isSidebarCollapsed && (
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 600,
-                letterSpacing: 0.5,
-                fontSize: '0.925rem',
-                color: isDark ? '#f8fafc' : '#0f172a',
-                display: { xs: 'none', sm: 'block' }
-              }}
-            >
-              Hệ thống Giám sát & Cảnh báo Ankle Tracking
-            </Typography>
-          )}
+            Hệ thống Giám sát & Cảnh báo Ankle Tracking
+          </Typography>
         </Stack>
+
+        {/* Scope selector — phạm vi giám sát (chỉ superadmin; admin bị khoá theo địa bàn) */}
+        <Box sx={{ display: { xs: isSuperAdmin ? 'none' : 'none', md: isSuperAdmin ? 'flex' : 'none' }, alignItems: 'center', gap: 1 }}>
+          <Buildings2 size={18} color={primaryColor} variant="Bold" />
+          <TextField
+            select
+            size="small"
+            value={scopeRegionId ?? ''}
+            onChange={(e) => setScopeRegionId(e.target.value || null)}
+            SelectProps={{ displayEmpty: true }}
+            sx={{ minWidth: 200, '& .MuiInputBase-root': { borderRadius: 2, fontSize: '0.82rem', fontWeight: 600 } }}
+          >
+            <MenuItem value="">Cấp Trung ương · Toàn quốc</MenuItem>
+            {scopeRegions.map((r) => (
+              <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>
+            ))}
+          </TextField>
+        </Box>
 
         <Stack direction="row" spacing={2} alignItems="center">
           {/* Notification Bell */}
@@ -371,20 +431,6 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
       {/* ═══ WORKSPACE LAYOUT ═══════════════════════════════════════════════ */}
       <Box sx={{ display: 'flex', flexGrow: 1, overflow: 'hidden', position: 'relative' }}>
 
-        {/* Backdrop — subtle tinted blur when sidebar expanded */}
-        {!isSidebarCollapsed && (
-          <Box
-            onClick={() => setIsSidebarCollapsed(true)}
-            sx={{
-              position: 'absolute', inset: 0, zIndex: 98,
-              background: isDark ? 'rgba(8,18,40,0.28)' : 'rgba(30,41,59,0.14)',
-              backdropFilter: 'blur(2px)',
-              WebkitBackdropFilter: 'blur(2px)',
-              transition: 'all 0.26s ease'
-            }}
-          />
-        )}
-
         {/* ── Liquid Glass Sidebar ──────────────────────────────────────── */}
         {(() => {
           // ── Theme-aware color tokens ──────────────────────────────────
@@ -414,22 +460,19 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
           return (
             <Box
               sx={{
-                position: 'absolute',
-                top: 0, left: 0, bottom: 0,
-                width: isSidebarCollapsed ? 64 : 290,
+                position: 'relative',
+                width: 290,
+                flexShrink: 0,
                 zIndex: 99,
                 display: 'flex',
                 flexDirection: 'column',
-                transition: 'width 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                 overflow: 'hidden',
                 background: glassBase,
                 backdropFilter: 'blur(32px) saturate(1.9) brightness(1.06)',
                 WebkitBackdropFilter: 'blur(32px) saturate(1.9) brightness(1.06)',
                 border: `1px solid ${glassBorder}`,
                 borderLeft: 'none', borderTop: 'none', borderBottom: 'none',
-                boxShadow: isSidebarCollapsed
-                  ? `1px 0 0 ${glassBorder}`
-                  : `10px 0 48px rgba(0,0,0,${isDark ? 0.28 : 0.12}), inset 0 1px 0 rgba(255,255,255,${isDark ? 0.18 : 0.70})`,
+                boxShadow: `10px 0 48px rgba(0,0,0,${isDark ? 0.28 : 0.12}), inset 0 1px 0 rgba(255,255,255,${isDark ? 0.18 : 0.70})`,
                 '&::before': {
                   content: '""', position: 'absolute', inset: 0,
                   background: specular1,
@@ -473,38 +516,39 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
               </Stack>
 
               {/* ── Section label ── */}
-              {!isSidebarCollapsed && (
-                <Typography sx={{
-                  fontSize: '0.6rem', fontWeight: 700, color: txtMuted,
-                  textTransform: 'uppercase', letterSpacing: 1.3,
-                  px: 2.5, pt: 2.5, pb: 1,
-                  position: 'relative', zIndex: 2
-                }}>
-                  Điều hướng
-                </Typography>
-              )}
+              <Typography sx={{
+                fontSize: '0.6rem', fontWeight: 700, color: txtMuted,
+                textTransform: 'uppercase', letterSpacing: 1.3,
+                px: 2.5, pt: 2.5, pb: 1,
+                position: 'relative', zIndex: 2
+              }}>
+                Điều hướng
+              </Typography>
 
               {/* ── Nav items ── */}
-              <Stack spacing={0.75} sx={{ px: 1.25, pt: isSidebarCollapsed ? 2 : 0.25, flexGrow: 1, position: 'relative', zIndex: 2 }}>
+              <Stack spacing={0.75} sx={{ px: 1.25, pt: 0.25, flexGrow: 1, position: 'relative', zIndex: 2 }}>
                 {([
-                  { id: 'overview'  as const, label: 'Tổng quan',           icon: <Category     size={19} variant="Bold" /> },
-                  { id: 'tracking'  as const, label: 'Bản đồ giám sát',     icon: <MapIcon      size={19} variant="Bold" /> },
-                  { id: 'devices'   as const, label: 'Quản lý thiết bị',    icon: <Cpu          size={19} variant="Bold" /> },
-                  { id: 'prisoners' as const, label: 'Thông tin phạm nhân', icon: <Profile2User size={19} variant="Bold" /> },
-                  { id: 'sims'      as const, label: 'Quản lý SIM card',    icon: <Simcard      size={19} variant="Bold" /> }
-                ] as const).map((item) => {
+                  { id: 'overview'  as const, label: 'Tổng quan',           icon: <Category     size={19} variant="Bold" />, superOnly: false },
+                  { id: 'tracking'  as const, label: 'Bản đồ giám sát',     icon: <MapIcon      size={19} variant="Bold" />, superOnly: false },
+                  { id: 'prisoners' as const, label: 'Thông tin phạm nhân', icon: <Profile2User size={19} variant="Bold" />, superOnly: false },
+                  { id: 'alerts'    as const, label: 'Quản lý cảnh báo',    icon: <Danger       size={19} variant="Bold" />, superOnly: false },
+                  { id: 'compliance' as const, label: 'Lịch trình bắt buộc', icon: <Calendar    size={19} variant="Bold" />, superOnly: false },
+                  { id: 'devices'   as const, label: 'Quản lý thiết bị',    icon: <Cpu          size={19} variant="Bold" />, superOnly: true },
+                  { id: 'regions'   as const, label: 'Địa bàn quản lý',     icon: <Buildings2   size={19} variant="Bold" />, superOnly: true },
+                  { id: 'users'     as const, label: 'Người dùng & quyền',  icon: <SecuritySafe size={19} variant="Bold" />, superOnly: true }
+                ] as const).filter((item) => isSuperAdmin || !item.superOnly).map((item) => {
                   const active = dashboardView === item.id;
-                  const navBtn = (
+                  return (
                     <Box
                       key={item.id}
-                      onClick={() => { setDashboardView(item.id); setIsSidebarCollapsed(true); }}
+                      onClick={() => { setDashboardView(item.id); }}
                       sx={{
                         display: 'flex', alignItems: 'center',
                         height: 46,
                         borderRadius: '12px',
                         cursor: 'pointer',
-                        px: isSidebarCollapsed ? 0 : 2,
-                        justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
+                        px: 2,
+                        justifyContent: 'flex-start',
                         position: 'relative',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         background: active ? activeBg : 'transparent',
@@ -520,16 +564,6 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
                         }
                       }}
                     >
-                      {/* Active glow dot (collapsed only) */}
-                      {active && isSidebarCollapsed && (
-                        <Box sx={{
-                          position: 'absolute', right: 9, top: '50%',
-                          transform: 'translateY(-50%)',
-                          width: 5, height: 5, borderRadius: '50%',
-                          bgcolor: primaryColor,
-                          boxShadow: `0 0 6px 2px ${primaryColor}80`
-                        }} />
-                      )}
                       {/* Icon */}
                       <Box sx={{
                         display: 'flex', alignItems: 'center', flexShrink: 0,
@@ -538,62 +572,40 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
                         {item.icon}
                       </Box>
                       {/* Label */}
-                      {!isSidebarCollapsed && (
-                        <Typography sx={{
-                          ml: 1.75, fontSize: '0.85rem',
-                          fontWeight: active ? 700 : 500,
-                          color: active ? (isDark ? '#ffffff' : '#0f172a') : txtSecondary,
-                          whiteSpace: 'nowrap',
-                          letterSpacing: active ? 0.1 : 0
-                        }}>
-                          {item.label}
-                        </Typography>
-                      )}
+                      <Typography sx={{
+                        ml: 1.75, fontSize: '0.85rem',
+                        fontWeight: active ? 700 : 500,
+                        color: active ? (isDark ? '#ffffff' : '#0f172a') : txtSecondary,
+                        whiteSpace: 'nowrap',
+                        letterSpacing: active ? 0.1 : 0
+                      }}>
+                        {item.label}
+                      </Typography>
                     </Box>
                   );
-
-                  return isSidebarCollapsed ? (
-                    <Tooltip key={item.id} title={item.label} placement="right" arrow
-                      componentsProps={{
-                        tooltip: {
-                          sx: {
-                            background: isDark ? 'rgba(15,23,42,0.80)' : 'rgba(15,23,42,0.75)',
-                            backdropFilter: 'blur(10px)',
-                            border: '1px solid rgba(255,255,255,0.14)',
-                            fontSize: '0.78rem', fontWeight: 600, color: '#ffffff'
-                          }
-                        }
-                      }}
-                    >
-                      {navBtn}
-                    </Tooltip>
-                  ) : navBtn;
                 })}
               </Stack>
 
               {/* ── Glass footer ── */}
-              {!isSidebarCollapsed && (
-                <Box sx={{
-                  px: 2.5, py: 1.75,
-                  position: 'relative', zIndex: 2,
-                  borderTop: `1px solid ${rowBorder}`,
-                  background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.30)'
-                }}>
-                  <Typography sx={{ fontSize: '0.63rem', color: txtMuted, fontWeight: 500 }}>
-                    v2.0 · GoSafe System
-                  </Typography>
-                </Box>
-              )}
+              <Box sx={{
+                px: 2.5, py: 1.75,
+                position: 'relative', zIndex: 2,
+                borderTop: `1px solid ${rowBorder}`,
+                background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.30)'
+              }}>
+                <Typography sx={{ fontSize: '0.63rem', color: txtMuted, fontWeight: 500 }}>
+                  v2.0 · GoSafe System
+                </Typography>
+              </Box>
             </Box>
           );
         })()}
 
-        {/* Right Main Content Pane — shifted right by icon-rail width */}
+        {/* Right Main Content Pane */}
         <Box
           sx={{
             flexGrow: 1,
             height: '100%',
-            ml: '64px',
             overflow: dashboardView === 'tracking' ? 'hidden' : 'auto',
             display: 'flex',
             flexDirection: 'column'
@@ -608,44 +620,117 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
                 <TrackingMap store={store} />
               </Box>
 
-              {/* Floating Title & Overflow Control Menu */}
+              {/* Floating Title, Custom Zoom & Control Menu at Bottom-Left */}
               <Box
                 sx={{
                   position: 'absolute',
-                  top: 16,
+                  bottom: 16,
                   left: isMapSidebarCollapsed ? 16 : 452,
                   zIndex: 10,
-                  bgcolor: isDark ? 'rgba(15, 23, 42, 0.85)' : 'rgba(255, 255, 255, 0.85)',
-                  backdropFilter: 'blur(12px)',
-                  px: 2,
-                  py: 1,
-                  borderRadius: '10px',
+                  bgcolor: isDark ? 'rgba(15, 23, 42, 0.92)' : 'rgba(255, 255, 255, 0.92)',
+                  backdropFilter: 'blur(16px)',
+                  px: 2.5,
+                  py: 1.25,
+                  borderRadius: '12px',
                   border: '1px solid',
-                  borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.1)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 1.5,
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                  gap: 2,
+                  transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 }}
               >
-                <Typography sx={{ fontWeight: 700, fontSize: '13px', color: isDark ? '#ffffff' : '#111827' }}>
-                  Giám sát thời gian thực
-                </Typography>
-                <Divider orientation="vertical" flexItem sx={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', my: 0.5 }} />
-                <Tooltip title="Cấu hình hiển thị" arrow>
-                  <IconButton
-                    size="small"
-                    onClick={handleMapMenuOpen}
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Box
+                    className="gs-blink"
                     sx={{
-                      color: isDark ? '#94a3b8' : '#475569',
-                      p: 0.5,
-                      '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      bgcolor: '#22c55e',
+                      boxShadow: '0 0 8px #22c55e',
+                    }}
+                  />
+                  <Typography
+                    sx={{
+                      fontWeight: 700,
+                      fontSize: '15px',
+                      color: isDark ? '#ffffff' : '#0f172a',
+                      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      letterSpacing: -0.2,
                     }}
                   >
-                    <HambergerMenu size={18} />
+                    Giám sát thời gian thực
+                  </Typography>
+                </Stack>
+
+                <Divider orientation="vertical" flexItem sx={{ borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)', my: 0.5 }} />
+
+                <Tooltip title="Cấu hình hiển thị" arrow>
+                  <IconButton
+                    size="medium"
+                    onClick={handleMapMenuOpen}
+                    sx={{
+                      color: isDark ? '#cbd5e1' : '#475569',
+                      p: 1,
+                      bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                      borderRadius: '8px',
+                      '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }
+                    }}
+                  >
+                    <HambergerMenu size={20} />
                   </IconButton>
                 </Tooltip>
+
+                <Divider orientation="vertical" flexItem sx={{ borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)', my: 0.5 }} />
+
+                <Stack direction="row" spacing={0.75}>
+                  <Tooltip title="Thu nhỏ (Zoom out)" arrow>
+                    <span>
+                      <IconButton
+                        onClick={() => store.setMapZoom(Math.max(store.mapZoom - 1, 3))}
+                        disabled={store.mapZoom <= 3}
+                        size="small"
+                        sx={{
+                          color: isDark ? '#cbd5e1' : '#475569',
+                          bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                          borderRadius: '8px',
+                          width: 36,
+                          height: 36,
+                          fontFamily: 'system-ui, sans-serif',
+                          fontSize: '18px',
+                          fontWeight: 700,
+                          '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }
+                        }}
+                      >
+                        −
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                  <Tooltip title="Phóng to (Zoom in)" arrow>
+                    <span>
+                      <IconButton
+                        onClick={() => store.setMapZoom(Math.min(store.mapZoom + 1, 18))}
+                        disabled={store.mapZoom >= 18}
+                        size="small"
+                        sx={{
+                          color: isDark ? '#cbd5e1' : '#475569',
+                          bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                          borderRadius: '8px',
+                          width: 36,
+                          height: 36,
+                          fontFamily: 'system-ui, sans-serif',
+                          fontSize: '18px',
+                          fontWeight: 700,
+                          '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }
+                        }}
+                      >
+                        +
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                </Stack>
               </Box>
 
               {/* Overflow Dropdown Menu */}
@@ -655,28 +740,41 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
                 onClose={handleMapMenuClose}
                 PaperProps={{
                   sx: {
-                    mt: 1,
-                    minWidth: 220,
-                    borderRadius: 2,
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                    mt: 1.5,
+                    minWidth: 260,
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
                     border: '1px solid',
-                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
                     bgcolor: isDark ? '#0f172a' : '#ffffff',
-                    p: 1
+                    p: 1.25,
                   }
                 }}
               >
-                <Typography variant="caption" sx={{ px: 2, py: 0.5, display: 'block', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: 0.5 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    px: 2,
+                    py: 1,
+                    display: 'block',
+                    fontWeight: 800,
+                    color: 'text.secondary',
+                    textTransform: 'uppercase',
+                    fontSize: '0.75rem',
+                    letterSpacing: 0.8,
+                    fontFamily: 'system-ui, sans-serif',
+                  }}
+                >
                   BẢN ĐỒ GIÁM SÁT
                 </Typography>
-                <Divider sx={{ my: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }} />
-                <MenuItem disableRipple sx={{ py: 0.5, px: 2, '&:hover': { bgcolor: 'transparent' } }}>
+                <Divider sx={{ my: 1, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
+                <MenuItem disableRipple sx={{ py: 0.75, px: 2, '&:hover': { bgcolor: 'transparent' } }}>
                   <FormControlLabel
                     control={
                       <Switch
                         checked={!isMapSidebarCollapsed}
                         onChange={(e) => setIsMapSidebarCollapsed(!e.target.checked)}
-                        size="small"
+                        size="medium"
                         sx={{
                           '& .MuiSwitch-switchBase.Mui-checked': { color: primaryColor },
                           '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: primaryColor }
@@ -684,19 +782,27 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
                       />
                     }
                     label={
-                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem' }}>
+                      <Typography sx={{ fontWeight: 600, fontSize: '0.925rem', fontFamily: 'system-ui, sans-serif' }}>
                         Hiển thị Bảng điều khiển
                       </Typography>
                     }
                   />
                 </MenuItem>
-                <Divider sx={{ my: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }} />
+                <Divider sx={{ my: 1, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
                 <MenuItem
                   onClick={() => {
                     setIsMapSidebarCollapsed(false);
                     handleMapMenuClose();
                   }}
-                  sx={{ py: 1, px: 2, borderRadius: 1.5, fontSize: '0.8rem', fontWeight: 600 }}
+                  sx={{
+                    py: 1.25,
+                    px: 2,
+                    borderRadius: '8px',
+                    fontSize: '0.925rem',
+                    fontWeight: 600,
+                    fontFamily: 'system-ui, sans-serif',
+                    '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }
+                  }}
                 >
                   Hiện bảng giám sát
                 </MenuItem>
@@ -705,7 +811,16 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
                     setIsMapSidebarCollapsed(true);
                     handleMapMenuClose();
                   }}
-                  sx={{ py: 1, px: 2, borderRadius: 1.5, fontSize: '0.8rem', fontWeight: 600, color: 'error.main' }}
+                  sx={{
+                    py: 1.25,
+                    px: 2,
+                    borderRadius: '8px',
+                    fontSize: '0.925rem',
+                    fontWeight: 600,
+                    fontFamily: 'system-ui, sans-serif',
+                    color: 'error.main',
+                    '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }
+                  }}
                 >
                   Ẩn bảng giám sát
                 </MenuItem>
@@ -734,43 +849,9 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
                   transform: isMapSidebarCollapsed ? 'translateX(-436px)' : 'none'
                 }}
               >
-                {/* Collapse Chevron Handle Button */}
-                <IconButton
-                  onClick={() => setIsMapSidebarCollapsed(!isMapSidebarCollapsed)}
-                  sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    right: -24,
-                    transform: 'translateY(-50%)',
-                    width: 24,
-                    height: 48,
-                    borderRadius: '0 8px 8px 0',
-                    bgcolor: isDark ? 'rgba(9, 13, 31, 0.9)' : 'rgba(255, 255, 255, 0.9)',
-                    border: '1px solid',
-                    borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
-                    borderLeft: 'none',
-                    boxShadow: '4px 0 10px rgba(0,0,0,0.1)',
-                    zIndex: 10,
-                    '&:hover': {
-                      bgcolor: isDark ? 'rgba(9, 13, 31, 1)' : 'rgba(255, 255, 255, 1)'
-                    },
-                    p: 0
-                  }}
-                >
-                  {isMapSidebarCollapsed ? (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isDark ? '#94a3b8' : '#475569'} strokeWidth="2.5">
-                      <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  ) : (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isDark ? '#94a3b8' : '#475569'} strokeWidth="2.5">
-                      <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </IconButton>
-
                 {/* Sidebar contents */}
                 {/* Search */}
-                <Box sx={{ px: 2.5, pt: 2.5, pb: 1.5 }}>
+                <Box sx={{ px: 1.5, pt: 1.5, pb: 1 }}>
                   <TextField
                     fullWidth
                     size="small"
@@ -785,7 +866,7 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
                 </Box>
 
                 {/* Segmented Control Tabs */}
-                <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+                <Box sx={{ p: 1.25, borderBottom: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
                   <Box
                     sx={{
                       display: 'flex',
@@ -810,7 +891,7 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: 0.8,
-                            py: 1,
+                            py: 0.75,
                             borderRadius: '8px',
                             cursor: 'pointer',
                             fontSize: '12px',
@@ -835,56 +916,87 @@ export default function TrackingSection({ isDark, primaryColor, secondaryColor }
                 </Box>
 
                 {/* List Content Panel */}
-                <Box sx={{ flexGrow: 1, minHeight: 0, overflowY: 'auto', p: 2.5 }}>
+                <Box sx={{ flexGrow: 1, minHeight: 0, overflowY: 'auto', p: 1.25 }}>
                   {activeTab === 0 && <DeviceList store={store} />}
                   {activeTab === 1 && <GeofenceList store={store} />}
                   {activeTab === 2 && <GpsHistoryPanel store={store} />}
                 </Box>
               </Box>
+
+              {/* Collapse Chevron Handle Button (Moved outside to prevent overflow:hidden clipping) */}
+              <IconButton
+                onClick={() => setIsMapSidebarCollapsed(!isMapSidebarCollapsed)}
+                sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: isMapSidebarCollapsed ? 16 : 436,
+                  transform: 'translateY(-50%)',
+                  width: 24,
+                  height: 48,
+                  borderRadius: isMapSidebarCollapsed ? '8px' : '0 8px 8px 0',
+                  bgcolor: isDark ? 'rgba(9, 13, 31, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                  border: '1px solid',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
+                  borderLeft: isMapSidebarCollapsed ? undefined : 'none',
+                  boxShadow: '4px 0 10px rgba(0,0,0,0.1)',
+                  zIndex: 10,
+                  transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-radius 0.3s, border-left 0.3s',
+                  '&:hover': {
+                    bgcolor: isDark ? 'rgba(9, 13, 31, 1)' : 'rgba(255, 255, 255, 1)'
+                  },
+                  p: 0
+                }}
+              >
+                {isMapSidebarCollapsed ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isDark ? '#94a3b8' : '#475569'} strokeWidth="2.5">
+                    <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isDark ? '#94a3b8' : '#475569'} strokeWidth="2.5">
+                    <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </IconButton>
             </Box>
           ) : (
             /* ═══ OTHER VIEWS: OVERVIEW, DEVICES, PRISONERS, SIMS ═══ */
-            <Box sx={{ p: 3, flexGrow: 1 }}>
+            <Box sx={{ p: 2, flexGrow: 1 }}>
               {/* Breadcrumbs Header */}
-              <Box sx={{ mb: 2.5 }}>
+              <Box sx={{ mb: 1.5 }}>
                 <Typography
                   variant="caption"
                   color="text.secondary"
                   sx={{ fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.8, fontSize: '0.68rem' }}
                 >
-                  Hệ thống quản lý & Giám sát /{' '}
-                  {dashboardView === 'overview'
-                    ? 'Tổng quan'
-                    : dashboardView === 'devices'
-                    ? 'Quản lý thiết bị'
-                    : dashboardView === 'prisoners'
-                    ? 'Thông tin phạm nhân'
-                    : 'Quản lý thẻ SIM'}
+                  Hệ thống quản lý & Giám sát / {viewMeta.crumb}
                 </Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700, mt: 0.5, color: isDark ? '#f8fafc' : '#0f172a' }}>
-                  {dashboardView === 'overview'
-                    ? 'Tổng quan hệ thống'
-                    : dashboardView === 'devices'
-                    ? 'Thông tin các thiết bị'
-                    : dashboardView === 'prisoners'
-                    ? 'Hồ sơ giám sát phạm nhân'
-                    : 'Quản lý Sim Card'}
+                <Typography variant="h5" sx={{ fontWeight: 500, mt: 0.5, color: isDark ? '#f8fafc' : '#0f172a', fontFamily: 'system-ui, sans-serif' }}>
+                  {viewMeta.title}
                 </Typography>
               </Box>
 
               {/* ═══ VIEW 1: OVERVIEW DASHBOARD ════════════════════════════════ */}
-              {dashboardView === 'overview' && <DashboardOverview isDark={isDark} store={store} setDashboardView={setDashboardView} />}
+              {dashboardView === 'overview' && <DashboardOverview isDark={isDark} store={store} setDashboardView={setDashboardView} scopeRegionId={scopeRegionId} />}
 
-              {/* ═══ VIEW 3: DEVICE MANAGEMENT TABLE ══════════════════════════ */}
-              {dashboardView === 'devices' && <DeviceManagementTable isDark={isDark} store={store} setDashboardView={setDashboardView} />}
+              {/* ═══ VIEW 3: DEVICE MANAGEMENT TABLE (super-only) ════════════ */}
+              {dashboardView === 'devices' && isSuperAdmin && <DeviceManagementTable isDark={isDark} store={store} setDashboardView={setDashboardView} />}
 
               {/* ═══ VIEW 4: PRISONER HOSIER (SUBJECTS TABLE) ══════════════════════ */}
               {dashboardView === 'prisoners' && (
                 <PrisonerManagementTable isDark={isDark} store={store} setDashboardView={setDashboardView} />
               )}
 
-              {/* ═══ VIEW 5: SIM CARD MANAGEMENT TABLE ═══════════════════════ */}
-              {dashboardView === 'sims' && <SimManagementTable isDark={isDark} store={store} setDashboardView={setDashboardView} />}
+              {/* ═══ VIEW 6: ALERTS MANAGEMENT ═══════════════════════════════ */}
+              {dashboardView === 'alerts' && <AlertsManagement isDark={isDark} scopeRegionId={scopeRegionId} />}
+
+              {/* ═══ VIEW 7: COMPLIANCE (lịch trình bắt buộc) ════════════════ */}
+              {dashboardView === 'compliance' && <ComplianceManagement isDark={isDark} />}
+
+              {/* ═══ VIEW 8: REGION MANAGEMENT (super-only) ═════════════════ */}
+              {dashboardView === 'regions' && isSuperAdmin && <RegionManagement isDark={isDark} />}
+
+              {/* ═══ VIEW 9: USERS & RBAC (super-only) ══════════════════════ */}
+              {dashboardView === 'users' && isSuperAdmin && <UserManagement isDark={isDark} />}
             </Box>
           )}
         </Box>

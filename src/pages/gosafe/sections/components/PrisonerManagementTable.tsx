@@ -6,16 +6,16 @@ import {
 } from '@mui/material';
 import {
   SearchNormal1, Add, Eye, Edit, Map as MapIcon, Category, DocumentText,
-  Activity, Gps, Heart, CloseCircle, Location, ShieldSecurity, Lock1,
+  Activity, Gps, Clock, CloseCircle, Location, ShieldSecurity, Lock1,
   Profile2User, Building4
 } from 'iconsax-react';
 import { TrackingStore } from '../../tracking/useTracking';
-import { getMockBiometrics } from '../../tracking/utils';
+import { getMockBiometrics, timeAgo } from '../../tracking/utils';
 
 interface PrisonerManagementTableProps {
   isDark: boolean;
   store: TrackingStore;
-  setDashboardView: (view: 'overview' | 'tracking' | 'devices' | 'prisoners' | 'sims') => void;
+  setDashboardView: (view: 'overview' | 'tracking' | 'devices' | 'prisoners' | 'alerts' | 'users' | 'regions' | 'compliance') => void;
 }
 
 // ── Location data ──────────────────────────────────────────────────────────────
@@ -126,7 +126,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
   const { devices, deviceViolations, openEditDevice, setSubjectDetailId, setSelectedDeviceId } = store;
 
   const [prisonerSearch, setPrisonerSearch] = useState('');
-  const [viewMode, setViewMode]             = useState<'cards' | 'table'>('cards');
+  const [viewMode, setViewMode]             = useState<'cards' | 'table'>('table');
   const [drawerOpen, setDrawerOpen]         = useState(false);
   const [form, setForm]                     = useState<PrisonerForm>(EMPTY_FORM);
 
@@ -141,10 +141,10 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
     const q = prisonerSearch.toLowerCase();
     return list.filter(
       (d) =>
-        d.subject!.fullName.toLowerCase().includes(q) ||
-        d.subject!.idNumber.includes(q) ||
-        d.subject!.crime.toLowerCase().includes(q) ||
-        d.uniqueId.includes(q),
+        (d.subject?.fullName ?? '').toLowerCase().includes(q) ||
+        (d.subject?.idNumber ?? '').includes(q) ||
+        (d.subject?.crime ?? '').toLowerCase().includes(q) ||
+        (d.uniqueId ?? '').includes(q),
     );
   }, [devices, prisonerSearch]);
 
@@ -296,7 +296,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
 
                     <Stack direction="row" spacing={1.75} alignItems="center">
                       <Avatar sx={{ width: 44, height: 44, bgcolor: dev.color, fontWeight: 800, fontSize: '1.05rem', boxShadow: `0 0 16px ${dev.color}40`, border: `2px solid ${dev.color}50`, flexShrink: 0 }}>
-                        {sub.fullName.split(' ').slice(-1)[0]?.charAt(0) ?? '?'}
+                        {sub.fullName?.split(' ').slice(-1)[0]?.charAt(0) ?? '?'}
                       </Avatar>
                       <Box>
                         <Typography variant="body1" sx={{ fontWeight: 800, color: isDark ? '#f1f5f9' : '#0f172a', lineHeight: 1.3 }}>
@@ -354,9 +354,9 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
                     <Grid container spacing={1.25} mb={1.75}>
                       {[
                         { icon: <Lock1 size="14" color={bio.isTampered ? '#ef4444' : '#22c55e'} />, label: 'Khóa vòng chân', value: bio.isTampered ? 'Cảnh báo tháo' : 'Ổn định', color: bio.isTampered ? '#ef4444' : '#22c55e', blink: bio.isTampered },
-                        { icon: <Gps size="14" color="#3b82f6" />, label: 'Vận tốc', value: `${dev.status.speed || 0} km/h` },
-                        { icon: <Heart size="14" color="#a855f7" />, label: 'Độ cao / Vệ tinh', value: `${dev.status.altitude || 0}m · ${dev.status.satelliteCount}` },
-                        { icon: <Activity size="14" color={dev.status.battery < 20 ? '#ef4444' : '#10b981'} />, label: 'Pin / Tín hiệu', value: `${dev.status.battery}% · ${dev.status.signalStrength}/4` },
+                        { icon: <Gps size="14" color={dev.status.gpsFix ? '#22c55e' : '#f59e0b'} />, label: 'Định vị GPS', value: dev.status.gpsFix ? `Đã định vị · ${dev.status.satelliteCount} vệ tinh` : 'Chưa định vị', color: dev.status.gpsFix ? '#22c55e' : '#f59e0b' },
+                        { icon: <Activity size="14" color={dev.status.battery < 20 ? '#ef4444' : '#10b981'} />, label: 'Pin thiết bị', value: `${dev.status.battery}%`, color: dev.status.battery < 20 ? '#ef4444' : '#10b981' },
+                        { icon: <Clock size="14" color="#3b82f6" />, label: 'Đồng bộ', value: timeAgo(dev.status.lastServerSync) },
                       ].map((s) => (
                         <Grid item xs={6} key={s.label}>
                           <Stack direction="row" spacing={0.75} alignItems="flex-start">
@@ -444,7 +444,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
                     onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = isDark ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.025)'; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = rowBg; }}>
                     <td style={{ padding: '12px 14px', borderBottom: `1px solid ${glassBdr}` }}>
-                      <Avatar sx={{ bgcolor: dev.color, width: 28, height: 28, fontSize: '0.75rem', fontWeight: 800 }}>{sub.fullName.split(' ').slice(-1)[0]?.charAt(0) ?? '?'}</Avatar>
+                      <Avatar sx={{ bgcolor: dev.color, width: 28, height: 28, fontSize: '0.75rem', fontWeight: 800 }}>{sub.fullName?.split(' ').slice(-1)[0]?.charAt(0) ?? '?'}</Avatar>
                     </td>
                     <td style={{ padding: '12px 14px', borderBottom: `1px solid ${glassBdr}` }}>
                       <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.83rem', color: isDark ? '#f1f5f9' : '#0f172a', cursor: 'pointer', '&:hover': { textDecoration: 'underline' } as any }} onClick={() => setSubjectDetailId(dev.id)}>{sub.fullName}</Typography>

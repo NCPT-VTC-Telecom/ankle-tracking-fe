@@ -57,8 +57,8 @@ const AuthRegister = () => {
   const [level, setLevel] = useState<StringColorProps>();
   const [showPassword, setShowPassword] = useState(false);
 
-  const PRIMARY = '#0ea5e9'; // Cyan-500
-  const SECONDARY = '#6366f1'; // Indigo-500
+  const PRIMARY = '#2563eb'; // Blue-600
+  const SECONDARY = '#0ea5e9'; // Sky-500
 
   const handleClickShowPassword = () => {
     setShowPassword(!showPassword);
@@ -213,7 +213,7 @@ const AuthRegister = () => {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 error={Boolean(touched.firstname && errors.firstname)}
-                FormHelperTextProps={{ sx: { color: '#fca5a5 !important', fontSize: '0.75rem', mt: 0.5, fontWeight: 500 } }}
+                FormHelperTextProps={{ sx: { color: '#dc2626 !important', fontSize: '0.75rem', mt: 0.5, fontWeight: 500 } }}
                 helperText={touched.firstname && errors.firstname}
                 InputProps={{
                   startAdornment: (
@@ -236,7 +236,7 @@ const AuthRegister = () => {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 error={Boolean(touched.lastname && errors.lastname)}
-                FormHelperTextProps={{ sx: { color: '#fca5a5 !important', fontSize: '0.75rem', mt: 0.5, fontWeight: 500 } }}
+                FormHelperTextProps={{ sx: { color: '#dc2626 !important', fontSize: '0.75rem', mt: 0.5, fontWeight: 500 } }}
                 helperText={touched.lastname && errors.lastname}
                 InputProps={{
                   startAdornment: (
@@ -260,7 +260,7 @@ const AuthRegister = () => {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 error={Boolean(touched.phonenumber && errors.phonenumber)}
-                FormHelperTextProps={{ sx: { color: '#fca5a5 !important', fontSize: '0.75rem', mt: 0.5, fontWeight: 500 } }}
+                FormHelperTextProps={{ sx: { color: '#dc2626 !important', fontSize: '0.75rem', mt: 0.5, fontWeight: 500 } }}
                 helperText={touched.phonenumber && errors.phonenumber}
                 InputProps={{
                   startAdornment: (
@@ -284,7 +284,7 @@ const AuthRegister = () => {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 error={Boolean(touched.email && errors.email)}
-                FormHelperTextProps={{ sx: { color: '#fca5a5 !important', fontSize: '0.75rem', mt: 0.5, fontWeight: 500 } }}
+                FormHelperTextProps={{ sx: { color: '#dc2626 !important', fontSize: '0.75rem', mt: 0.5, fontWeight: 500 } }}
                 helperText={touched.email && errors.email}
                 InputProps={{
                   startAdornment: (
@@ -308,7 +308,7 @@ const AuthRegister = () => {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 error={Boolean(touched.username && errors.username)}
-                FormHelperTextProps={{ sx: { color: '#fca5a5 !important', fontSize: '0.75rem', mt: 0.5, fontWeight: 500 } }}
+                FormHelperTextProps={{ sx: { color: '#dc2626 !important', fontSize: '0.75rem', mt: 0.5, fontWeight: 500 } }}
                 helperText={touched.username && errors.username}
                 InputProps={{
                   startAdornment: (
@@ -336,7 +336,7 @@ const AuthRegister = () => {
                 }}
                 onBlur={handleBlur}
                 error={Boolean(touched.password && errors.password)}
-                FormHelperTextProps={{ sx: { color: '#fca5a5 !important', fontSize: '0.75rem', mt: 0.5, fontWeight: 500 } }}
+                FormHelperTextProps={{ sx: { color: '#dc2626 !important', fontSize: '0.75rem', mt: 0.5, fontWeight: 500 } }}
                 helperText={touched.password && errors.password}
                 InputProps={{
                   startAdornment: (
@@ -397,14 +397,13 @@ const AuthRegister = () => {
                     gap: 1.5,
                     p: 1.75,
                     borderRadius: '12px',
-                    bgcolor: 'rgba(239, 68, 68, 0.1)',
-                    border: '1px solid rgba(239, 68, 68, 0.25)',
-                    backdropFilter: 'blur(8px)',
+                    bgcolor: alpha('#ef4444', 0.07),
+                    border: `1px solid ${alpha('#ef4444', 0.2)}`,
                     width: '100%'
                   }}
                 >
-                  <InfoCircle size={20} color="#f87171" style={{ flexShrink: 0 }} />
-                  <Typography sx={{ fontSize: 13, fontWeight: 500, color: '#fca5a5' }}>
+                  <InfoCircle size={20} color="#ef4444" style={{ flexShrink: 0 }} />
+                  <Typography sx={{ fontSize: 13, fontWeight: 500, color: '#b91c1c' }}>
                     {errors.submit}
                   </Typography>
                 </Box>
@@ -436,7 +435,7 @@ const AuthRegister = () => {
                       transform: 'translateY(-1.5px)'
                     },
                     '&:active': { transform: 'translateY(0)' },
-                    '&.Mui-disabled': { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.35)', boxShadow: 'none' }
+                    '&.Mui-disabled': { background: '#e2e8f0', color: '#94a3b8', boxShadow: 'none' }
                   }}
                 >
                   ĐĂNG KÝ
@@ -456,8 +455,9 @@ const AuthRegister = () => {
                     fontWeight: 700,
                     fontSize: 14,
                     letterSpacing: 0.8,
-                    color: '#ffffff',
-                    border: '1.5px solid rgba(255, 255, 255, 0.15)',
+                    color: PRIMARY,
+                    bgcolor: '#fff',
+                    border: `1.5px solid ${alpha(PRIMARY, 0.4)}`,
                     textDecoration: 'none',
                     transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                     '&:hover': {
@@ -482,32 +482,32 @@ const AuthRegister = () => {
 // ─── Shared Input Styles ──────────────────────────────────────────────────────
 const inputSx = (hasValue: boolean) => ({
   borderRadius: '12px',
-  bgcolor: 'rgba(15, 23, 42, 0.4)', // Slate-900 transparent
+  bgcolor: '#f8fafc',
   fontSize: 14.5,
-  color: '#ffffff',
+  color: '#0f172a',
   transition: 'all 0.25s ease',
   '& input': {
-    color: '#ffffff',
+    color: '#0f172a',
     py: 1.6,
     '&::placeholder': {
-      color: '#475569',
+      color: '#94a3b8',
       opacity: 1
     }
   },
   '& fieldset': {
-    borderColor: hasValue ? 'rgba(14, 165, 233, 0.3)' : 'rgba(255, 255, 255, 0.08)',
+    borderColor: hasValue ? 'rgba(37,99,235,0.35)' : 'rgba(15,23,42,0.1)',
     borderWidth: '1.5px',
     transition: 'all 0.2s ease'
   },
   '&:hover fieldset': {
-    borderColor: 'rgba(14, 165, 233, 0.5) !important'
+    borderColor: 'rgba(37,99,235,0.45) !important'
   },
   '&.Mui-focused': {
-    bgcolor: 'rgba(15, 23, 42, 0.7)',
-    boxShadow: '0 0 0 3px rgba(14, 165, 233, 0.15)'
+    bgcolor: '#ffffff',
+    boxShadow: '0 0 0 3px rgba(37,99,235,0.1)'
   },
   '&.Mui-focused fieldset': {
-    borderColor: '#0ea5e9 !important',
+    borderColor: '#2563eb !important',
     borderWidth: '1.5px !important'
   },
   '&.Mui-error fieldset': {

@@ -13,7 +13,7 @@ import { TrackingStore } from '../../tracking/useTracking';
 interface DeviceManagementTableProps {
   isDark: boolean;
   store: TrackingStore;
-  setDashboardView: (view: 'overview' | 'tracking' | 'devices' | 'prisoners' | 'sims') => void;
+  setDashboardView: (view: 'overview' | 'tracking' | 'devices' | 'prisoners' | 'alerts' | 'users' | 'regions' | 'compliance') => void;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -108,10 +108,10 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView 
   const filteredDeviceTable = useMemo(() => devices.filter((d) => {
     const q = deviceSearch.toLowerCase();
     const matchSearch = !deviceSearch
-      || d.name.toLowerCase().includes(q)
-      || d.uniqueId.includes(q)
-      || d.phoneNumber.includes(q)
-      || (d.subject?.fullName.toLowerCase().includes(q) ?? false);
+      || (d.name ?? '').toLowerCase().includes(q)
+      || (d.uniqueId ?? '').includes(q)
+      || (d.phoneNumber ?? '').includes(q)
+      || (d.subject?.fullName?.toLowerCase().includes(q) ?? false);
     const conn = d.status.connectionStatus;
     let matchConn = true;
     if (connectionFilter === 'online')   matchConn = conn === 'online';
@@ -359,7 +359,7 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView 
                       <Stack direction="row" spacing={1.5} alignItems="center">
                         <Box sx={{ position: 'relative', flexShrink: 0 }}>
                           <Avatar sx={{ bgcolor: `${dev.color}22`, color: dev.color, width: 34, height: 34, fontSize: '0.8rem', fontWeight: 800, border: `1.5px solid ${dev.color}44` }}>
-                            {dev.name.slice(0, 2).toUpperCase()}
+                            {(dev.name ?? '—').slice(0, 2).toUpperCase()}
                           </Avatar>
                           <Box sx={{ position: 'absolute', bottom: -1, right: -1, width: 9, height: 9, borderRadius: '50%', bgcolor: statusColor, border: `1.5px solid ${isDark ? '#0d1224' : '#fff'}`, boxShadow: `0 0 6px ${statusColor}` }} />
                         </Box>
@@ -409,7 +409,7 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView 
                       {dev.subject ? (
                         <Stack direction="row" spacing={1} alignItems="center">
                           <Avatar sx={{ bgcolor: dev.color, width: 26, height: 26, fontSize: '0.72rem', fontWeight: 800, boxShadow: `0 0 8px ${dev.color}50`, flexShrink: 0 }}>
-                            {dev.subject.fullName.split(' ').slice(-1)[0]?.charAt(0) ?? '?'}
+                            {dev.subject?.fullName?.split(' ').slice(-1)[0]?.charAt(0) ?? '?'}
                           </Avatar>
                           <Box sx={{ minWidth: 0 }}>
                             <Typography
@@ -547,14 +547,14 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView 
           <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${glassBdr}`, bgcolor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)' }}>
             <Stack direction="row" spacing={1.25} alignItems="center">
               <Avatar sx={{ bgcolor: `${menuDevice.color}22`, color: menuDevice.color, width: 28, height: 28, fontSize: '0.7rem', fontWeight: 800, border: `1.5px solid ${menuDevice.color}44` }}>
-                {menuDevice.name.slice(0, 2).toUpperCase()}
+                {(menuDevice.name ?? '—').slice(0, 2).toUpperCase()}
               </Avatar>
               <Box>
                 <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.8rem', display: 'block', color: isDark ? '#f1f5f9' : '#0f172a' }}>
                   {menuDevice.name}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                  {menuDevice.uniqueId.slice(0, 12)}…
+                  {(menuDevice.uniqueId ?? '').slice(0, 12)}…
                 </Typography>
               </Box>
             </Stack>
@@ -664,7 +664,7 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView 
                 <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                   <Stack direction="row" spacing={2} alignItems="center">
                     <Avatar sx={{ bgcolor: `${detailDevice.color}22`, color: detailDevice.color, width: 44, height: 44, fontSize: '1rem', fontWeight: 900, border: `2px solid ${detailDevice.color}44`, boxShadow: `0 4px 16px ${detailDevice.color}30` }}>
-                      {detailDevice.name.slice(0, 2).toUpperCase()}
+                      {(detailDevice.name ?? '—').slice(0, 2).toUpperCase()}
                     </Avatar>
                     <Box>
                       <Typography variant="h6" sx={{ fontWeight: 900, color: isDark ? '#f1f5f9' : '#0f172a', lineHeight: 1.2 }}>

@@ -1,5 +1,5 @@
 import { Box, Stack, Typography, Card, CardContent, IconButton, Tooltip, Switch, Chip, Button, Alert } from '@mui/material';
-import { Add, Edit, Location } from 'iconsax-react';
+import { Add, Edit, Location, Trash } from 'iconsax-react';
 import type { TrackingStore } from '../useTracking';
 
 interface Props {
@@ -22,11 +22,13 @@ export default function GeofenceList({ store }: Props) {
     setEditGfForm,
     setAssignGeofenceId,
     setAddGfOpen,
+    setRemoveGfId,
+    finishEditingGeofence,
     handleToggleGeofenceActive
   } = store;
 
   return (
-    <Stack spacing={2.5}>
+    <Stack spacing={1.25}>
       <Button
         fullWidth
         variant="outlined"
@@ -54,9 +56,9 @@ export default function GeofenceList({ store }: Props) {
               border: isEditing ? `2px solid ${gf.color}` : undefined
             }}
           >
-            <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+            <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
               {/* Header */}
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={1}>
+              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={0.5}>
                 <Stack direction="row" spacing={1.5} alignItems="center">
                   <Box className="gs-gf-swatch" style={{ backgroundColor: gf.color }} />
                   <Box>
@@ -74,7 +76,7 @@ export default function GeofenceList({ store }: Props) {
                     )}
                   </Box>
                 </Stack>
-                <Stack direction="row" spacing={0.5} alignItems="center">
+                <Stack direction="row" spacing={0.75} alignItems="center">
                   <Tooltip title="Sửa thông tin vùng">
                     <IconButton
                       size="small"
@@ -82,9 +84,34 @@ export default function GeofenceList({ store }: Props) {
                         setEditGfForm({ name: gf.name, address: gf.address, color: gf.color });
                         setEditGfId(gf.id);
                       }}
-                      sx={{ color: primaryColor }}
+                      sx={{
+                        color: primaryColor,
+                        p: 0.85,
+                        border: '1px solid',
+                        borderColor: isDark ? 'rgba(255,255,255,0.16)' : '#e2e8f0',
+                        borderRadius: '9px',
+                        bgcolor: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc',
+                        '&:hover': { borderColor: primaryColor, bgcolor: `${primaryColor}14` }
+                      }}
                     >
-                      <Edit size="18" />
+                      <Edit size="20" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Xoá vùng">
+                    <IconButton
+                      size="small"
+                      onClick={() => setRemoveGfId(gf.id)}
+                      sx={{
+                        color: '#ef4444',
+                        p: 0.85,
+                        border: '1px solid',
+                        borderColor: isDark ? 'rgba(239,68,68,0.3)' : '#fecaca',
+                        borderRadius: '9px',
+                        bgcolor: isDark ? 'rgba(239,68,68,0.06)' : '#fef2f2',
+                        '&:hover': { borderColor: '#ef4444', bgcolor: 'rgba(239,68,68,0.12)' }
+                      }}
+                    >
+                      <Trash size="20" />
                     </IconButton>
                   </Tooltip>
                   <Switch checked={gf.active} onChange={() => handleToggleGeofenceActive(gf.id)} size="small" />
@@ -94,7 +121,7 @@ export default function GeofenceList({ store }: Props) {
               {gf.active && (
                 <>
                   {/* Metrics */}
-                  <Stack spacing={0.6} mb={2} sx={{ pl: 3.5 }}>
+                  <Stack spacing={0.6} mb={1} sx={{ pl: 2 }}>
                     <Typography variant="caption" color="text.secondary">
                       Diện tích: <b>{gfMetrics[gf.id]?.area}</b> · Chu vi: <b>{gfMetrics[gf.id]?.perimeter}</b>
                     </Typography>
@@ -104,8 +131,8 @@ export default function GeofenceList({ store }: Props) {
                   </Stack>
 
                   {/* Assigned devices */}
-                  <Box sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderRadius: 1.5, p: 1.5, mb: 1.5 }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={0.8}>
+                  <Box sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderRadius: 1.5, p: 1, mb: 0.75 }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={0.5}>
                       <Typography variant="caption" sx={{ fontWeight: 700, color: primaryColor }}>
                         THIẾT BỊ ĐƯỢC GÁN ({assigned.length})
                       </Typography>
@@ -123,7 +150,7 @@ export default function GeofenceList({ store }: Props) {
                         Chưa có thiết bị nào.
                       </Typography>
                     ) : (
-                      <Stack spacing={0.8}>
+                      <Stack spacing={0.6}>
                         {assigned.map((dev) => (
                           <Stack key={dev.id} direction="row" spacing={1} alignItems="center">
                             <Box
@@ -163,7 +190,7 @@ export default function GeofenceList({ store }: Props) {
                       <Button
                         variant="contained"
                         color="success"
-                        onClick={() => setEditingGeofenceId(null)}
+                        onClick={finishEditingGeofence}
                         sx={{ borderRadius: 2, fontWeight: 700, py: 0.8, px: 2.5 }}
                       >
                         Hoàn tất

@@ -21,12 +21,14 @@ const axiosGosafe = axios.create({
   },
 });
 
-// Request interceptor — attach auth token if available (extend when GoSafe adds auth)
+// Request interceptor — attach GoSafe Bearer token if available.
 axiosGosafe.interceptors.request.use(
   (config) => {
-    // TODO: attach GoSafe-specific token here when authentication is required
-    // const token = localStorage.getItem('gosafe_token');
-    // if (token) config.headers['Authorization'] = `Bearer ${token}`;
+    const token = localStorage.getItem('gosafe_token');
+    if (token) {
+      config.headers = config.headers ?? {};
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => Promise.reject(error)
@@ -43,6 +45,8 @@ axiosGosafe.interceptors.response.use(
       return Promise.reject({ error: 'Không thể kết nối đến máy chủ GoSafe. Vui lòng kiểm tra mạng.' });
     }
     if (error.response.status === 401) {
+      // Token hết hạn / không hợp lệ — xoá để lần sau fallback (không tự logout cứng).
+      try { localStorage.removeItem('gosafe_token'); } catch {}
       return Promise.reject({ error: 'Không có quyền truy cập GoSafe API.' });
     }
     if (error.response.status === 404) {
