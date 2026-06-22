@@ -15,7 +15,6 @@ import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from 'store';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { HelmetProvider } from 'react-helmet-async';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import dayjs from 'dayjs';
@@ -53,7 +52,6 @@ const App = () => {
             <ScrollTop>
               <AuthProvider>
                 <QueryClientProvider client={queryClient}>
-                  <ReactQueryDevtools initialIsOpen={false} />
                   <Notistack>
                     <Routes />
                     <Snackbar />

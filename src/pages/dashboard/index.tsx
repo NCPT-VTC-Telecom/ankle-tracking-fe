@@ -1,628 +1,880 @@
+import { useState } from 'react';
 import {
+  alpha,
+  Avatar,
+  Box,
   Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
+  Card,
+  Chip,
+  Divider,
   Grid,
-  InputLabel,
+  IconButton,
+  InputAdornment,
   MenuItem,
   Select,
-  Skeleton,
-  Typography,
-  useMediaQuery
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography
 } from '@mui/material';
-import { useTheme } from '@mui/system';
-import { DatePicker } from 'antd';
-import MainCard from 'components/MainCard';
-import { DonutChart } from 'components/organisms/chart';
-import ListWidgets from 'components/template/ListWidget';
-import dayjs from 'dayjs';
-
-import useHandleDataLoginV2 from 'hooks/useHandleDataLoginV2';
-import useHandleExcel from 'hooks/useHandleExcel';
-import useHandleLoginWifiV2 from 'hooks/useHandleLoginWifiV2';
-import useHandleSessionV2 from 'hooks/useHandleSessionV2';
-import { ExportCurve } from 'iconsax-react';
-import { enqueueSnackbar } from 'notistack';
-import { useState } from 'react';
 import ReactApexChart from 'react-apexcharts';
-import { useIntl } from 'react-intl';
-import { RootState, useSelector } from 'store';
-import { ChartDonut, ChartLine } from 'types/common';
-import { getDatePresets } from 'utils/datePresets';
-import { formatNumberWithUnits } from 'utils/handleData';
-import TopMetrics from './MetrixTop3';
+import {
+  Setting2,
+  Notification,
+  SearchNormal1,
+  Filter,
+  InfoCircle,
+  Danger,
+  ArrowDown2,
+  Profile
+} from 'iconsax-react';
 
-const { RangePicker } = DatePicker;
+// ─── SVG Components for Instant Rendering ────────────────────────────────────
 
-interface FilterValue {
-  start_date: string | Date;
-  end_date: string | Date;
-}
+// Hexagon logo in header
+const HexagonLogo = () => (
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ cursor: 'pointer' }}>
+    <path d="M16 2.5L28.5 9.7V22.3L16 29.5L3.5 22.3V9.7L16 2.5Z" fill="#111827" stroke="#374151" strokeWidth="1" />
+    <circle cx="16" cy="16" r="4.5" fill="#ffffff" />
+  </svg>
+);
+
+// Sparkline line chart for Card 1
+const SparklineLine = () => (
+  <svg width="68" height="32" viewBox="0 0 68 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M2 28 C12 23, 18 30, 26 18 C34 6, 42 26, 50 12 C58 -2, 62 6, 66 2"
+      stroke="#3b82f6"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+// Sparkline bar chart for Card 2 & 4
+const SparklineBars = ({ color, values }: { color: string; values: number[] }) => (
+  <svg width="48" height="32" viewBox="0 0 48 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    {values.map((val, idx) => (
+      <rect
+        key={idx}
+        x={idx * 8 + 2}
+        y={32 - val}
+        width="4.5"
+        height={val}
+        rx="2.25"
+        fill={color}
+      />
+    ))}
+  </svg>
+);
+
+// Sparkline circular ring for Card 3
+const SparklineRing = ({ value, color }: { value: number; color: string }) => {
+  const radius = 12;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (value / 100) * circumference;
+  return (
+    <svg width="34" height="34" viewBox="0 0 34 34" style={{ transform: 'rotate(-90deg)' }}>
+      <circle cx="17" cy="17" r={radius} stroke="rgba(226, 232, 240, 0.8)" strokeWidth="3.5" fill="none" />
+      <circle
+        cx="17"
+        cy="17"
+        r={radius}
+        stroke={color}
+        strokeWidth="3.5"
+        fill="none"
+        strokeDasharray={circumference}
+        strokeDashoffset={strokeDashoffset}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+};
+
+// ECG heartbeat wave generator
+const HeartbeatWave = ({ color }: { color: string }) => (
+  <svg width="55" height="18" viewBox="0 0 55 18" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 8, verticalAlign: 'middle' }}>
+    <path
+      d="M0 9 H14 L17 4 L20 14 L23 1 L26 17 L29 7 L32 11 L35 9 H55"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+// Mini bar indicator for SpO2 values
+const MiniSpO2Bars = ({ level, color }: { level: number; color: string }) => (
+  <Stack direction="row" spacing={0.3} alignItems="flex-end" sx={{ height: 14, display: 'inline-flex', mr: 1, verticalAlign: 'middle' }}>
+    {[1, 2, 3, 4, 5].map((idx) => (
+      <Box
+        key={idx}
+        sx={{
+          width: 3,
+          height: idx * 2.2 + 3,
+          bgcolor: idx <= level ? color : 'rgba(0,0,0,0.08)',
+          borderRadius: '0.8px'
+        }}
+      />
+    ))}
+  </Stack>
+);
+
+// ─── Main Component ──────────────────────────────────────────────────────────
 
 const Dashboard = () => {
-  const isMobile = useMediaQuery('(max-width:600px)');
-  const theme = useTheme(); // Lấy theme hiện tại của MUI
-  const isDark = theme.palette.mode === 'dark';
-  const intl = useIntl();
-  const [filterValue, setFilterValue] = useState<FilterValue>({
-    start_date: dayjs().subtract(15, 'day').format('YYYY-MM-DD'),
-    end_date: dayjs().format('YYYY-MM-DD')
-  });
-  const { fetchExportExcel } = useHandleExcel();
-  const [openExportDialog, setOpenExportDialog] = useState(false);
-  const [exportDateRange, setExportDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
-  const [selectTypeReport, setSelectTypeReport] = useState<string>('');
+  const [activeTab, setActiveTab] = useState('Overview');
+  const [patientFilter, setPatientFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [deviceMonth, setDeviceMonth] = useState('Feb 2026');
 
-  const currentSite = useSelector((state: RootState) => state.authSlice.user?.currentSites ?? '');
-  const currentAds = useSelector((state: RootState) => state.authSlice.user?.currentAds);
-  console.log({ currentSite });
-
-  const { useChartLogin, useTop3, useActivitiesCampaign } = useHandleDataLoginV2();
-  const { useChartNetwork } = useHandleSessionV2();
-  const { usePercentageUsage, useAverageUsage } = useHandleLoginWifiV2();
-
-  const { data: percentageUsage = [{ avg_users_per_day: 0, percentage: 0, slot: '' }], isLoading: loadingPercentage } = usePercentageUsage(
-    {
-      startDate: filterValue.start_date,
-      endDate: filterValue.end_date,
-      siteId: currentSite,
-      adDataInput: JSON.stringify(currentAds)
+  // Chart configuration for Report & Insights (donut)
+  const donutOptions = {
+    chart: {
+      type: 'donut' as const,
+      fontFamily: "'Inter', sans-serif"
     },
-    !!currentAds
-  );
-
-  const { data: averageUsageData = { total_users: 0, avg_users_per_day: 0 }, isLoading: loadingAverage } = useAverageUsage(
-    {
-      startDate: filterValue.start_date,
-      endDate: filterValue.end_date,
-      siteId: currentSite,
-      adDataInput: JSON.stringify(currentAds)
+    colors: ['#10b981', '#f59e0b', '#ef4444'], // Stable, At Risk, Critical
+    labels: ['Stable', 'At Risk', 'Critical'],
+    legend: {
+      show: false
     },
-    !!currentAds
-  );
-
-  const { data: chartUserVisitData = { labels: [], series: [] }, isLoading: loadingChartUserVisit } = useChartLogin<ChartDonut>(
-    {
-      type: 'visit_frequency',
-      startDate: filterValue.start_date,
-      endDate: filterValue.end_date,
-      siteId: currentSite,
-      adDataInput: JSON.stringify(currentAds)
+    dataLabels: {
+      enabled: false
     },
-    !!currentAds
-  );
-
-  const { data: top3Data = { clicks: [], impressions: [], new_customers: [] }, isLoading: loadingTop3 } = useTop3(
-    { adDataInput: JSON.stringify(currentAds) },
-    !!currentAds
-  );
-
-  const {
-    data: activitiesCampaignData = { click_count: 0, ctr_count: 0, impression_count: 0, unique_user_count: 0 },
-    isLoading: loadingActivitiesCampaign
-  } = useActivitiesCampaign(
-    {
-      startDate: filterValue.start_date,
-      endDate: filterValue.end_date,
-      adDataInput: JSON.stringify(currentAds)
-    },
-    !!currentAds
-  );
-
-  const {
-    data: chartUserCountData = {
-      labels: [],
-      series: []
-    },
-    isLoading: loadingChartUserCount
-  } = useChartNetwork<ChartDonut>(
-    {
-      type: 'user_count',
-      startDate: filterValue.start_date,
-      endDate: filterValue.end_date,
-      siteId: currentSite,
-      adDataInput: JSON.stringify(currentAds)
-    },
-    !!currentAds
-  );
-
-  console.log({ loadingChartUserCount });
-  console.log({ loadingChartUserVisit });
-  const {
-    data: chartUserTrafficData = {
-      categories: [],
-      series: []
-    },
-    isLoading: loadingChartUserTraffic
-  } = useChartNetwork<ChartLine>(
-    {
-      type: 'user_traffic',
-      startDate: filterValue.start_date,
-      endDate: filterValue.end_date,
-      siteId: currentSite,
-      adDataInput: JSON.stringify(currentAds)
-    },
-    !!currentAds
-  );
-
-  const handleStartDateChange = (date: any) => {
-    setFilterValue((prev) => ({
-      ...prev,
-      start_date: date?.format('YYYY-MM-DD') || prev.start_date
-    }));
-  };
-
-  const handleEndDateChange = (date: any) => {
-    setFilterValue((prev) => ({
-      ...prev,
-      end_date: date?.format('YYYY-MM-DD') || prev.end_date
-    }));
-  };
-
-  const chartConfigTotalData = {
-    chart: { type: 'donut', height: '100%', background: isDark ? 'transparent' : '' },
-    colors: [
-      '#008FFB', // xanh dương sáng
-      '#00E396', // xanh lá ngọc
-      '#FEB019', // vàng cam nhẹ
-      '#FF4560', // đỏ hồng
-      '#775DD0', // tím
-      '#546E7A', // xám xanh
-      '#26A69A', // xanh ngọc lam
-      '#D10CE8', // tím sáng
-      '#8D6E63', // nâu xám
-      '#F9A825' // vàng đậm
-    ],
     plotOptions: {
       pie: {
         donut: {
+          size: '80%',
           labels: {
             show: true,
-            name: {
-              show: true,
-              fontSize: '16px',
-              fontFamily: 'Inter var',
-              color: theme.palette.secondary.main,
-              offsetY: -10
-            },
+            name: { show: false },
             value: {
               show: true,
-              fontSize: '24px',
-              fontFamily: 'Inter var',
-              color: isDark ? theme.palette.secondary.main : theme.palette.text.primary,
-              fontWeight: 700,
-              formatter: function (val: any) {
-                // Convert về number nếu là string
-                const numVal = typeof val === 'string' ? parseFloat(val.replace(/,/g, '')) : val;
-
-                return formatNumberWithUnits(numVal);
-              }
+              fontSize: '30px',
+              fontWeight: '800',
+              color: '#111827',
+              offsetY: 8,
+              formatter: (val: string) => val
             },
             total: {
               show: true,
-              label: 'Tổng',
-              fontSize: '16px',
-              fontFamily: 'Inter var',
-              color: theme.palette.secondary.main,
-              formatter: function (w: any) {
-                // Tính tổng tất cả các giá trị series
-                const total = w.globals.series.reduce((a: number, b: number) => a + b, 0);
-                return formatNumberWithUnits(total);
-              }
+              label: 'Total Reports',
+              fontSize: '11px',
+              fontWeight: '600',
+              color: '#6b7280',
+              formatter: () => '142'
             }
           }
         }
       }
     },
-    dataLabels: {
-      enabled: true,
-      formatter: function (val: number) {
-        return `${val.toFixed(2)}%`;
-      }
-    },
-    legend: {
+    stroke: {
       show: true,
-      position: 'right',
-      horizontalAlign: 'left',
-      floating: false,
-      fontSize: '14px',
-      fontFamily: 'Inter var',
-      markers: {
-        width: 10,
-        height: 10,
-        radius: 6
-      },
-      itemMargin: {
-        vertical: 6
-      },
-      labels: {
-        colors: theme.palette.secondary.main
-      },
-      offsetY: 50,
-      offsetX: 0
+      width: 3,
+      colors: ['#ffffff']
     },
-    responsive: [
-      {
-        breakpoint: 768,
-        options: {
-          legend: {
-            position: 'bottom',
-            horizontalAlign: 'center',
-            offsetY: 0
-          }
-        }
-      }
-    ],
     tooltip: {
-      y: {
-        formatter: (value: number) => `${formatNumberWithUnits(value)} người dùng`
-      },
-      style: {
-        fontSize: '12px',
-        fontFamily: 'Inter var'
-      },
-      custom: function ({ series, seriesIndex, w }: { series: number[]; seriesIndex: number; w: any }) {
-        const color =
-          w.config.colors[seriesIndex] && w.config.colors[seriesIndex].startsWith('#') ? w.config.colors[seriesIndex] : '#000000';
-        let textColor = '#fff';
-
-        return `<div style="background-color: ${color}; color: ${textColor}; padding: 10px; border-radius: 4px; border: 1px solid #ddd; font-size: 14px;">
-                <span>${w.globals.labels[seriesIndex] || 'Unknown'}: ${formatNumberWithUnits(series[seriesIndex])} người dùng</span>
-              </div>`;
-      }
+      enabled: true
     }
   };
 
-  const handleExportReport = async () => {
-    if (!exportDateRange) {
-      enqueueSnackbar('Please select a date range', { variant: 'warning' });
-      return;
-    }
+  const donutSeries = [74, 54, 28]; // Matches 52%, 38%, 20% on 142 reports
 
-    const startDate = exportDateRange[0].format('YYYY-MM-DD');
-    const endDate = exportDateRange[1].format('YYYY-MM-DD');
-
-    try {
-      const excelData = await fetchExportExcel({
-        type: selectTypeReport,
-        startDate,
-        endDate,
-        adDataInput: JSON.stringify(currentAds)
-      });
-
-      if (!excelData) {
-        throw new Error('No data received from server');
-      }
-
-      if (!(excelData instanceof Blob)) {
-        throw new Error('Invalid data type received for export');
-      }
-      const url = window.URL.createObjectURL(excelData);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `bao-cao-tuan_${startDate}_to_${endDate}.xlsx`;
-      link.click();
-      window.URL.revokeObjectURL(url);
-
-      setOpenExportDialog(false);
-      setExportDateRange(null);
-    } catch (error) {
-      console.error('Export failed:', error);
-    }
-  };
-
-  const chartSpeedConfig = {
+  // Chart configuration for Device Status (stacked columns)
+  const barOptions = {
     chart: {
-      type: 'area' as const,
+      type: 'bar' as const,
+      stacked: true,
       toolbar: { show: false },
       zoom: { enabled: false },
-      fontFamily: 'Inter var',
-      foreColor: theme.palette.text.secondary // màu text từ theme
+      fontFamily: "'Inter', sans-serif"
     },
-    stroke: {
-      curve: 'smooth' as const,
-      width: 2
+    plotOptions: {
+      bar: {
+        horizontal: false,
+        columnWidth: '24%',
+        borderRadius: 8,
+        borderRadiusApplication: 'around' as const,
+        borderRadiusWhenStacked: 'all' as const
+      }
     },
-    colors: [theme.palette.primary.main, theme.palette.success.main], // line colors
-    legend: {
-      show: true,
-      fontSize: '14px',
-      fontFamily: 'Inter var',
-      offsetY: 20,
-      labels: { colors: theme.palette.text.primary }
+    colors: ['#10b981', '#ef4444', '#3b82f6', '#f59e0b'], // Online, Offline, Battery Low, Signal Loss
+    xaxis: {
+      categories: ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+      labels: {
+        style: {
+          colors: '#6b7280',
+          fontSize: '11px',
+          fontWeight: 600
+        }
+      }
     },
-    fill: {
-      type: 'gradient',
-      gradient: {
-        shadeIntensity: 0.8,
-        opacityFrom: isDark ? 0.3 : 0.5,
-        opacityTo: 0.05,
-        stops: [0, 100]
+    yaxis: {
+      min: 0,
+      max: 100,
+      tickAmount: 5,
+      labels: {
+        style: {
+          colors: '#9ca3af',
+          fontSize: '11px'
+        }
       }
     },
     grid: {
-      borderColor: theme.palette.divider,
-      strokeDashArray: 4
+      show: true,
+      borderColor: '#f3f4f6',
+      strokeDashArray: 3,
+      xaxis: { lines: { show: false } },
+      yaxis: { lines: { show: true } }
     },
+    legend: { show: false },
     dataLabels: { enabled: false },
-    xaxis: {
-      categories: chartUserTrafficData.categories,
-      labels: { style: { fontSize: '13px', colors: theme.palette.text.secondary }, offsetY: 5 },
-      axisTicks: { show: false },
-      axisBorder: { color: theme.palette.divider }
-    },
-    yaxis: {
-      labels: {
-        formatter: (val: number) => `${val.toFixed(0)} người`,
-        style: { fontSize: '13px', colors: theme.palette.text.secondary }
-      },
-      tickAmount: 5
-    },
-    tooltip: {
-      theme: isDark ? 'dark' : 'light',
-      style: { fontSize: '12px', fontFamily: 'Inter var', color: theme.palette.text.primary },
-      y: { formatter: (val: number) => `${val} người dùng` }
-    }
+    tooltip: { enabled: true }
   };
 
-  const optionTypes = [
-    { label: intl.formatMessage({ id: 'total-report-by-date' }), value: 'total_report_by_date' },
-    { label: intl.formatMessage({ id: 'weekly-report' }), value: 'weekly_report' }
+  const barSeries = [
+    { name: 'Online', data: [38, 48, 35, 52, 28, 32, 40] },
+    { name: 'Offline', data: [22, 26, 18, 24, 14, 20, 24] },
+    { name: 'Battery Low', data: [6, 8, 5, 7, 8, 6, 8] },
+    { name: 'Signal Loss', data: [5, 4, 4, 5, 3, 5, 4] }
   ];
 
-  const handleDateChange = (dates: any) => {
-    if (dates) {
-      const start_date = dates[0]?.format('YYYY/MM/DD');
-      const end_date = dates[1]?.format('YYYY/MM/DD');
-
-      setFilterValue({ start_date, end_date });
-    }
-  };
-
-  const categories = percentageUsage.map((h) => h.slot);
-  const chartSeries = [{ name: intl.formatMessage({ id: 'user-rate' }), data: percentageUsage.map((item) => item.percentage) }];
-
-  const chartOptions = {
-    chart: {
-      toolbar: { show: false },
-      zoom: { enabled: false },
-      fontFamily: 'Inter var',
-      foreColor: theme.palette.text.secondary // text theo theme
-    },
-    stroke: {
-      curve: 'smooth' as const,
-      width: 2
-    },
-    colors: [theme.palette.primary.main], // line color
-    fill: {
-      type: 'gradient',
-      gradient: {
-        shadeIntensity: 0.8,
-        opacityFrom: isDark ? 0.3 : 0.5,
-        opacityTo: 0.05,
-        stops: [0, 100]
-      }
-    },
-    grid: {
-      borderColor: theme.palette.divider, // grid màu theo theme
-      strokeDashArray: 4,
-      padding: { left: 20, right: 20 }
-    },
-    xaxis: {
-      categories,
-      labels: {
-        rotate: -45,
-        style: { fontSize: '13px', colors: theme.palette.text.secondary },
-        offsetY: 5
-      },
-      axisBorder: { color: theme.palette.divider },
-      axisTicks: { color: theme.palette.divider }
-    },
-    yaxis: {
-      labels: {
-        formatter: (val: number) => `${val.toFixed(1)}%`,
-        style: { fontSize: '13px', colors: theme.palette.text.secondary }
-      },
-      max: 100,
-      tickAmount: 2
-    },
-    tooltip: {
-      theme: isDark ? 'dark' : 'light',
-      style: { fontSize: '12px', fontFamily: 'Inter var', color: theme.palette.text.primary },
-      y: {
-        formatter: (val: number, opts: any) => {
-          const avgUsers = percentageUsage[opts.dataPointIndex].avg_users_per_day;
-          return `${val.toFixed(1)}% (${avgUsers} ${intl.formatMessage({ id: 'user-per-day' })})`;
-        }
-      }
-    }
-  };
-
   return (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <MainCard>
-          <div className="flex flex-col gap-3">
-            <div className="flex md:flex-row flex-col gap-3 md:items-center justify-between">
-              {isMobile ? (
-                <>
-                  <DatePicker
-                    format="DD/MM/YYYY"
-                    onChange={handleStartDateChange}
-                    style={{ width: '100%', height: '40px' }}
-                    value={filterValue.start_date ? dayjs(filterValue.start_date) : undefined}
-                    placeholder={intl.formatMessage({ id: 'start-date' })}
-                  />
+    <Box
+      sx={{
+        bgcolor: '#f4f6f8',
+        minHeight: '100vh',
+        p: { xs: 2, md: 3 },
+        fontFamily: "'Inter', sans-serif"
+      }}
+    >
+      {/* ── Header Card ── */}
+      <Card
+        elevation={0}
+        sx={{
+          borderRadius: '16px',
+          border: '1px solid #e2e8f0',
+          p: 1.5,
+          mb: 3,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 2,
+          bgcolor: '#ffffff'
+        }}
+      >
+        <HexagonLogo />
 
-                  <DatePicker
-                    format="DD/MM/YYYY"
-                    onChange={handleEndDateChange}
-                    style={{ width: '100%', height: '40px' }}
-                    value={filterValue.end_date ? dayjs(filterValue.end_date) : undefined}
-                    placeholder={intl.formatMessage({ id: 'end-date' })}
-                  />
-                </>
-              ) : (
-                <RangePicker
-                  className="w-full md:w-auto"
-                  format="DD/MM/YYYY"
-                  onChange={handleDateChange}
-                  style={{ minWidth: '100px', maxWidth: '320px', height: '40px' }}
-                  value={
-                    filterValue.start_date && filterValue.end_date
-                      ? [dayjs(filterValue.start_date), dayjs(filterValue.end_date)]
-                      : undefined
+        {/* Sub-navigation Tabs */}
+        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+          {['Overview', 'Patients', 'Alerts', 'Patients Profiles', 'Devices'].map((tab) => {
+            const isActive = activeTab === tab;
+            return (
+              <Box
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                sx={{
+                  px: 2.2,
+                  py: 1,
+                  borderRadius: '20px',
+                  fontWeight: 600,
+                  fontSize: '13.5px',
+                  color: isActive ? '#ffffff' : '#6b7280',
+                  bgcolor: isActive ? '#111827' : '#f3f4f6',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    bgcolor: isActive ? '#111827' : '#e5e7eb'
                   }
-                  placeholder={[intl.formatMessage({ id: 'start-date' }), intl.formatMessage({ id: 'end-date' })]}
-                  presets={isMobile ? undefined : getDatePresets(intl)}
+                }}
+              >
+                {tab}
+              </Box>
+            );
+          })}
+        </Stack>
+
+        {/* Header Actions */}
+        <Stack direction="row" spacing={1} alignItems="center">
+          <IconButton size="medium" sx={{ color: '#4b5563', bgcolor: '#f3f4f6', '&:hover': { bgcolor: '#e5e7eb' } }}>
+            <Setting2 size={18} />
+          </IconButton>
+          <IconButton size="medium" sx={{ color: '#4b5563', bgcolor: '#f3f4f6', '&:hover': { bgcolor: '#e5e7eb' } }}>
+            <Box sx={{ position: 'relative', display: 'flex' }}>
+              <Notification size={18} />
+              <Box sx={{ position: 'absolute', top: 0, right: 0, width: 6, height: 6, bgcolor: '#ef4444', borderRadius: '50%' }} />
+            </Box>
+          </IconButton>
+          <Avatar
+            alt="John Doe"
+            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80"
+            sx={{ width: 34, height: 34, border: '1.5px solid #e2e8f0' }}
+          />
+        </Stack>
+      </Card>
+
+      {/* ── Stats Cards Grid ── */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        {/* Card 1: Total Patients */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card elevation={0} sx={{ borderRadius: '16px', border: '1px solid #e2e8f0', p: 2.5, bgcolor: '#ffffff', height: '100%' }}>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#6b7280', mb: 1.5 }}>
+              <Avatar sx={{ bgcolor: 'rgba(59, 130, 246, 0.08)', width: 26, height: 26, color: '#3b82f6' }}>
+                <Profile size={14} />
+              </Avatar>
+              <Typography sx={{ fontWeight: 600, fontSize: '13px' }}>Total Patients</Typography>
+            </Stack>
+            <Stack direction="row" justifyContent="space-between" alignItems="flex-end">
+              <Box>
+                <Typography sx={{ fontSize: '28px', fontWeight: 800, color: '#111827', mb: 0.5 }}>346</Typography>
+                <Chip
+                  label="+13% vs last week"
+                  size="small"
+                  sx={{ bgcolor: '#ecfdf5', color: '#10b981', fontWeight: 700, fontSize: '10px', height: 18 }}
                 />
-              )}
+              </Box>
+              <Box sx={{ pb: 0.5 }}>
+                <SparklineLine />
+              </Box>
+            </Stack>
+          </Card>
+        </Grid>
 
-              <Button variant="contained" onClick={() => setOpenExportDialog(true)} className="h-10">
-                <span className="flex items-center gap-2">
-                  <ExportCurve />
-                  {intl.formatMessage({ id: 'export' })}
-                </span>
-              </Button>
-            </div>
+        {/* Card 2: Critical Alerts */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card elevation={0} sx={{ borderRadius: '16px', border: '1px solid #e2e8f0', p: 2.5, bgcolor: '#ffffff', height: '100%' }}>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#6b7280', mb: 1.5 }}>
+              <Avatar sx={{ bgcolor: 'rgba(239, 68, 68, 0.08)', width: 26, height: 26, color: '#ef4444' }}>
+                <InfoCircle size={14} />
+              </Avatar>
+              <Typography sx={{ fontWeight: 600, fontSize: '13px' }}>Critical Alerts</Typography>
+            </Stack>
+            <Stack direction="row" justifyContent="space-between" alignItems="flex-end">
+              <Box>
+                <Typography sx={{ fontSize: '28px', fontWeight: 800, color: '#111827', mb: 0.5 }}>24</Typography>
+                <Chip
+                  label="+13% vs last week"
+                  size="small"
+                  sx={{ bgcolor: '#ecfdf5', color: '#10b981', fontWeight: 700, fontSize: '10px', height: 18 }}
+                />
+              </Box>
+              <Box sx={{ pb: 0.5 }}>
+                <SparklineBars color="#3b82f6" values={[14, 20, 10, 24, 30, 18]} />
+              </Box>
+            </Stack>
+          </Card>
+        </Grid>
 
-            {<ListWidgets activitiesCampaignData={activitiesCampaignData} loading={loadingActivitiesCampaign} />}
-          </div>
-        </MainCard>
-      </Grid>
+        {/* Card 3: Devices Offline */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card elevation={0} sx={{ borderRadius: '16px', border: '1px solid #e2e8f0', p: 2.5, bgcolor: '#ffffff', height: '100%' }}>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#6b7280', mb: 1.5 }}>
+              <Avatar sx={{ bgcolor: 'rgba(239, 68, 68, 0.08)', width: 26, height: 26, color: '#ef4444' }}>
+                <Danger size={14} />
+              </Avatar>
+              <Typography sx={{ fontWeight: 600, fontSize: '13px' }}>Devices Offline</Typography>
+            </Stack>
+            <Stack direction="row" justifyContent="space-between" alignItems="flex-end">
+              <Box>
+                <Typography sx={{ fontSize: '28px', fontWeight: 800, color: '#111827', mb: 0.5 }}>15</Typography>
+                <Chip
+                  label="-24% vs last week"
+                  size="small"
+                  sx={{ bgcolor: '#fef2f2', color: '#ef4444', fontWeight: 700, fontSize: '10px', height: 18 }}
+                />
+              </Box>
+              <Box sx={{ pb: 0.5, pr: 1.5 }}>
+                <SparklineRing value={70} color="#3b82f6" />
+              </Box>
+            </Stack>
+          </Card>
+        </Grid>
 
-      {/* Hai card chính */}
-      <Grid item xs={12} md={4}>
-        <MainCard
-          sx={{
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            textAlign: 'center',
-            p: 3
-          }}
-        >
-          {loadingAverage ? (
-            <div className="flex flex-col items-center justify-center h-[100%] gap-2">
-              <Skeleton variant="text" width={150} height={30} />
-              <Skeleton variant="text" width={100} height={60} />
-              <Skeleton variant="text" width={180} height={20} />
-            </div>
-          ) : (
-            <>
-              <Typography className="font-semibold text-lg">{intl.formatMessage({ id: 'user-traffic' })}</Typography>
-              <Typography sx={{ my: 1, fontWeight: 700, color: 'primary.main' }} variant="h1">
-                {formatNumberWithUnits(averageUsageData.total_users)}
-              </Typography>
-              <Typography sx={{ color: 'text.secondary' }} className="text-sm">
-                {intl.formatMessage({ id: 'average-per-day' })}:{' '}
-                <strong>{formatNumberWithUnits(averageUsageData.avg_users_per_day)}</strong> {intl.formatMessage({ id: 'user' })}
-              </Typography>
-            </>
-          )}
-        </MainCard>
-      </Grid>
-
-      <Grid item xs={12} md={8}>
-        <MainCard sx={{ height: '100%' }} contentSX={{ pb: '5px !important' }}>
-          {loadingPercentage ? (
-            <>
-              <Skeleton variant="text" width={200} height={28} sx={{ mb: 1 }} />
-              <Skeleton variant="rectangular" height={150} sx={{ mt: 1, mb: 2, borderRadius: 1 }} />
-            </>
-          ) : (
-            <>
-              <Typography sx={{ fontWeight: 700 }} variant="h6">
-                {intl.formatMessage({ id: 'user-rate-by-time' })}
-              </Typography>
-              <ReactApexChart type="area" height={165} series={chartSeries} options={chartOptions} />
-            </>
-          )}
-        </MainCard>
-      </Grid>
-      <Grid item xs={12} md={8}>
-        <MainCard sx={{ height: '100%' }}>
-          {loadingChartUserTraffic ? (
-            <>
-              <Skeleton variant="text" width="40%" height={30} />
-              <Skeleton variant="rectangular" height={300} sx={{ mt: 1, borderRadius: 1 }} />
-            </>
-          ) : (
-            <>
-              <Typography sx={{ fontWeight: 700 }} variant="h6">
-                {intl.formatMessage({ id: 'user-traffic' })}
-              </Typography>
-              <ReactApexChart type="area" height={300} options={chartSpeedConfig} series={chartUserTrafficData.series || []} />
-            </>
-          )}
-        </MainCard>
-      </Grid>
-      <Grid item xs={12} md={4}>
-        <MainCard sx={{ height: '100%' }}>
-          <TopMetrics data={top3Data} loading={loadingTop3} />
-        </MainCard>
-      </Grid>
-      <Grid item xs={12} lg={6}>
-        <MainCard sx={{ height: '100%' }}>
-          <DonutChart
-            key={isDark ? 'dark' : 'light'}
-            title={intl.formatMessage({ id: 'user-return' })}
-            labels={chartUserCountData.labels}
-            series={chartUserCountData.series}
-            chartOptions={chartConfigTotalData}
-          />
-        </MainCard>
-      </Grid>
-      <Grid item xs={12} lg={6}>
-        <MainCard sx={{ height: '100%' }}>
-          <DonutChart
-            key={isDark ? 'dark' : 'light'}
-            title={intl.formatMessage({ id: 'visit-frequency' })}
-            labels={chartUserVisitData.labels}
-            series={chartUserVisitData.series}
-            chartOptions={chartConfigTotalData}
-          />
-        </MainCard>
+        {/* Card 4: New Alert */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card elevation={0} sx={{ borderRadius: '16px', border: '1px solid #e2e8f0', p: 2.5, bgcolor: '#ffffff', height: '100%' }}>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ color: '#6b7280', mb: 1.5 }}>
+              <Avatar sx={{ bgcolor: 'rgba(245, 158, 11, 0.08)', width: 26, height: 26, color: '#f59e0b' }}>
+                <InfoCircle size={14} />
+              </Avatar>
+              <Typography sx={{ fontWeight: 600, fontSize: '13px' }}>New Alert</Typography>
+            </Stack>
+            <Stack direction="row" justifyContent="space-between" alignItems="flex-end">
+              <Box>
+                <Typography sx={{ fontSize: '28px', fontWeight: 800, color: '#111827', mb: 0.5 }}>07</Typography>
+                <Chip
+                  label="-5% vs last week"
+                  size="small"
+                  sx={{ bgcolor: '#fef2f2', color: '#ef4444', fontWeight: 700, fontSize: '10px', height: 18 }}
+                />
+              </Box>
+              <Box sx={{ pb: 0.5 }}>
+                <SparklineBars color="#3b82f6" values={[8, 12, 10, 16, 26, 32]} />
+              </Box>
+            </Stack>
+          </Card>
+        </Grid>
       </Grid>
 
-      <Dialog open={openExportDialog} onClose={() => setOpenExportDialog(false)}>
-        <DialogTitle> {intl.formatMessage({ id: 'select-date-range-weekly-report' })}</DialogTitle>
-        <DialogContent>
-          <RangePicker
-            format="DD/MM/YYYY"
-            onChange={(dates) => setExportDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs])}
-            style={{ width: '100%', marginTop: '20px', height: 48 }}
-            popupStyle={{ zIndex: 99999 }}
-          />{' '}
-          <FormControl fullWidth sx={{ mt: 2 }}>
-            <InputLabel>{intl.formatMessage({ id: 'select-type-report' })}</InputLabel>
-            <Select
-              value={selectTypeReport || ''}
-              onChange={(e) => setSelectTypeReport(String(e.target.value))}
-              label={intl.formatMessage({ id: 'select-type-report' })}
-              required
-            >
-              {optionTypes.map((type) => (
-                <MenuItem key={type.value} value={type.value}>
-                  {type.label}
-                </MenuItem>
+      {/* ── Middle Row: Patients Table & Donut ── */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        {/* Patient Overview */}
+        <Grid item xs={12} lg={8}>
+          <Card elevation={0} sx={{ borderRadius: '16px', border: '1px solid #e2e8f0', p: 2.5, bgcolor: '#ffffff', height: '100%' }}>
+            <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} spacing={2} sx={{ mb: 2.5 }}>
+              <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827' }}>Patient Overview</Typography>
+
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ width: { xs: '100%', md: 'auto' }, flexWrap: 'wrap', gap: 1 }}>
+                {/* Search field */}
+                <TextField
+                  placeholder="Search here..."
+                  size="small"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start" sx={{ color: '#9ca3af' }}>
+                        <SearchNormal1 size={14} />
+                      </InputAdornment>
+                    ),
+                    sx: {
+                      bgcolor: '#f9fafb',
+                      borderRadius: '18px',
+                      fontSize: '12px',
+                      width: 160,
+                      '& fieldset': { borderColor: '#e2e8f0' },
+                      '&:hover fieldset': { borderColor: '#cbd5e1 !important' },
+                      '&.Mui-focused fieldset': { borderColor: '#3b82f6 !important' }
+                    }
+                  }}
+                />
+
+                {/* Filter button */}
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<Filter size={13} />}
+                  sx={{
+                    borderRadius: '18px',
+                    borderColor: '#e2e8f0',
+                    color: '#6b7280',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    py: 0.8,
+                    px: 1.8,
+                    '&:hover': { bgcolor: '#f9fafb', borderColor: '#cbd5e1' }
+                  }}
+                >
+                  Filter
+                </Button>
+              </Stack>
+            </Stack>
+
+            {/* Filter pills */}
+            <Stack direction="row" spacing={1} sx={{ mb: 2.5, flexWrap: 'wrap' }}>
+              {[
+                { key: 'All', label: 'All', count: 8 },
+                { key: 'Critical', label: 'Critical', count: 4 },
+                { key: 'Unstable', label: 'Unstable', count: 0 },
+                { key: 'No Data', label: 'No Data', count: 0 }
+              ].map((pill) => {
+                const isActive = patientFilter === pill.key;
+                return (
+                  <Box
+                    key={pill.key}
+                    onClick={() => setPatientFilter(pill.key)}
+                    sx={{
+                      px: 2,
+                      py: 0.6,
+                      borderRadius: '15px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      bgcolor: isActive ? '#111827' : '#f9fafb',
+                      color: isActive ? '#ffffff' : '#4b5563',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      border: '1.2px solid',
+                      borderColor: isActive ? '#111827' : '#e2e8f0',
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        bgcolor: isActive ? '#111827' : '#f3f4f6'
+                      }
+                    }}
+                  >
+                    <span>{pill.label}</span>
+                    {pill.count > 0 && (
+                      <Box
+                        sx={{
+                          bgcolor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0,0,0,0.08)',
+                          color: isActive ? '#ffffff' : '#6b7280',
+                          borderRadius: '50%',
+                          width: 15,
+                          height: 15,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '10px'
+                        }}
+                      >
+                        {pill.count}
+                      </Box>
+                    )}
+                  </Box>
+                );
+              })}
+            </Stack>
+
+            {/* Table */}
+            <TableContainer>
+              <Table size="medium">
+                <TableHead>
+                  <TableRow sx={{ '& th': { borderBottom: '1px solid #f1f5f9', color: '#9ca3af', fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', py: 1.5 } }}>
+                    <TableCell sx={{ pl: 0 }}>No</TableCell>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Health Status</TableCell>
+                    <TableCell>Heart Rate</TableCell>
+                    <TableCell>Blood Pressure</TableCell>
+                    <TableCell>SpO2</TableCell>
+                    <TableCell align="right" sx={{ pr: 0 }}>Action</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody sx={{ '& tr:last-child td': { borderBottom: 0 } }}>
+                  {[
+                    {
+                      no: '01',
+                      name: 'John Doe',
+                      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&q=80',
+                      status: 'Critical',
+                      statusColor: '#ef4444',
+                      statusBg: '#fef2f2',
+                      heart: '48 bpm',
+                      heartColor: '#ef4444',
+                      bp: '130/85 mmHg',
+                      spo2: '<90%',
+                      spo2Level: 3,
+                      spo2Color: '#ef4444'
+                    },
+                    {
+                      no: '02',
+                      name: 'Sania Wong',
+                      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&q=80',
+                      status: 'Stable',
+                      statusColor: '#10b981',
+                      statusBg: '#ecfdf5',
+                      heart: '72 bpm',
+                      heartColor: '#10b981',
+                      bp: '118/96 mmHg',
+                      spo2: '95-100%',
+                      spo2Level: 5,
+                      spo2Color: '#10b981'
+                    },
+                    {
+                      no: '03',
+                      name: 'Roger Lewis',
+                      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&q=80',
+                      status: 'Warning',
+                      statusColor: '#f59e0b',
+                      statusBg: '#fff7ed',
+                      heart: '62 bpm',
+                      heartColor: '#f59e0b',
+                      bp: '72/79 mmHg',
+                      spo2: '90-94%',
+                      spo2Level: 4,
+                      spo2Color: '#f59e0b'
+                    },
+                    {
+                      no: '04',
+                      name: 'John Cena',
+                      avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=80&q=80',
+                      status: 'Stable',
+                      statusColor: '#10b981',
+                      statusBg: '#ecfdf5',
+                      heart: '90 bpm',
+                      heartColor: '#10b981',
+                      bp: '118/96 mmHg',
+                      spo2: '95-100%',
+                      spo2Level: 5,
+                      spo2Color: '#10b981'
+                    }
+                  ].map((row) => (
+                    <TableRow key={row.no} sx={{ '& td': { borderBottom: '1px solid #f1f5f9', py: 1.5, fontSize: '13px', color: '#374151' } }}>
+                      <TableCell sx={{ pl: 0, color: '#9ca3af', fontWeight: 600 }}>{row.no}</TableCell>
+                      <TableCell>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Avatar src={row.avatar} sx={{ width: 26, height: 26 }} />
+                          <Typography sx={{ fontWeight: 600, fontSize: '13px', color: '#111827' }}>{row.name}</Typography>
+                        </Stack>
+                      </TableCell>
+                      <TableCell>
+                        <Box
+                          sx={{
+                            display: 'inline-block',
+                            px: 1.5,
+                            py: 0.4,
+                            borderRadius: '6px',
+                            bgcolor: row.statusBg,
+                            color: row.statusColor,
+                            fontWeight: 700,
+                            fontSize: '11px',
+                            textTransform: 'uppercase'
+                          }}
+                        >
+                          {row.status}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Stack direction="row" alignItems="center">
+                          <HeartbeatWave color={row.heartColor} />
+                          <Typography sx={{ fontWeight: 700, color: '#111827', fontSize: '12px' }}>{row.heart}</Typography>
+                        </Stack>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 500, color: '#4b5563' }}>{row.bp}</TableCell>
+                      <TableCell>
+                        <Stack direction="row" alignItems="center">
+                          <MiniSpO2Bars level={row.spo2Level} color={row.spo2Color} />
+                          <Typography sx={{ fontWeight: 700, color: '#111827', fontSize: '12px' }}>{row.spo2}</Typography>
+                        </Stack>
+                      </TableCell>
+                      <TableCell align="right" sx={{ pr: 0 }}>
+                        <Button
+                          variant="contained"
+                          disableElevation
+                          size="small"
+                          sx={{
+                            borderRadius: '6px',
+                            textTransform: 'none',
+                            bgcolor: '#3b82f6',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            py: 0.5,
+                            px: 2,
+                            minWidth: 54,
+                            '&:hover': { bgcolor: '#2563eb' }
+                          }}
+                        >
+                          View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Card>
+        </Grid>
+
+        {/* Report & Insights */}
+        <Grid item xs={12} lg={4}>
+          <Card elevation={0} sx={{ borderRadius: '16px', border: '1px solid #e2e8f0', p: 2.5, bgcolor: '#ffffff', height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 2.5 }}>Report & Insights</Typography>
+
+            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 210, position: 'relative' }}>
+              <ReactApexChart options={donutOptions} series={donutSeries} type="donut" height={210} width="100%" />
+            </Box>
+
+            <Divider sx={{ my: 2.5, borderColor: '#f1f5f9' }} />
+
+            {/* Custom Legend */}
+            <Stack direction="row" spacing={1} justifyContent="space-between">
+              {[
+                { label: 'Stable', value: '52%', color: '#10b981' },
+                { label: 'At Risk', value: '38%', color: '#f59e0b' },
+                { label: 'Critical', value: '20%', color: '#ef4444' }
+              ].map((item) => (
+                <Box key={item.label} sx={{ textAlign: 'center', flex: 1 }}>
+                  <Stack direction="row" spacing={0.6} alignItems="center" justifyContent="center" sx={{ mb: 0.5 }}>
+                    <Box sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: item.color }} />
+                    <Typography sx={{ fontSize: '11.5px', color: '#6b7280', fontWeight: 500 }}>{item.label}</Typography>
+                  </Stack>
+                  <Typography sx={{ fontSize: '15px', fontWeight: 800, color: '#111827' }}>{item.value}</Typography>
+                </Box>
               ))}
-            </Select>
-          </FormControl>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenExportDialog(false)}>{intl.formatMessage({ id: 'cancel' })}</Button>
+            </Stack>
+          </Card>
+        </Grid>
+      </Grid>
 
-          <Button onClick={handleExportReport} variant="contained" disabled={!exportDateRange}>
-            {intl.formatMessage({ id: 'export' })}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Grid>
+      {/* ── Bottom Row: Device Status & Alerts ── */}
+      <Grid container spacing={3}>
+        {/* Device Status */}
+        <Grid item xs={12} lg={8}>
+          <Card elevation={0} sx={{ borderRadius: '16px', border: '1px solid #e2e8f0', p: 2.5, bgcolor: '#ffffff', height: '100%' }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
+              <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827' }}>Device Status</Typography>
+
+              <Select
+                value={deviceMonth}
+                onChange={(e) => setDeviceMonth(e.target.value)}
+                size="small"
+                IconComponent={ArrowDown2}
+                sx={{
+                  borderRadius: '10px',
+                  fontSize: '11.5px',
+                  fontWeight: 600,
+                  color: '#4b5563',
+                  bgcolor: '#f9fafb',
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
+                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#cbd5e1' },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#3b82f6' },
+                  '& .MuiSelect-select': { py: 0.8, px: 2, pr: '28px !important' },
+                  '& .MuiSelect-icon': { width: 14, right: 8, color: '#4b5563' }
+                }}
+              >
+                <MenuItem value="Jan 2026">Jan 2026</MenuItem>
+                <MenuItem value="Feb 2026">Feb 2026</MenuItem>
+                <MenuItem value="Mar 2026">Mar 2026</MenuItem>
+              </Select>
+            </Stack>
+
+            <Grid container spacing={2} alignItems="center">
+              {/* Stacked Bar Chart */}
+              <Grid item xs={12} md={9}>
+                <Box sx={{ minHeight: 260 }}>
+                  <ReactApexChart options={barOptions} series={barSeries} type="bar" height={260} />
+                </Box>
+              </Grid>
+
+              {/* Legends on the right */}
+              <Grid item xs={12} md={3}>
+                <Stack spacing={1.5} sx={{ pl: { md: 2 } }}>
+                  {[
+                    { label: 'Online', value: '246', color: '#10b981' },
+                    { label: 'Offline', value: '112', color: '#ef4444' },
+                    { label: 'Battery Low', value: '48', color: '#3b82f6' },
+                    { label: 'Signal Loss', value: '32', color: '#f59e0b' }
+                  ].map((item) => (
+                    <Box
+                      key={item.label}
+                      sx={{
+                        p: 1.5,
+                        borderRadius: '12px',
+                        border: '1.2px solid #f1f5f9',
+                        bgcolor: alpha(item.color, 0.03),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}
+                    >
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Box sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: item.color }} />
+                        <Typography sx={{ fontSize: '11px', color: '#6b7280', fontWeight: 600 }}>{item.label}</Typography>
+                      </Stack>
+                      <Typography sx={{ fontSize: '13.5px', fontWeight: 800, color: '#111827' }}>{item.value}</Typography>
+                    </Box>
+                  ))}
+                </Stack>
+              </Grid>
+            </Grid>
+          </Card>
+        </Grid>
+
+        {/* Alert & Notification */}
+        <Grid item xs={12} lg={4}>
+          <Card elevation={0} sx={{ borderRadius: '16px', border: '1px solid #e2e8f0', p: 2.5, bgcolor: '#ffffff', height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 2.5 }}>Alert & Notification</Typography>
+
+            {/* List Headers */}
+            <Grid container sx={{ borderBottom: '1px solid #f1f5f9', pb: 1, mb: 1, px: 1 }}>
+              <Grid item xs={6}>
+                <Typography sx={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' }}>Title</Typography>
+              </Grid>
+              <Grid item xs={3}>
+                <Typography sx={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' }}>Time</Typography>
+              </Grid>
+              <Grid item xs={3} textAlign="right">
+                <Typography sx={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' }}>Action</Typography>
+              </Grid>
+            </Grid>
+
+            {/* List Items */}
+            <Stack spacing={1.5} sx={{ flex: 1, overflowY: 'auto', maxHeight: 310 }}>
+              {[
+                { title: 'High BP Alert', patient: 'John Doe', time: '12:12 PM', isCritical: true },
+                { title: 'Low SpO2 Detected', patient: 'Roger Lewis', time: '12:12 PM', isCritical: true },
+                { title: 'Device Disconnected', patient: 'Patient #98435', time: '12:12 PM', isCritical: false },
+                { title: 'Low SpO2 Detected', patient: 'John Doe', time: '12:12 PM', isCritical: true },
+                { title: 'Low SpO2 Detected', patient: 'John Doe', time: '12:12 PM', isCritical: true }
+              ].map((item, index) => (
+                <Grid
+                  container
+                  key={index}
+                  alignItems="center"
+                  sx={{
+                    p: 1,
+                    borderRadius: '10px',
+                    transition: 'all 0.2s',
+                    '&:hover': { bgcolor: '#f9fafb' }
+                  }}
+                >
+                  <Grid item xs={6}>
+                    <Stack direction="row" spacing={1.2} alignItems="center">
+                      <Avatar
+                        sx={{
+                          bgcolor: item.isCritical ? 'rgba(239, 68, 68, 0.08)' : 'rgba(17, 24, 39, 0.08)',
+                          color: item.isCritical ? '#ef4444' : '#111827',
+                          width: 28,
+                          height: 28
+                        }}
+                      >
+                        {item.isCritical ? <Danger size={14} /> : <InfoCircle size={14} />}
+                      </Avatar>
+                      <Box>
+                        <Typography sx={{ fontSize: '12px', fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>
+                          {item.title}
+                        </Typography>
+                        <Typography sx={{ fontSize: '10.5px', color: '#6b7280', fontWeight: 500 }}>
+                          {item.patient}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Grid>
+
+                  <Grid item xs={3}>
+                    <Typography sx={{ fontSize: '11px', fontWeight: 600, color: '#6b7280' }}>
+                      {item.time}
+                    </Typography>
+                  </Grid>
+
+                  <Grid item xs={3} textAlign="right">
+                    <Button
+                      variant="contained"
+                      disableElevation
+                      size="small"
+                      sx={{
+                        borderRadius: '6px',
+                        textTransform: 'none',
+                        bgcolor: '#3b82f6',
+                        fontSize: '9.5px',
+                        fontWeight: 700,
+                        py: 0.4,
+                        px: 1.2,
+                        '&:hover': { bgcolor: '#2563eb' }
+                      }}
+                    >
+                      Acknowledge
+                    </Button>
+                  </Grid>
+                </Grid>
+              ))}
+            </Stack>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
   );
 };
 

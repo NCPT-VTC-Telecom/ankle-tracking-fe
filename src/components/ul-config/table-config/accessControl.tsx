@@ -1,4 +1,4 @@
-import { AccessControlTypeLabels } from 'pages/management/AccessControlManagement';
+
 import { FormattedMessage } from 'react-intl';
 import { Row } from 'react-table';
 import { AccessControlType, AccessPolicy } from 'types/access-control';
@@ -47,9 +47,7 @@ export const getColumnsAccess = (params: AccessControlCols) => [
     accessor: 'type',
     className: 'w-[400px]',
     disableSortBy: true,
-    Cell: ({ row }: { row: Row<AccessPolicy> }) => {
-      return <div>{AccessControlTypeLabels[row.original.type]}</div>;
-    }
+    Cell: ({ row }: { row: Row<AccessPolicy> }) => { }
   },
   {
     Header: <FormattedMessage id="info" />,
@@ -96,7 +94,6 @@ export const getColumnsFree = (params: AccessControlCols) => [
     className: 'w-[400px]',
     disableSortBy: true,
     Cell: ({ row }: { row: Row<AccessPolicy> }) => {
-      return <div>{AccessControlTypeLabels[row.original.type]}</div>;
     }
   },
   {

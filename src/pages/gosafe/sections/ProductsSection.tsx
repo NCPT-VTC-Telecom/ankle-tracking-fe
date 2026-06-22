@@ -478,7 +478,8 @@ const ProductRow = ({
                   <Grid container spacing={2}>
                     {product.features.map((feature, idx) => (
                       <Grid item xs={12} sm={6} key={idx}>
-                        <Stack direction="row" spacing={1.5} alignItems="center">
+                        {/* gs-feature-tick: flex, align-center, gap */}
+                        <Stack direction="row" spacing={1.5} alignItems="center" className="gs-feature-tick">
                           <Box
                             sx={{
                               p: 0.5,
@@ -574,6 +575,7 @@ const ProductRow = ({
                       key={currentImageIndex}
                       src={product.images[currentImageIndex]}
                       alt={product.name}
+                      loading="lazy"
                       initial={{ opacity: 0, scale: 1.1 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0 }}
@@ -731,6 +733,7 @@ const ProductRow = ({
                         component="img"
                         src={detail.image || product.images[0]}
                         alt={detail.title}
+                        loading="lazy"
                         sx={{
                           width: '100%',
                           height: '100%',

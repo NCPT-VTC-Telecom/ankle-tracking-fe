@@ -52,6 +52,7 @@ function useMapCode() {
       case -3:
         return intl.formatMessage({ id: 'password-incorrect' });
       case -4:
+      case -5:
         return intl.formatMessage({ id: 'server-error' });
       default:
         return intl.formatMessage({ id: 'unknown-status' });

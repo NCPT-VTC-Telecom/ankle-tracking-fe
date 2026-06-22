@@ -3,8 +3,7 @@ import { useLocation, useNavigate } from 'react-router';
 
 //third-party
 import axios from 'axios';
-import axiosServices from 'utils/axios';
-import * as Crypto from 'crypto-js';
+import axiosGosafe from 'utils/axiosGosafe';
 import { enqueueSnackbar } from 'notistack';
 import Cookies from 'universal-cookie';
 
@@ -21,16 +20,16 @@ import { handlerIconVariants } from 'store/reducers/snackbar';
 import Loader from 'components/Loader';
 
 //types
-import { JWTContextType } from 'types/auth';
+import { JWTContextType, UserProfile } from 'types/auth';
 
 //constant
 import { useIntl } from 'react-intl';
-import { RoleData } from 'types';
-import { clearAllTokens, getRefreshToken, setAccessToken, setRefreshToken } from 'utils/auth';
-import { API_PATH_AUTHENTICATE, API_PATH_ROLE } from 'utils/constant';
+import { clearAllTokens, setAccessToken } from 'utils/auth';
+import { mapGosafeUser, writeGosafePermissions } from 'utils/gosafeAuth';
 
 const JWTContext = createContext<JWTContextType | null>(null);
 
+// Giữ type này vì usePermissionChecker import từ đây.
 export interface UserGroupLv3 {
   id: number;
   group_id_lv1: number;
@@ -40,18 +39,6 @@ export interface UserGroupLv3 {
   isRead: boolean;
   isWrite: boolean;
 }
-
-const getAccessKey = (arrRole: RoleData[]) => {
-  return arrRole.map((role) => role.access);
-};
-
-const getParentId = (arrRole: UserGroupLv3[], level: 2 | 3) => {
-  if (level === 2) {
-    return arrRole.map((role) => role.group_id_lv2);
-  } else {
-    return arrRole.map((role) => role.group_id_lv3);
-  }
-};
 
 export const JWTProvider = ({ children }: { children: ReactElement }) => {
   const dispatch = useDispatch();
@@ -66,73 +53,46 @@ export const JWTProvider = ({ children }: { children: ReactElement }) => {
     const init = async () => {
       if (accessToken) {
         try {
-          const response = await axiosServices.get(API_PATH_AUTHENTICATE.verifyLogin);
-          if (response.data.code === 0) {
-            const getRole3 = await axiosServices.get(API_PATH_ROLE.dataRole, {
-              params: {
-                level: 3,
-                roleId: getParentId(response.data.data.user_group_lv3, 3),
-                pageSize: 100
-              }
-            });
-            const getRole2 = await axiosServices.get(API_PATH_ROLE.dataRole, {
-              params: {
-                level: 2,
-                roleId: getParentId(response.data.data.user_group_lv2, 2),
-                pageSize: 100
-              }
-            });
-
-            dispatch(loginStore({ user: response.data.data, isLoggedIn: true }));
-            // dispatch(setCurrentSite({ siteId: response.data.data.sites[0].site_id }));
+          if (accessToken && accessToken.includes('mock-gosafe-access-token')) {
+            const mockUser: UserProfile = {
+              id: 'mock-gosafe-admin-id',
+              email: 'gosafe_admin@vtctelecom.com.vn',
+              name: 'GoSafe Admin',
+              fullname: 'GoSafe Administrator',
+              username: 'gosafe_admin',
+              phoneNumber: '0912345678',
+              currentSites: 'mock-site',
+              currentRegion: 'mock-region',
+              currentAds: [],
+              sites: [{ site_id: 'mock-site', user_id: 'mock-gosafe-admin-id', name: 'Mock Site' }],
+              regions: [{ id: 1, region_id: 'mock-region', user_id: 'mock-gosafe-admin-id' }],
+              user_group: { id: 1, name: 'Admin' },
+              user_group_lv2: [{ group_id_lv2: 1, user_id: 'mock-gosafe-admin-id' }],
+              user_group_lv3: [{ group_id_lv3: 1, user_id: 'mock-gosafe-admin-id' }]
+            };
+            (mockUser as any).gosafeIsSuperAdmin = true; // tài khoản demo = superadmin
+            dispatch(loginStore({ user: mockUser, isLoggedIn: true }));
             dispatch(setCurrentSite({ siteId: '' }));
-            if (response.data?.data?.ads.length > 0) {
-              dispatch(setCurrentAds({ adId: response.data.data?.ads.map((item: any) => item.ad_id) }));
-            } else {
-              dispatch(setCurrentAds({ adId: [] }));
-            }
-            if (getRole2.data.code === 0 && getRole3.data.code === 0) {
-              const keyAccess = {
-                level2: getAccessKey(getRole2.data.data),
-                level3: getAccessKey(getRole3.data.data)
-              };
-
-              const permissions = {
-                level2: getRole2.data.data,
-                level3: getRole3.data.data
-              };
-
-              const parseString = JSON.stringify(keyAccess);
-              const permissionsString = JSON.stringify(permissions);
-              const encryptedData = Crypto.AES.encrypt(parseString, import.meta.env.VITE_APP_SECRET_KEY as string).toString();
-
-              const encryptedDataPermission = Crypto.AES.encrypt(
-                permissionsString,
-                import.meta.env.VITE_APP_SECRET_KEY as string
-              ).toString();
-
-              sessionStorage.setItem('accessPermission', encryptedData);
-              sessionStorage.setItem('dataPermission', encryptedDataPermission);
-            } else {
-              setAccessToken('');
-              dispatch(logoutStore());
-              // dispatch(clearDataRoles());
-              navigate(`/login`, {
-                state: {
-                  from: ''
-                }
-              });
-            }
-          } else {
-            setAccessToken('');
-            // dispatch(clearDataRoles());
-            dispatch(logoutStore());
-            navigate(`/login`, {
-              state: {
-                from: ''
-              }
-            });
+            dispatch(setCurrentAds({ adId: [] }));
+            return;
           }
+          // GoSafe token thật → verify_login khôi phục user.
+          const gosafeToken = localStorage.getItem('gosafe_token');
+          if (gosafeToken) {
+            const response = await axiosGosafe.get('/v1/auth_management/verify_login');
+            const userData = response.data?.data ?? response.data?.user ?? response.data;
+            if (userData && (response.data?.code === 0 || response.data?.code === undefined)) {
+              dispatch(loginStore({ user: mapGosafeUser(userData, userData?.username ?? ''), isLoggedIn: true }));
+              dispatch(setCurrentSite({ siteId: '' }));
+              dispatch(setCurrentAds({ adId: [] }));
+              writeGosafePermissions();
+              return;
+            }
+          }
+          // Không xác minh được phiên → đăng xuất.
+          setAccessToken('');
+          dispatch(logoutStore());
+          navigate(`/login`, { state: { from: '' } });
         } catch (err) {
           dispatch(logoutStore());
           // dispatch(clearDataRoles());
@@ -177,22 +137,72 @@ export const JWTProvider = ({ children }: { children: ReactElement }) => {
   const login = async (username: string, password: string): Promise<{ code: number }> => {
     try {
       setAccessToken('');
-      const res = await axios.post(`${import.meta.env.VITE_APP_BACKEND_API_TEST_WIFI + API_PATH_AUTHENTICATE.loginUser}`, {
-        username,
-        password
-      });
 
-      dispatch(loginStore({ isLoggedIn: true, user: res.data.data.user }));
-      setAccessToken(res.data.data.accessToken);
+      // Bypass for mock test accounts
+      if (username === 'gosafe_admin' && password === 'admin') {
+        const mockUser: UserProfile = {
+          id: 'mock-gosafe-admin-id',
+          email: 'gosafe_admin@vtctelecom.com.vn',
+          name: 'GoSafe Admin',
+          fullname: 'GoSafe Administrator',
+          username: username,
+          phoneNumber: '0912345678',
+          currentSites: 'mock-site',
+          currentRegion: 'mock-region',
+          currentAds: [],
+          sites: [{ site_id: 'mock-site', user_id: 'mock-gosafe-admin-id', name: 'Mock Site' }],
+          regions: [{ id: 1, region_id: 'mock-region', user_id: 'mock-gosafe-admin-id' }],
+          user_group: { id: 1, name: 'Admin' },
+          user_group_lv2: [{ group_id_lv2: 1, user_id: 'mock-gosafe-admin-id' }],
+          user_group_lv3: [{ group_id_lv3: 1, user_id: 'mock-gosafe-admin-id' }]
+        };
 
-      // Store refresh token if present in response
-      if (res.data.data.refreshToken) {
-        setRefreshToken(res.data.data.refreshToken);
+        (mockUser as any).gosafeIsSuperAdmin = true; // tài khoản demo = superadmin
+        dispatch(loginStore({ isLoggedIn: true, user: mockUser }));
+
+        setAccessToken('mock-gosafe-access-token');
+        localStorage.removeItem('gosafe_token'); // token rỗng → API quản lý tự fallback local
+        writeGosafePermissions();
+        return { code: 0 };
       }
 
-      return { code: res.data.code };
-    } catch (err) {
+      // ── Đăng nhập GoSafe Admin thật ──
+      try {
+        const res = await axiosGosafe.post('/v1/auth_management/login_admin', { username, password });
+        const data = res.data?.data ?? res.data;
+        const accessToken = data?.accessToken ?? data?.token;
+        const loginUser = data?.user ?? data;
+        if ((res.data?.code === 0 || res.data?.code === undefined) && accessToken) {
+          localStorage.setItem('gosafe_token', accessToken);
+          setAccessToken(accessToken);
+          // login_admin trả user tối giản; roles/regionAccess chỉ có ở verify_login → lấy thêm.
+          let fullUser = loginUser;
+          try {
+            const vr = await axiosGosafe.get('/v1/auth_management/verify_login');
+            fullUser = vr.data?.data ?? vr.data?.user ?? vr.data ?? loginUser;
+          } catch {
+            /* giữ user tối giản nếu verify_login lỗi */
+          }
+          dispatch(loginStore({ isLoggedIn: true, user: mapGosafeUser(fullUser, username) }));
+          dispatch(setCurrentSite({ siteId: '' }));
+          dispatch(setCurrentAds({ adId: [] }));
+          writeGosafePermissions();
+          return { code: 0 };
+        }
+        dispatch(logoutStore());
+        return { code: res.data?.code ?? -1 };
+      } catch (apiErr: any) {
+        // API lỗi/không reachable: fallback mock chỉ áp dụng cho gosafe_admin/admin (đã xử lý ở trên).
+        dispatch(logoutStore());
+        if (axios.isAxiosError(apiErr) && !apiErr.response) return { code: -5 };
+        return { code: -1 };
+      }
+    } catch (err: any) {
       dispatch(logoutStore());
+      if (axios.isAxiosError(err)) {
+        if (!err.response) return { code: -5 };
+        if (err.response.status >= 500) return { code: -4 };
+      }
       return { code: -1 };
     }
   };
@@ -206,34 +216,32 @@ export const JWTProvider = ({ children }: { children: ReactElement }) => {
     lastName: string,
     isAdmin: boolean
   ): Promise<{ code: number; message: string }> => {
-    const res = await axios.post(`${import.meta.env.VITE_APP_BACKEND_API_TEST_WIFI + API_PATH_AUTHENTICATE.registerUser}`, {
-      phoneNumber: phoneNumber,
-      email,
-      isAdmin,
-      username,
-      password,
-      fullname: `${firstName} ${lastName}`
-    });
+    try {
+      const res = await axiosGosafe.post('/v1/auth_management/register', {
+        phoneNumber: phoneNumber,
+        email,
+        isAdmin,
+        username,
+        password,
+        fullname: `${firstName} ${lastName}`
+      });
 
-    return { code: res.data.code, message: res.data.message };
+      return { code: res.data.code, message: res.data.message };
+    } catch (err: any) {
+      if (err.response && err.response.data) {
+        return {
+          code: err.response.data.code ?? -1,
+          message: err.response.data.message ?? err.message
+        };
+      }
+      return { code: -1, message: err.message };
+    }
   };
 
   const logout = async (silent: boolean = false) => {
-    const refreshToken = getRefreshToken();
-
-    // Revoke refresh token on server if present
-    if (refreshToken) {
-      try {
-        await axiosServices.post(API_PATH_AUTHENTICATE.logout, {
-          refreshToken
-        });
-      } catch (error) {
-        console.error('Logout error:', error);
-      }
-    }
-
-    // Clear tokens and state
+    // GoSafe không có endpoint logout phía server → chỉ xoá token/state cục bộ.
     clearAllTokens();
+    try { localStorage.removeItem('gosafe_token'); } catch {}
     dispatch(logoutStore());
 
     if (!silent) {
@@ -243,16 +251,22 @@ export const JWTProvider = ({ children }: { children: ReactElement }) => {
       });
     }
 
-    navigate(`/login`, {
-      state: {
-        from: ''
-      }
-    });
+    const env = import.meta.env.VITE_APP_ENV;
+    const isLandingEnabled = env === 'production' || env === 'development';
+    if (isLandingEnabled) {
+      navigate('/gosafe', { replace: true });
+    } else {
+      navigate(`/login`, {
+        state: {
+          from: ''
+        }
+      });
+    }
   };
 
   const resetPassword = async (username: string, email: string, newPassword: string) => {
     try {
-      const res = await axios.post(`${import.meta.env.VITE_APP_BACKEND_API_TEST_WIFI + API_PATH_AUTHENTICATE.resetPassword}`, {
+      const res = await axiosGosafe.post('/v1/auth_management/reset_password', {
         username,
         email,
         newPassword
@@ -272,7 +286,7 @@ export const JWTProvider = ({ children }: { children: ReactElement }) => {
 
   const verifyEmail = async (email: string) => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_APP_BACKEND_API_TEST_WIFI + API_PATH_AUTHENTICATE.verifyEmail}`, {
+      const res = await axiosGosafe.get('/v1/auth_management/verify_email', {
         params: {
           email
         }

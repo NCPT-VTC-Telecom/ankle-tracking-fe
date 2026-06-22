@@ -1,7 +1,16 @@
 import { Box, Container, Stack, Typography, alpha, Grid } from '@mui/material';
 import { FormattedMessage, useIntl, IntlShape } from 'react-intl';
 import { useState } from 'react';
-import { DocumentCode, BatteryFull, Bluetooth, Gps, Cpu, Maximize, ShieldTick, Setting2 } from 'iconsax-react';
+import {
+  DocumentCode,
+  BatteryFull,
+  Bluetooth,
+  Gps,
+  Cpu,
+  Maximize,
+  ShieldTick,
+  Setting2
+} from 'iconsax-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface SpecsSectionProps {
@@ -23,51 +32,123 @@ const SpecsSection = ({ isDark, primaryColor, secondaryColor }: SpecsSectionProp
   const getTabsData = (intl: IntlShape) => {
     const g737Specs = [
       {
-        category: intl.formatMessage({ id: 'gosafe-specs-cat-general', defaultMessage: 'Tổng quan (General)' }),
+        category: intl.formatMessage({
+          id: 'gosafe-specs-cat-general',
+          defaultMessage: 'Tổng quan (General)'
+        }),
         icon: <Setting2 size={24} variant="Bold" />,
         specs: [
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-comm', defaultMessage: 'Giao tiếp' }), value: 'LTE, TCP/UDP/SMS' },
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-channels', defaultMessage: 'Kênh định vị' }),
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-comm',
+              defaultMessage: 'Giao tiếp'
+            }),
+            value: 'LTE, TCP/UDP/SMS'
+          },
+          {
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-channels',
+              defaultMessage: 'Kênh định vị'
+            }),
             value: '72 channels'
           },
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-power', defaultMessage: 'Nguồn' }), value: 'Internal Battery' }
+          {
+            label: intl.formatMessage({ id: 'gosafe-specs-label-power', defaultMessage: 'Nguồn' }),
+            value: 'Internal Battery'
+          }
         ]
       },
       {
-        category: intl.formatMessage({ id: 'gosafe-specs-cat-gps', defaultMessage: 'GPS & Định vị' }),
+        category: intl.formatMessage({
+          id: 'gosafe-specs-cat-gps',
+          defaultMessage: 'GPS & Định vị'
+        }),
         icon: <Gps size={24} variant="Bold" />,
         specs: [
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-chipset', defaultMessage: 'Chipset' }), value: 'uBlox 8 All in one' },
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-system', defaultMessage: 'Hệ thống' }),
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-chipset',
+              defaultMessage: 'Chipset'
+            }),
+            value: 'uBlox 8 All in one'
+          },
+          {
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-system',
+              defaultMessage: 'Hệ thống'
+            }),
             value: 'GPS, GLONASS, QZSS, SBAS'
           },
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-accuracy', defaultMessage: 'Độ chính xác' }), value: '2.5m CEP' },
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-sensitivity', defaultMessage: 'Độ nhạy' }), value: '-162dBm' },
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-update', defaultMessage: 'Cập nhật' }), value: '10Hz' },
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-antenna', defaultMessage: 'Anten' }), value: 'Patch internal' },
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-agps', defaultMessage: 'A-GPS' }), value: 'Supported' }
+          {
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-accuracy',
+              defaultMessage: 'Độ chính xác'
+            }),
+            value: '2.5m CEP'
+          },
+          {
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-sensitivity',
+              defaultMessage: 'Độ nhạy'
+            }),
+            value: '-162dBm'
+          },
+          {
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-update',
+              defaultMessage: 'Cập nhật'
+            }),
+            value: '10Hz'
+          },
+          {
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-antenna',
+              defaultMessage: 'Anten'
+            }),
+            value: 'Patch internal'
+          },
+          {
+            label: intl.formatMessage({ id: 'gosafe-specs-label-agps', defaultMessage: 'A-GPS' }),
+            value: 'Supported'
+          }
         ]
       },
       {
-        category: intl.formatMessage({ id: 'gosafe-specs-cat-physical', defaultMessage: 'Vật lý (Physical)' }),
+        category: intl.formatMessage({
+          id: 'gosafe-specs-cat-physical',
+          defaultMessage: 'Vật lý (Physical)'
+        }),
         icon: <Maximize size={24} variant="Bold" />,
         specs: [
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-dimensions', defaultMessage: 'Kích thước' }),
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-dimensions',
+              defaultMessage: 'Kích thước'
+            }),
             value: '83.5 x 79.5 x 29 mm'
           },
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-weight', defaultMessage: 'Trọng lượng' }), value: '<125g (kèm dây 24cm)' }
+          {
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-weight',
+              defaultMessage: 'Trọng lượng'
+            }),
+            value: '<125g (kèm dây 24cm)'
+          }
         ]
       },
       {
-        category: intl.formatMessage({ id: 'gosafe-specs-cat-buttons', defaultMessage: 'Nút bấm & LED' }),
+        category: intl.formatMessage({
+          id: 'gosafe-specs-cat-buttons',
+          defaultMessage: 'Nút bấm & LED'
+        }),
         icon: <Cpu size={24} variant="Bold" />,
         specs: [
           {
             label: intl.formatMessage({ id: 'gosafe-specs-label-sos', defaultMessage: 'Nút SOS' }),
-            value: intl.formatMessage({ id: 'gosafe-specs-value-sos', defaultMessage: 'Gửi SMS khẩn cấp' })
+            value: intl.formatMessage({
+              id: 'gosafe-specs-value-sos',
+              defaultMessage: 'Gửi SMS khẩn cấp'
+            })
           },
           {
             label: intl.formatMessage({ id: 'gosafe-specs-label-led', defaultMessage: 'Đèn LED' }),
@@ -76,16 +157,31 @@ const SpecsSection = ({ isDark, primaryColor, secondaryColor }: SpecsSectionProp
         ]
       },
       {
-        category: intl.formatMessage({ id: 'gosafe-specs-cat-band', defaultMessage: 'Dây đeo (Shank Band)' }),
+        category: intl.formatMessage({
+          id: 'gosafe-specs-cat-band',
+          defaultMessage: 'Dây đeo (Shank Band)'
+        }),
         icon: <ShieldTick size={24} variant="Bold" />,
         specs: [
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-bandtype', defaultMessage: 'Loại dây' }),
-            value: intl.formatMessage({ id: 'gosafe-specs-value-fiber', defaultMessage: 'Sợi quang (Fiber Optic)' })
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-bandtype',
+              defaultMessage: 'Loại dây'
+            }),
+            value: intl.formatMessage({
+              id: 'gosafe-specs-value-fiber',
+              defaultMessage: 'Sợi quang (Fiber Optic)'
+            })
           },
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-dimensions', defaultMessage: 'Kích thước' }),
-            value: intl.formatMessage({ id: 'gosafe-specs-value-diverse', defaultMessage: 'Đa dạng tùy chọn' })
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-dimensions',
+              defaultMessage: 'Kích thước'
+            }),
+            value: intl.formatMessage({
+              id: 'gosafe-specs-value-diverse',
+              defaultMessage: 'Đa dạng tùy chọn'
+            })
           }
         ]
       }
@@ -93,75 +189,156 @@ const SpecsSection = ({ isDark, primaryColor, secondaryColor }: SpecsSectionProp
 
     const powerbankSpecs = [
       {
-        category: intl.formatMessage({ id: 'gosafe-specs-label-dimensions', defaultMessage: 'Kích thước' }),
+        category: intl.formatMessage({
+          id: 'gosafe-specs-label-dimensions',
+          defaultMessage: 'Kích thước'
+        }),
         icon: <Maximize size={24} variant="Bold" />,
         specs: [
           { label: 'Size (4500mAh)', value: '76×52×48 mm' },
           { label: 'Size (2000mAh)', value: '76×52×62 mm' },
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-weight', defaultMessage: 'Trọng lượng' }),
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-weight',
+              defaultMessage: 'Trọng lượng'
+            }),
             value: '319.5g (kèm hộp & pin)'
           }
         ]
       },
       {
-        category: intl.formatMessage({ id: 'gosafe-specs-cat-env', defaultMessage: 'Môi trường hoạt động' }),
+        category: intl.formatMessage({
+          id: 'gosafe-specs-cat-env',
+          defaultMessage: 'Môi trường hoạt động'
+        }),
         icon: <Setting2 size={24} variant="Bold" />,
         specs: [
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-temp', defaultMessage: 'Nhiệt độ' }), value: '-40°C ~ +60°C' },
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-boston', defaultMessage: 'Pin Boston' }),
-            value: intl.formatMessage({ id: 'gosafe-specs-value-high-low', defaultMessage: 'Chịu nhiệt cao & thấp' })
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-temp',
+              defaultMessage: 'Nhiệt độ'
+            }),
+            value: '-40°C ~ +60°C'
           },
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-charge', defaultMessage: 'Sạc' }), value: '-20°C ~ +60°C' },
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-discharge', defaultMessage: 'Xả' }), value: '-40°C ~ +70°C' },
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-humidity', defaultMessage: 'Độ ẩm' }), value: '100% RH @ 50°C' },
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-waterproof', defaultMessage: 'Chống nước/bụi' }),
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-boston',
+              defaultMessage: 'Pin Boston'
+            }),
+            value: intl.formatMessage({
+              id: 'gosafe-specs-value-high-low',
+              defaultMessage: 'Chịu nhiệt cao & thấp'
+            })
+          },
+          {
+            label: intl.formatMessage({ id: 'gosafe-specs-label-charge', defaultMessage: 'Sạc' }),
+            value: '-20°C ~ +60°C'
+          },
+          {
+            label: intl.formatMessage({ id: 'gosafe-specs-label-discharge', defaultMessage: 'Xả' }),
+            value: '-40°C ~ +70°C'
+          },
+          {
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-humidity',
+              defaultMessage: 'Độ ẩm'
+            }),
+            value: '100% RH @ 50°C'
+          },
+          {
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-waterproof',
+              defaultMessage: 'Chống nước/bụi'
+            }),
             value: 'IP67 (1m nước)'
           },
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-vibration', defaultMessage: 'Chống rung' }),
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-vibration',
+              defaultMessage: 'Chống rung'
+            }),
             value: 'MIL 202G, 810F, SAE J1455'
           }
         ]
       },
       {
-        category: intl.formatMessage({ id: 'gosafe-specs-cat-std', defaultMessage: 'Tiêu chuẩn & CPU' }),
+        category: intl.formatMessage({
+          id: 'gosafe-specs-cat-std',
+          defaultMessage: 'Tiêu chuẩn & CPU'
+        }),
         icon: <Cpu size={24} variant="Bold" />,
         specs: [
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-emc', defaultMessage: 'EMC/EMI' }), value: 'SAE J1113; FCC-Part 15B' },
+          {
+            label: intl.formatMessage({ id: 'gosafe-specs-label-emc', defaultMessage: 'EMC/EMI' }),
+            value: 'SAE J1113; FCC-Part 15B'
+          },
           {
             label: intl.formatMessage({ id: 'gosafe-specs-label-rohs', defaultMessage: 'RoHS' }),
-            value: intl.formatMessage({ id: 'gosafe-specs-value-compliant', defaultMessage: 'Tương thích (tùy chọn)' })
+            value: intl.formatMessage({
+              id: 'gosafe-specs-value-compliant',
+              defaultMessage: 'Tương thích (tùy chọn)'
+            })
           },
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-cpu', defaultMessage: 'CPU' }), value: 'MP2690' }
-        ]
-      },
-      {
-        category: intl.formatMessage({ id: 'gosafe-specs-cat-power', defaultMessage: 'Nguồn điện' }),
-        icon: <BatteryFull size={24} variant="Bold" />,
-        specs: [
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-input-voltage', defaultMessage: 'Điện áp vào' }), value: '6-36V' },
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-replace-battery', defaultMessage: 'Pin thay thế' }),
-            value: intl.formatMessage({ id: 'gosafe-specs-value-boston', defaultMessage: 'Boston Battery (chịu nhiệt)' })
+            label: intl.formatMessage({ id: 'gosafe-specs-label-cpu', defaultMessage: 'CPU' }),
+            value: 'MP2690'
           }
         ]
       },
       {
-        category: intl.formatMessage({ id: 'gosafe-specs-cat-consumption', defaultMessage: 'Tiêu thụ điện (Li-Battery)' }),
+        category: intl.formatMessage({
+          id: 'gosafe-specs-cat-power',
+          defaultMessage: 'Nguồn điện'
+        }),
         icon: <BatteryFull size={24} variant="Bold" />,
         specs: [
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-active-tracking', defaultMessage: 'Active Tracking' }),
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-input-voltage',
+              defaultMessage: 'Điện áp vào'
+            }),
+            value: '6-36V'
+          },
+          {
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-replace-battery',
+              defaultMessage: 'Pin thay thế'
+            }),
+            value: intl.formatMessage({
+              id: 'gosafe-specs-value-boston',
+              defaultMessage: 'Boston Battery (chịu nhiệt)'
+            })
+          }
+        ]
+      },
+      {
+        category: intl.formatMessage({
+          id: 'gosafe-specs-cat-consumption',
+          defaultMessage: 'Tiêu thụ điện (Li-Battery)'
+        }),
+        icon: <BatteryFull size={24} variant="Bold" />,
+        specs: [
+          {
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-active-tracking',
+              defaultMessage: 'Active Tracking'
+            }),
             value: '160mA'
           },
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-power-save', defaultMessage: 'Power Save Mode' }),
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-power-save',
+              defaultMessage: 'Power Save Mode'
+            }),
             value: '10mA'
           },
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-deep-sleep', defaultMessage: 'Deep Sleep' }), value: '15μA' }
+          {
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-deep-sleep',
+              defaultMessage: 'Deep Sleep'
+            }),
+            value: '15μA'
+          }
         ]
       },
       {
@@ -172,45 +349,105 @@ const SpecsSection = ({ isDark, primaryColor, secondaryColor }: SpecsSectionProp
             label: intl.formatMessage({ id: 'gosafe-specs-label-led', defaultMessage: 'LED' }),
             value: '4 LEDs (Power States)'
           },
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-digital-io', defaultMessage: 'Digital I/O' }), value: '1' }
+          {
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-digital-io',
+              defaultMessage: 'Digital I/O'
+            }),
+            value: '1'
+          }
         ]
       }
     ];
 
     const beaconSpecs = [
       {
-        category: intl.formatMessage({ id: 'gosafe-specs-cat-id', defaultMessage: 'ID & Cấu trúc' }),
+        category: intl.formatMessage({
+          id: 'gosafe-specs-cat-id',
+          defaultMessage: 'ID & Cấu trúc'
+        }),
         icon: <Maximize size={24} variant="Bold" />,
         specs: [
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-dimensions', defaultMessage: 'Kích thước' }),
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-dimensions',
+              defaultMessage: 'Kích thước'
+            }),
             value: '54.5 × 54.5 × 24 mm'
           },
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-material', defaultMessage: 'Chất liệu' }), value: 'ABS' },
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-waterproof', defaultMessage: 'Chống nước' }), value: 'IP67' },
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-color', defaultMessage: 'Màu sắc' }),
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-material',
+              defaultMessage: 'Chất liệu'
+            }),
+            value: 'ABS'
+          },
+          {
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-waterproof',
+              defaultMessage: 'Chống nước'
+            }),
+            value: 'IP67'
+          },
+          {
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-color',
+              defaultMessage: 'Màu sắc'
+            }),
             value: intl.formatMessage({ id: 'gosafe-specs-value-white', defaultMessage: 'Trắng' })
           },
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-install', defaultMessage: 'Lắp đặt' }),
-            value: intl.formatMessage({ id: 'gosafe-specs-value-install', defaultMessage: '3M tape hoặc bắt vít' })
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-install',
+              defaultMessage: 'Lắp đặt'
+            }),
+            value: intl.formatMessage({
+              id: 'gosafe-specs-value-install',
+              defaultMessage: '3M tape hoặc bắt vít'
+            })
           },
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-button', defaultMessage: 'Nút bấm' }),
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-button',
+              defaultMessage: 'Nút bấm'
+            }),
             value: intl.formatMessage({ id: 'gosafe-specs-value-none', defaultMessage: 'Không' })
           }
         ]
       },
       {
-        category: intl.formatMessage({ id: 'gosafe-specs-cat-electronic', defaultMessage: 'Điện tử' }),
+        category: intl.formatMessage({
+          id: 'gosafe-specs-cat-electronic',
+          defaultMessage: 'Điện tử'
+        }),
         icon: <Bluetooth size={24} variant="Bold" />,
         specs: [
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-bluetooth', defaultMessage: 'Bluetooth' }), value: '5.0' },
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-chipset', defaultMessage: 'Chipset' }), value: 'Nordic Series' },
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-range', defaultMessage: 'Tầm phát (TX)' }), value: '100 meters' },
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-sensor', defaultMessage: 'Cảm biến' }),
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-bluetooth',
+              defaultMessage: 'Bluetooth'
+            }),
+            value: '5.0'
+          },
+          {
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-chipset',
+              defaultMessage: 'Chipset'
+            }),
+            value: 'Nordic Series'
+          },
+          {
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-range',
+              defaultMessage: 'Tầm phát (TX)'
+            }),
+            value: '100 meters'
+          },
+          {
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-sensor',
+              defaultMessage: 'Cảm biến'
+            }),
             value: '3D Accelerometer'
           },
           {
@@ -223,42 +460,84 @@ const SpecsSection = ({ isDark, primaryColor, secondaryColor }: SpecsSectionProp
         category: intl.formatMessage({ id: 'gosafe-specs-cat-battery', defaultMessage: 'Pin' }),
         icon: <BatteryFull size={24} variant="Bold" />,
         specs: [
-          { label: intl.formatMessage({ id: 'gosafe-specs-label-capacity', defaultMessage: 'Dung lượng' }), value: '2400mAh' },
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-replace', defaultMessage: 'Thay thế' }),
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-capacity',
+              defaultMessage: 'Dung lượng'
+            }),
+            value: '2400mAh'
+          },
+          {
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-replace',
+              defaultMessage: 'Thay thế'
+            }),
             value: intl.formatMessage({ id: 'gosafe-specs-value-yes', defaultMessage: 'Có' })
           },
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-lifespan', defaultMessage: 'Tuổi thọ' }),
-            value: intl.formatMessage({ id: 'gosafe-specs-value-years', defaultMessage: 'Lên đến 4 năm' })
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-lifespan',
+              defaultMessage: 'Tuổi thọ'
+            }),
+            value: intl.formatMessage({
+              id: 'gosafe-specs-value-years',
+              defaultMessage: 'Lên đến 4 năm'
+            })
           }
         ]
       },
       {
-        category: intl.formatMessage({ id: 'gosafe-specs-cat-environment', defaultMessage: 'Môi trường' }),
+        category: intl.formatMessage({
+          id: 'gosafe-specs-cat-environment',
+          defaultMessage: 'Môi trường'
+        }),
         icon: <Setting2 size={24} variant="Bold" />,
         specs: [
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-op-temp', defaultMessage: 'Nhiệt độ hoạt động' }),
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-op-temp',
+              defaultMessage: 'Nhiệt độ hoạt động'
+            }),
             value: '-20°C ~ +60°C'
           }
         ]
       },
       {
-        category: intl.formatMessage({ id: 'gosafe-specs-cat-features', defaultMessage: 'Tính năng nổi bật' }),
+        category: intl.formatMessage({
+          id: 'gosafe-specs-cat-features',
+          defaultMessage: 'Tính năng nổi bật'
+        }),
         icon: <ShieldTick size={24} variant="Bold" />,
         specs: [
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-integration', defaultMessage: 'Tích hợp' }),
-            value: intl.formatMessage({ id: 'gosafe-specs-value-seamless', defaultMessage: 'Hoạt động liền mạch với thiết bị giám sát' })
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-integration',
+              defaultMessage: 'Tích hợp'
+            }),
+            value: intl.formatMessage({
+              id: 'gosafe-specs-value-seamless',
+              defaultMessage: 'Hoạt động liền mạch với thiết bị giám sát'
+            })
           },
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-indoor', defaultMessage: 'Định vị trong nhà' }),
-            value: intl.formatMessage({ id: 'gosafe-specs-value-indoor', defaultMessage: 'Indoor location' })
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-indoor',
+              defaultMessage: 'Định vị trong nhà'
+            }),
+            value: intl.formatMessage({
+              id: 'gosafe-specs-value-indoor',
+              defaultMessage: 'Indoor location'
+            })
           },
           {
-            label: intl.formatMessage({ id: 'gosafe-specs-label-move-alert', defaultMessage: 'Cảnh báo di chuyển' }),
-            value: intl.formatMessage({ id: 'gosafe-specs-value-send-g737', defaultMessage: 'Gửi đến thiết bị giám sát' })
+            label: intl.formatMessage({
+              id: 'gosafe-specs-label-move-alert',
+              defaultMessage: 'Cảnh báo di chuyển'
+            }),
+            value: intl.formatMessage({
+              id: 'gosafe-specs-value-send-g737',
+              defaultMessage: 'Gửi đến thiết bị giám sát'
+            })
           }
         ]
       }
@@ -266,17 +545,26 @@ const SpecsSection = ({ isDark, primaryColor, secondaryColor }: SpecsSectionProp
 
     return [
       {
-        label: intl.formatMessage({ id: 'gosafe-specs-tab-tracker', defaultMessage: 'Electronic Tracker' }),
+        label: intl.formatMessage({
+          id: 'gosafe-specs-tab-tracker',
+          defaultMessage: 'Electronic Tracker'
+        }),
         icon: <DocumentCode size={20} />,
         data: g737Specs
       },
       {
-        label: intl.formatMessage({ id: 'gosafe-specs-tab-powerbank', defaultMessage: 'Power Bank' }),
+        label: intl.formatMessage({
+          id: 'gosafe-specs-tab-powerbank',
+          defaultMessage: 'Power Bank'
+        }),
         icon: <BatteryFull size={20} />,
         data: powerbankSpecs
       },
       {
-        label: intl.formatMessage({ id: 'gosafe-specs-tab-beacon', defaultMessage: 'Indoor Beacon' }),
+        label: intl.formatMessage({
+          id: 'gosafe-specs-tab-beacon',
+          defaultMessage: 'Indoor Beacon'
+        }),
         icon: <Bluetooth size={20} />,
         data: beaconSpecs
       }
@@ -297,24 +585,25 @@ const SpecsSection = ({ isDark, primaryColor, secondaryColor }: SpecsSectionProp
       <Container maxWidth="lg">
         {/* Header */}
         <Stack spacing={2} alignItems="center" textAlign="center" mb={10}>
+          {/* gs-badge-pill: inline-flex, align-center, border-radius 100px */}
           <Box
             component={motion.div}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
+            className="gs-badge-pill"
             sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 1.5,
               px: 2.5,
               py: 1,
-              borderRadius: '100px',
               border: `1px solid ${alpha(primaryColor, 0.2)}`,
               bgcolor: alpha(primaryColor, 0.05)
             }}
           >
             <Setting2 size={16} variant="Bold" color={primaryColor} />
-            <Typography variant="caption" sx={{ fontWeight: 700, color: primaryColor, letterSpacing: 1.5 }}>
+            <Typography
+              variant="caption"
+              sx={{ fontWeight: 700, color: primaryColor, letterSpacing: 1.5 }}
+            >
               <FormattedMessage id="gosafe-specs-header-chip" defaultMessage="SPECIFICATIONS" />
             </Typography>
           </Box>
@@ -441,7 +730,14 @@ const SpecsSection = ({ isDark, primaryColor, secondaryColor }: SpecsSectionProp
                       </Box>
 
                       {/* Header */}
-                      <Stack direction="row" spacing={2} alignItems="center" mb={3} position="relative" zIndex={1}>
+                      <Stack
+                        direction="row"
+                        spacing={2}
+                        alignItems="center"
+                        mb={3}
+                        position="relative"
+                        zIndex={1}
+                      >
                         <Box
                           sx={{
                             p: 1.2,
@@ -453,28 +749,44 @@ const SpecsSection = ({ isDark, primaryColor, secondaryColor }: SpecsSectionProp
                         >
                           {category.icon}
                         </Box>
-                        <Typography variant="h6" fontWeight={700} color={isDark ? '#fff' : '#0f172a'}>
+                        <Typography
+                          variant="h6"
+                          fontWeight={700}
+                          color={isDark ? '#fff' : '#0f172a'}
+                        >
                           {category.category}
                         </Typography>
                       </Stack>
 
                       {/* Specs List */}
                       <Stack spacing={2} position="relative" zIndex={1}>
+                        {/* gs-spec-row: flex, space-between, border-top between rows */}
                         {category.specs.map((spec, specIndex) => (
                           <Box
                             key={specIndex}
+                            className="gs-spec-row"
                             sx={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
                               alignItems: 'baseline',
-                              borderBottom: specIndex !== category.specs.length - 1 ? `1px dashed ${alpha(borderColor, 2)}` : 'none',
+                              borderBottom:
+                                specIndex !== category.specs.length - 1
+                                  ? `1px dashed ${alpha(borderColor, 2)}`
+                                  : 'none',
                               pb: specIndex !== category.specs.length - 1 ? 1.5 : 0
                             }}
                           >
-                            <Typography variant="body2" color="text.secondary" sx={{ minWidth: '40%' }}>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ minWidth: '40%' }}
+                            >
                               {spec.label}
                             </Typography>
-                            <Typography variant="body2" fontWeight={600} align="right" color={isDark ? '#e2e8f0' : '#334155'}>
+                            <Typography
+                              variant="body2"
+                              fontWeight={600}
+                              align="right"
+                              color={isDark ? '#e2e8f0' : '#334155'}
+                            >
                               {spec.value}
                             </Typography>
                           </Box>

@@ -22,7 +22,7 @@ import { Input, Select, Checkbox, DatePicker, Switch, CheckMark, RangePicker } f
 import { Form, FormikProvider } from 'formik';
 
 // types
-import { FieldConfig, NewRegion } from 'types';
+import { FieldConfig } from 'types';
 
 interface StepConfig {
   label: string;
@@ -37,7 +37,7 @@ interface GenericFormProps {
   fields?: FieldConfig[];
   formik: any;
   children?: React.ReactNode;
-  onCreateRegion?: (regionData: NewRegion) => Promise<void>;
+  onCreateRegion?: (regionData: any) => Promise<void>;
 }
 
 const GenericForm: React.FC<GenericFormProps> = ({ onCancel, title, isEditMode, steps, fields, formik, children, onCreateRegion }) => {
@@ -59,8 +59,7 @@ const GenericForm: React.FC<GenericFormProps> = ({ onCancel, title, isEditMode, 
   const handleNext = useCallback(async () => {
     if (steps && activeStep < steps.length - 1) {
       if (activeStep === 0 && onCreateRegion) {
-        const regionData: NewRegion = values.region;
-        await onCreateRegion(regionData);
+        await onCreateRegion(values.region);
       }
       setActiveStep((prevActiveStep) => {
         const newStep = prevActiveStep + 1;

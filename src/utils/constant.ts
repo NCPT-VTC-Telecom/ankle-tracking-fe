@@ -8,15 +8,6 @@ export class API_PATH_AUTHENTICATE {
   static refreshToken = '/v1/auth_management/refresh_token';
 }
 
-export class API_PATH_MANAGEMENT {
-  static chartLogin = '/v1/login_wifi/chart_login';
-  static dataLogin = '/v1/login_wifi/data_login';
-  static dataActivities = '/v1/login_wifi/data_activities';
-  static dataLoginCount = '/v1/login_wifi/data_login_count';
-  static recordLogin = '/v1/login_wifi/data_login_count';
-  static top3 = '/v1/login_wifi/data_top_3';
-  static campaignActivities = '/v1/login_wifi/data_activities_campaign';
-}
 
 export class API_PATH_ADS {
   static getAd = '/v1/ad_management/data_ads';
@@ -146,56 +137,6 @@ export class API_PATH_WLAN {
   static refresh = '/v1/wlan_management/refresh_wlan';
 }
 
-export class API_PATH_FACILITIES {
-  static dataFacilities = '/v1/facilities_management/data_facilities';
-  static addFacilities = '/v1/facilities_management/add_facilities';
-  static editFacilities = '/v1/facilities_management/edit_facilities';
-  static deleteFacilities = '/v1/facilities_management/delete_facilities';
-}
-
-export class API_PATH_ORDERS {
-  static dataOrders = '/v1/orders_management/data_orders';
-  static dataStatusOrders = '/v1/orders_management/data_status_orders';
-  static updateOrderStatus = '/v1/orders_management/update_order_status';
-  static updatePaymentStatus = '/v1/orders_management/update_payment_status';
-}
-
-export class API_PATH_AIRLINE {
-  static dataAirlines = '/v1/airlines_management/data_airlines';
-  static addAirlines = '/v1/airlines_management/add_airlines';
-  static editAirlines = '/v1/airlines_management/edit_airlines';
-  static deleteAirlines = '/v1/airlines_management/delete_airlines';
-}
-
-export class API_PATH_AIRPORT {
-  static dataAirports = '/v1/airports_management/data_airports';
-  static addAirport = '/v1/airports_management/add_airport';
-  static editAirport = '/v1/airports_management/edit_airport';
-  static deleteAirport = '/v1/airports_management/delete_airport';
-}
-
-export class API_PATH_PRODUCT_VIP {
-  static dataProducts = '/v1/products_management/data_products';
-  static addProduct = '/v1/products_management/add_product';
-  static editProduct = '/v1/products_management/edit_product';
-  static deleteProduct = '/v1/products_management/delete_product';
-  static uploadImage = '/v1/products_management/upload_images';
-}
-
-export class API_PATH_CMS {
-  static dataCMS = '/v1/cms_management/data_cms';
-  static addCMS = '/v1/cms_management/add_cms';
-  static editCMS = '/v1/cms_management/edit_cms';
-  static deleteCMS = '/v1/cms_management/delete_cms';
-  // static uploadImage = '/v1/cms_management/upload_media_url';
-}
-
-export class API_PATH_REGION {
-  static dataRegions = '/v1/region_management/data_regions';
-  static addRegion = '/v1/region_management/add_regions';
-  static editRegion = '/v1/region_management/edit_regions';
-  static deleteRegion = '/v1/region_management/delete_regions';
-}
 
 export class API_PATH_CAMPAIGN {
   static dataCampaign = '/v1/ad_campaign/data_campaigns';
@@ -220,34 +161,12 @@ export class API_PATH_PORTAL {
   static refreshPortal = '/v1/portal_management/refresh_portal';
 }
 
-export class API_PATH_PASSPOINT {
-  static dataPassPoint = '/v1/passpoint_management/data_passpoint';
-}
 
 export class API_PATH_VLAN {
   static dataVLAN = '/v1/lan_management/data_lans';
   static refreshVLAN = '/v1/lan_management/refresh_lan';
 }
 
-export class API_PATH_VOUCHER_GROUP {
-  static dataVoucherGroup = '/v1/voucher_management/data_vouchers';
-  static addVoucherGroup = '/v1/voucher_management/add_voucher';
-  static editVoucherGroup = '/v1/voucher_management/edit_voucher';
-  static refreshVoucherGroup = '/v1/voucher_management/refresh_voucher';
-  static deleteVoucherGroup = '/v1/voucher_management/delete_voucher';
-}
-
-export class API_PATH_ORDER_PREMIUM {
-  static dataOrderList = '/v1/order_management/data_orders';
-  static dataChartOrder = '/v1/order_management/chart_orders';
-}
-
-export class API_PATH_VOUCHER {
-  static dataVoucherList = '/v1/voucher_management/data_voucher_details';
-  static addVoucher = '/v1/voucher_management/add_voucher';
-  static editVoucher = '/v1/voucher_management/edit_voucher';
-  static deleteVoucher = '/v1/voucher_management/delete_voucher';
-}
 
 export class API_PATH_NOTIFICATION {
   static notificationData = '/v1/notification_management/data_notification'; // done

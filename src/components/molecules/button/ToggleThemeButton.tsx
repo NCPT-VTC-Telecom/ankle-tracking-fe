@@ -8,13 +8,25 @@ export default function ToggleThemeButton() {
   const { mode, onChangeMode } = useConfig();
   const theme = useTheme();
   const handleToggle = () => {
-    onChangeMode(mode === ThemeMode.LIGHT ? ThemeMode.DARK : ThemeMode.LIGHT);
+    if (mode === ThemeMode.LIGHT) {
+      onChangeMode(ThemeMode.DARK);
+    } else if (mode === ThemeMode.DARK) {
+      onChangeMode(ThemeMode.AUTO);
+    } else {
+      onChangeMode(ThemeMode.LIGHT);
+    }
   };
 
-  const isLight = mode === ThemeMode.LIGHT;
+  const getTooltipTitle = () => {
+    if (mode === ThemeMode.LIGHT) return 'Chuyển sang chế độ tối';
+    if (mode === ThemeMode.DARK) return 'Chuyển sang chế độ hệ thống';
+    return 'Chuyển sang chế độ sáng';
+  };
+
+  const isCurrentLight = theme.palette.mode === 'light';
 
   return (
-    <Tooltip disableInteractive enterTouchDelay={0} leaveTouchDelay={200} title={`Chuyển sang chế độ ${isLight ? 'tối' : 'sáng'}`}>
+    <Tooltip disableInteractive enterTouchDelay={0} leaveTouchDelay={200} title={getTooltipTitle()}>
       <Box
         onClick={handleToggle}
         sx={{
@@ -35,7 +47,7 @@ export default function ToggleThemeButton() {
           }
         }}
       >
-        {isLight ? (
+        {isCurrentLight ? (
           <Moon variant="Bold" size={24} color={theme.palette.secondary.main} />
         ) : (
           <Sun1 variant="Bold" size={24} color={theme.palette.warning.dark} />

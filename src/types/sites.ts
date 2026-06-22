@@ -1,5 +1,3 @@
-import { DataRegion } from "./region";
-
 export interface NewSites {
   id: string;
   name: string;
@@ -21,7 +19,7 @@ export interface DataSites {
   status_id: number;
   time_zone: string;
   scenario: string;
-  region: DataRegion
+  region: any
 }
 
 export interface Site {

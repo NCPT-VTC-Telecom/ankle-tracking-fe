@@ -2,7 +2,7 @@ import { CSSProperties, ReactElement, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 // material-ui
-import { Box, Divider, Grid, MenuItem, Select, Typography } from '@mui/material';
+import { Divider, Grid, Typography } from '@mui/material';
 import MuiBreadcrumbs from '@mui/material/Breadcrumbs';
 import { useTheme } from '@mui/material/styles';
 
@@ -10,24 +10,16 @@ import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 
 // assets
-import { ArrowRight2, Building4, Buildings2, Calendar, Clock, CloseCircle, Home3, Location } from 'iconsax-react';
+import { ArrowRight2, Buildings2, Calendar, Home3 } from 'iconsax-react';
 
 // types
 import { NavItemType } from 'types/menu';
 import { OverrideIcon } from 'types/root';
 
 //third-party
-import { Stack } from '@mui/material';
 import dayjs from 'dayjs';
 import useConfig from 'hooks/useConfig';
-import useHandleRegion from 'hooks/useHandleRegion';
-import useHandleSite from 'hooks/useHandleSites';
 import { useIntl } from 'react-intl';
-import { dispatch } from 'store';
-import { setCurrentRegion, setCurrentSite } from 'store/reducers/auth';
-import { OptionList } from 'types';
-import { SYSTEM_SITE_ID } from 'utils/constant';
-import { getOption } from 'utils/handleData';
 // import useHandleSite from 'hooks/useHandleSites';
 
 // ==============================|| BREADCRUMBS ||============================== //
@@ -66,66 +58,14 @@ const Breadcrumbs = ({
   ...others
 }: Props) => {
   const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
 
   const location = useLocation();
   const [main, setMain] = useState<NavItemType | undefined>();
   const [item, setItem] = useState<NavItemType>();
-  const [optionRegion, setOptionRegion] = useState<OptionList[]>([]);
-  const [optionSite, setOptionSite] = useState<OptionList[]>([]);
 
   const intl = useIntl();
   const now = dayjs();
   const { i18n } = useConfig();
-
-  const currentMonth = now.format('MM');
-  const currentYear = now.format('YYYY');
-
-  const [selectedSite, setSelectedSite] = useState<string>('');
-  const [selectedRegion, setSelectedRegion] = useState<string>('');
-
-  const { fetchDataRegion } = useHandleRegion();
-  const { fetchDataSites } = useHandleSite();
-  // const sites = useSelector((state) => state.authSlice.user?.sites);
-
-  const getOptionRegion = async () => {
-    const dataRegion = await fetchDataRegion({ pageSize: 100 });
-    setOptionRegion(getOption(dataRegion, 'name', 'id'));
-  };
-
-  const getOptionSite = async (regionId: string) => {
-    if (!regionId) {
-      setOptionSite([]);
-      setSelectedSite('');
-      return;
-    }
-    const regionInput = [regionId];
-    const dataSite = await fetchDataSites({
-      pageSize: 100,
-      regionDataInput: JSON.stringify(regionInput),
-      regionId: regionId
-    });
-    const newOptionSite = getOption(dataSite, 'name', 'id');
-    setOptionSite(newOptionSite);
-    if (newOptionSite.length === 0 || !newOptionSite.some((site) => site.value === selectedSite)) {
-      setSelectedSite('');
-    }
-  };
-
-  useEffect(() => {
-    getOptionRegion();
-    //eslint-disable-next-line
-  }, []);
-
-  useEffect(() => {
-    const systemRegion = optionRegion?.find((region) => typeof region.label === 'string' && region.label.toLowerCase() === 'system');
-    if (systemRegion && !selectedRegion) {
-      setSelectedRegion(systemRegion.value as string);
-      dispatch(setCurrentRegion({ regionId: systemRegion.value as string }));
-      getOptionSite(systemRegion.value as string); // Gọi ngay khi thiết lập region mặc định
-    }
-    //eslint-disable-next-line
-  }, [optionRegion, dispatch, setCurrentRegion]);
 
   const iconSX = {
     marginRight: theme.spacing(0.75),
@@ -241,96 +181,6 @@ const Breadcrumbs = ({
             </MuiBreadcrumbs>
           </Grid>
           <Grid item xs={12} sm={6} display="flex" justifyContent="flex-end" alignItems="center" gap={1.5}>
-            {/* Location Icon */}
-            <Location size={16} color="#6d6d6d" className="max-sm:hidden" />
-            {/* Region Select */}
-            <Select
-              value={selectedRegion}
-              onChange={(e) => {
-                const newRegionId = e.target.value;
-                getOptionSite(newRegionId);
-                setSelectedRegion(newRegionId);
-                dispatch(setCurrentRegion({ regionId: newRegionId }));
-              }}
-              renderValue={(selected) => {
-                const selectedItem = optionRegion?.find((r) => r.value === selected);
-                return (
-                  <Typography variant="subtitle2" fontSize={12}>
-                    {selectedItem?.label || ''}
-                  </Typography>
-                );
-              }}
-              sx={{
-                minWidth: 120,
-                fontSize: 12,
-                color: '#6d6d6d',
-                backgroundColor: 'transparent',
-                '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                '& .MuiSelect-select': {
-                  padding: '0 24px 0 5px',
-                  height: 'auto',
-                  overflow: 'hidden'
-                },
-                '& .MuiSvgIcon-root': {
-                  color: '#6d6d6d'
-                }
-              }}
-            >
-              {optionRegion?.map((region) => (
-                <MenuItem key={region.value} value={region.value}>
-                  {region.label}
-                </MenuItem>
-              ))}
-            </Select>
-            {/* Site Select */}
-            <Select
-              value={selectedSite}
-              onChange={(e) => {
-                const newSiteId = e.target.value;
-                setSelectedSite(newSiteId);
-                dispatch(setCurrentSite({ siteId: newSiteId }));
-              }}
-              renderValue={(selected) => {
-                const selectedItem = optionSite?.find((s) => s.value === selected);
-                return (
-                  <Typography variant="subtitle2" fontSize={12}>
-                    {selectedItem?.label || ''}
-                  </Typography>
-                );
-              }}
-              sx={{
-                minWidth: 120,
-                fontSize: 12,
-                color: '#6d6d6d',
-                backgroundColor: 'transparent',
-                '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                '& .MuiSelect-select': {
-                  padding: '0 24px 0 5px',
-                  height: 'auto',
-                  overflow: 'hidden'
-                },
-                '& .MuiSvgIcon-root': {
-                  color: '#6d6d6d'
-                }
-              }}
-            >
-              {optionSite?.map((site) => (
-                <MenuItem key={site.value} value={site.value}>
-                  {site.label}
-                </MenuItem>
-              ))}
-            </Select>
-            {/* Clock + Date */}
-            <Clock size={16} color="#6d6d6d" className="max-sm:hidden" />
-            <Typography variant="body2" color="GrayText" sx={{ marginLeft: 0.5, display: { xs: 'none', sm: 'block' } }}>
-              {intl.formatMessage({ id: 'month' })} {currentMonth}
-            </Typography>
-            <Typography variant="body2" color="GrayText" sx={{ marginX: 0.75, display: { xs: 'none', sm: 'block' } }}>
-              {intl.formatMessage({ id: 'year' })} {currentYear}
-            </Typography>
-            <Typography variant="body2" color="GrayText" sx={{ marginX: 0.5, display: { xs: 'block', sm: 'none' } }}>
-              {currentMonth}/{currentYear}
-            </Typography>
           </Grid>
           {/* {title && titleBottom && (
             <Grid item xs={12} sx={{ mt: card === false ? 0 : 1 }}>
@@ -392,241 +242,15 @@ const Breadcrumbs = ({
                 {itemContent}
               </MuiBreadcrumbs>
             </div>
-            <div>
-              <Stack direction="row" alignItems="center" className="flex-nowrap gap-4">
-                <div className="flex-1 min-w-0 flex items-center gap-4">
-                  {/* Region Selector */}
-                  <Box
-                    className="flex w-1/2 md:w-full items-center gap-2 rounded-lg px-3 py-2 transition-colors"
-                    sx={{
-                      bgcolor: isDark ? theme.palette.background.paper : 'grey.100'
-                    }}
-                  >
-                    <Building4 size={16} className={isDark ? 'text-white' : 'text-gray-500'} />
-
-                    <Box className="flex-1">
-                      <Select
-                        displayEmpty
-                        value={selectedRegion}
-                        onChange={(e) => {
-                          if (selectedSite) {
-                            dispatch(setCurrentSite({ siteId: '' }));
-                            setSelectedSite('');
-                          }
-                          const newRegionId = e.target.value;
-                          getOptionSite(newRegionId);
-                          setSelectedRegion(newRegionId);
-                          dispatch(setCurrentRegion({ regionId: newRegionId }));
-                        }}
-                        renderValue={(selected) => {
-                          if (!selected) {
-                            return (
-                              <Typography
-                                variant="subtitle2"
-                                sx={{
-                                  fontStyle: 'italic',
-                                  color: theme.palette.text.disabled,
-                                  fontSize: 12
-                                }}
-                              >
-                                {intl.formatMessage({ id: 'select-region' })}
-                              </Typography>
-                            );
-                          }
-
-                          const selectedItem = optionRegion?.find((r) => r.value === selected);
-                          return (
-                            <Typography
-                              variant="subtitle2"
-                              sx={{
-                                fontSize: 14,
-                                fontWeight: 500,
-                                color: isDark ? theme.palette.text.primary : theme.palette.text.secondary
-                              }}
-                            >
-                              {selectedItem?.label || ''}
-                            </Typography>
-                          );
-                        }}
-                        disableUnderline
-                        className="w-full"
-                        variant="standard"
-                        sx={{
-                          fontSize: 12,
-                          minWidth: 100,
-                          color: isDark ? theme.palette.text.primary : theme.palette.text.secondary,
-                          backgroundColor: 'transparent',
-                          padding: 0,
-                          '&::before, &::after': { display: 'none' },
-                          '& .MuiSelect-select': {
-                            padding: 0,
-                            paddingRight: '20px',
-                            height: 'auto',
-                            display: 'flex',
-                            alignItems: 'center'
-                          },
-                          '& .MuiSvgIcon-root': {
-                            color: theme.palette.text.primary,
-                            fontSize: 18
-                          },
-                          '& .MuiInputBase-input:focus': {
-                            backgroundColor: 'transparent'
-                          }
-                        }}
-                      >
-                        {optionRegion?.map((region) => (
-                          <MenuItem
-                            key={region.value}
-                            value={region.value}
-                            sx={{
-                              color: isDark ? theme.palette.text.primary : theme.palette.text.secondary,
-                              bgcolor: 'transparent',
-                              '&:hover': {
-                                bgcolor: isDark ? theme.palette.action.hover : theme.palette.primary[50]
-                              }
-                            }}
-                          >
-                            {region.label}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </Box>
-                  </Box>
-
-                  {/* Site Selector */}
-                  <Box
-                    className="flex w-1/2 md:w-full items-center gap-2 rounded-lg px-3 py-2 transition-colors"
-                    sx={{
-                      bgcolor: isDark ? theme.palette.background.paper : 'grey.100'
-                    }}
-                  >
-                    <Location size={16} className={isDark ? 'text-white' : 'text-gray-500'} />
-                    <div className="flex-1 min-w-0">
-                      <Select
-                        displayEmpty
-                        disabled={!selectedRegion}
-                        value={selectedSite}
-                        onChange={(e) => {
-                          const newSiteId = e.target.value;
-                          setSelectedSite(newSiteId);
-                          if (newSiteId === SYSTEM_SITE_ID) {
-                            dispatch(setCurrentSite({ siteId: '' }));
-                            return;
-                          }
-                          dispatch(setCurrentSite({ siteId: newSiteId }));
-                        }}
-                        renderValue={(selected) => {
-                          if (selected.length === 0) {
-                            return (
-                              <Typography
-                                variant="subtitle2"
-                                sx={{
-                                  fontStyle: 'italic',
-                                  color: theme.palette.text.secondary,
-                                  fontSize: 12
-                                }}
-                              >
-                                {intl.formatMessage({ id: 'select-site' })}
-                              </Typography>
-                            );
-                          }
-
-                          const selectedItem = optionSite?.find((s) => s.value === selected);
-                          return (
-                            <Typography
-                              sx={{
-                                fontSize: 14,
-                                fontWeight: 500,
-                                color: isDark ? theme.palette.text.primary : theme.palette.text.secondary
-                              }}
-                              variant="subtitle2"
-                            >
-                              {selectedItem?.label || ''}
-                            </Typography>
-                          );
-                        }}
-                        className="min-w-[140px] gap-2 w-full"
-                        disableUnderline
-                        variant="standard"
-                        sx={{
-                          fontSize: 12,
-                          minWidth: 100,
-                          color: isDark ? theme.palette.text.primary : theme.palette.text.secondary,
-                          backgroundColor: 'transparent',
-                          padding: 0,
-                          '&::before, &::after': { display: 'none' },
-                          '& .MuiSelect-select': {
-                            padding: 0,
-                            paddingRight: '20px',
-                            height: 'auto',
-                            display: 'flex',
-                            alignItems: 'center'
-                          },
-                          '& .MuiSvgIcon-root': {
-                            color: theme.palette.text.primary,
-                            fontSize: 18
-                          },
-                          '& .MuiInputBase-input:focus': {
-                            backgroundColor: 'transparent'
-                          }
-                        }}
-                        IconComponent={(props) => (
-                          <>
-                            {selectedSite && (
-                              <div
-                                className="cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation(); // ngăn mở dropdown
-                                  setSelectedSite('');
-                                  dispatch(setCurrentSite({ siteId: '' }));
-                                }}
-                              >
-                                <CloseCircle size={16} />
-                              </div>
-                            )}
-                            {/* icon mặc định dropdown */}
-                            <svg {...props} />
-                          </>
-                        )}
-                      >
-                        {optionSite?.map((site) => (
-                          <MenuItem
-                            key={site.value}
-                            value={site.value}
-                            sx={{
-                              color: isDark ? theme.palette.text.primary : theme.palette.text.primary,
-                              bgcolor: 'transparent',
-                              '&:hover': {
-                                bgcolor: isDark ? theme.palette.action.hover : theme.palette.primary[50]
-                              }
-                            }}
-                          >
-                            {site.label}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </div>
-                  </Box>
-                </div>
-
-                {/* Date Display */}
-                <div className="md:flex hidden items-center justify-center md:gap-2 py-2">
-                  <Calendar size={18} color={theme.palette.primary.main} />
-                  <div className="flex items-center space-x-1">
-                    <Typography
-                      sx={{ color: theme.palette.primary.main }}
-                      variant="body2"
-                      className="hidden sm:block text-sm leading-[18px]  font-medium"
-                    >
-                      {
-                        i18n === 'vi'
-                          ? now.format('[Tháng] MM [năm] YYYY') // => "tháng 08 năm 2025"
-                          : now.format('MMMM YYYY') // => "August 2025"
-                      }
-                    </Typography>
-                  </div>
-                </div>
-              </Stack>
+            <div className="md:flex hidden items-center justify-center md:gap-2 py-2">
+              <Calendar size={18} color={theme.palette.primary.main} />
+              <Typography
+                sx={{ color: theme.palette.primary.main }}
+                variant="body2"
+                className="hidden sm:block text-sm leading-[18px] font-medium"
+              >
+                {i18n === 'vi' ? now.format('[Tháng] MM [năm] YYYY') : now.format('MMMM YYYY')}
+              </Typography>
             </div>
 
             {/* {title && titleBottom && (

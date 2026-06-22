@@ -1,8 +1,11 @@
+import './gosafe.css';
 import { Box, CssBaseline, ThemeProvider, createTheme, Fab, Zoom, useScrollTrigger } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import useConfig from 'hooks/useConfig';
 import { ThemeMode } from 'types/config';
 import { ArrowUp } from 'iconsax-react';
+import { useNavigate } from 'react-router-dom';
+import useAuth from 'hooks/useAuth';
 
 // Components
 import GosafeNavbar from './components/GosafeNavbar';
@@ -14,6 +17,8 @@ import ContactSection from './sections/ContactSection';
 import FAQSection from './sections/FAQSection';
 import { faqsGosafe } from 'pages/landing/data';
 import Footer from './sections/Footer';
+import TrackingSection from './sections/TrackingSection';
+import LiveDemoSection from './sections/LiveDemoSection';
 
 function ScrollTop(props: { children: React.ReactElement }) {
   const trigger = useScrollTrigger({
@@ -37,15 +42,47 @@ function ScrollTop(props: { children: React.ReactElement }) {
   );
 }
 
-const GosafeLanding = () => {
+interface GosafeLandingProps {
+  viewType?: 'landing' | 'tracking';
+}
+
+const GosafeLanding = ({ viewType = 'landing' }: GosafeLandingProps) => {
   const { onChangeMode, mode, onChangeLocalization, i18n } = useConfig();
-  const [isDark, setIsDark] = useState(mode === ThemeMode.DARK);
+  const [isDark, setIsDark] = useState(() => {
+    if (mode === ThemeMode.AUTO) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return mode === ThemeMode.DARK;
+  });
   const primaryColor = '#2772ed';
   const secondaryColor = '#4a90e2';
-  console.log(onChangeMode, onChangeLocalization);
+  const navigate = useNavigate();
+  const { isLoggedIn } = useAuth();
+
   useEffect(() => {
-    setIsDark(mode === ThemeMode.DARK);
+    const updateTheme = () => {
+      if (mode === ThemeMode.AUTO) {
+        setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
+      } else {
+        setIsDark(mode === ThemeMode.DARK);
+      }
+    };
+
+    updateTheme();
+
+    if (mode === ThemeMode.AUTO) {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = () => updateTheme();
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
   }, [mode]);
+
+  useEffect(() => {
+    if (viewType === 'landing' && isLoggedIn) {
+      navigate('/gosafe/tracking', { replace: true });
+    }
+  }, [viewType, isLoggedIn, navigate]);
 
   const theme = useMemo(
     () =>
@@ -75,7 +112,7 @@ const GosafeLanding = () => {
           button: { fontWeight: 600 }
         },
         shape: {
-          borderRadius: 12
+          borderRadius: 6
         },
         components: {
           MuiButton: {
@@ -94,34 +131,69 @@ const GosafeLanding = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', overflowX: 'hidden' }}>
-        <GosafeNavbar
-          primaryColor={primaryColor}
-          secondaryColor={secondaryColor}
-          isDark={isDark}
-          currentLang={i18n}
-          onToggleTheme={() => onChangeMode(mode === ThemeMode.DARK ? ThemeMode.LIGHT : ThemeMode.DARK)}
-          onToggleLanguage={() => onChangeLocalization(i18n === 'vi' ? 'en' : 'vi')}
-        />
+      <Box
+        sx={{
+          bgcolor: 'background.default',
+          minHeight: '100vh',
+          overflowX: 'hidden',
+          ...(viewType === 'tracking' && {
+            height: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflowY: 'hidden'
+          })
+        }}
+      >
+        {viewType === 'landing' && (
+          <GosafeNavbar
+            primaryColor={primaryColor}
+            secondaryColor={secondaryColor}
+            isDark={isDark}
+            currentLang={i18n}
+            onToggleTheme={() => {
+              if (mode === ThemeMode.LIGHT) {
+                onChangeMode(ThemeMode.DARK);
+              } else if (mode === ThemeMode.DARK) {
+                onChangeMode(ThemeMode.AUTO);
+              } else {
+                onChangeMode(ThemeMode.LIGHT);
+              }
+            }}
+            onToggleLanguage={() => onChangeLocalization(i18n === 'vi' ? 'en' : 'vi')}
+            activeView={viewType}
+            onViewChange={(v) => navigate(v === 'tracking' ? '/gosafe/tracking' : '/gosafe')}
+          />
+        )}
 
-        <SolutionsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
-        <HeroSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
-        <ProductsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
-        <SpecsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
-        <FAQSection faqs={faqsGosafe} isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+        {viewType === 'landing' ? (
+          <>
+            <SolutionsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+            <HeroSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+            <LiveDemoSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+            <ProductsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+            <SpecsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+            <FAQSection faqs={faqsGosafe} isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
 
-        <ContactSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
-        <Footer isDark={isDark} primaryColor={primaryColor} />
+            <ContactSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+            <Footer isDark={isDark} primaryColor={primaryColor} />
 
-        <ScrollTop>
-          <Fab
-            size="medium"
-            aria-label="scroll back to top"
-            sx={{ bgcolor: primaryColor, color: '#fff', '&:hover': { bgcolor: secondaryColor } }}
-          >
-            <ArrowUp />
-          </Fab>
-        </ScrollTop>
+            <ScrollTop>
+              <Fab
+                size="medium"
+                aria-label="scroll back to top"
+                sx={{
+                  bgcolor: primaryColor,
+                  color: '#fff',
+                  '&:hover': { bgcolor: secondaryColor }
+                }}
+              >
+                <ArrowUp />
+              </Fab>
+            </ScrollTop>
+          </>
+        ) : (
+          <TrackingSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+        )}
       </Box>
     </ThemeProvider>
   );

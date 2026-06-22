@@ -7,5 +7,4 @@ export * from './user';
 export * from './promotion';
 export * from './session';
 export * from './restriction';
-export * from './voucher';
 export * from './wlan';

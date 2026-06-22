@@ -3,9 +3,6 @@ import axiosServices from 'utils/axios';
 import { API_PATH_SSID } from 'utils/constant';
 
 export const ssidApi = {
-  // ===========================
-  // CREATE SSID
-  // ===========================
   create: (data: any): AxiosPromise<any> =>
     axiosServices({
       url: '/v1/ssid_management/create_advanced_ssid',
@@ -13,9 +10,6 @@ export const ssidApi = {
       data
     }),
 
-  // ===========================
-  // EDIT SSID
-  // ===========================
   edit: (id: number, data: any): AxiosPromise<any> =>
     axiosServices({
       url: `/v1/ssid_management/edit_advanced_ssid`,
@@ -24,9 +18,6 @@ export const ssidApi = {
       params: { id }
     }),
 
-  // ===========================
-  // DELETE SSID
-  // ===========================
   delete: (params: { id: number }): AxiosPromise<any> =>
     axiosServices({
       url: `/v1/ssid_management/delete_advanced_ssid`,
@@ -34,9 +25,6 @@ export const ssidApi = {
       params
     }),
 
-  // ===========================
-  // GET LIST SSID
-  // ===========================
   getSSID: (params: any): AxiosPromise<any> =>
     axiosServices({
       url: API_PATH_SSID.dataSSID,
@@ -44,9 +32,6 @@ export const ssidApi = {
       params
     }),
 
-  // ===========================
-  // REFRESH SSID
-  // ===========================
   refresh: (wlanId: string): AxiosPromise<any> =>
     axiosServices({
       url: `/v1/ssid_management/refresh_ssid`,

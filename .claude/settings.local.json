@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/PC-01/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/ac2aa564-af05-4b9c-b722-c79986a168ac/67c3a6c8-871b-4419-b408-fbd72183195b/skills/xlsx/**)",
+      "Bash(python -c ' *)",
+      "Bash(py -3 -c ' *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/)",
+      "WebFetch(domain:gosafe.vtctelecom.com.vn)",
+      "Bash(Get-Content \"F:\\\\Code\\\\ankle-tracking-fe\\\\src\\\\utils\\\\locales\\\\en.json\")",
+      "Bash(Select-Object -Last 40)",
+      "Bash(tail -40 \"/mnt/f/Code/ankle-tracking-fe/src/utils/locales/en.json\")",
+      "Bash(tail -30 \"/mnt/f/Code/ankle-tracking-fe/src/utils/locales/vi.json\")",
+      "Bash(cd /mnt/f/Code/ankle-tracking-fe && npx tsc --noEmit 2>&1 | head -60)",
+      "Bash(findstr /I \"route\")",
+      "PowerShell(cd \"f:\\\\Code\\\\ankle-tracking-fe\"; npx tsc --noEmit --skipLibCheck 2>&1 | Select-String \"error TS\" | Where-Object { $_ -notmatch \"node_modules\" })",
+      "Bash(ls -la \"f:\\\\Code\\\\ankle-tracking-fe\\\\src\\\\menu-items\\\\\\\\\")",
+      "Bash(ls -la \"f:\\\\Code\\\\ankle-tracking-fe\\\\src\\\\pages\\\\\\\\\")",
+      "Bash(grep -E \"\\\\.\\(tsx|ts|jsx|js\\)$\")",
+      "Bash(xargs grep -l \"wifi-premium\\\\|wlan\\\\|ssid\\\\|voucher\")",
+      "Bash(npx vite *)",
+      "Bash(node -e \"const rl = require\\('react-leaflet'\\); console.log\\(['ScaleControl','Tooltip','Circle','useMap'].map\\(k => k + ':' + \\(k in rl\\)\\).join\\('\\\\n'\\)\\)\")",
+      "Read(//c/Users/PC-01/Downloads/**)",
+      "Bash(ls -la \"Thông tin API.xlsx\")",
+      "Bash(cd \"/f/Code/ankle-tracking-fe\" && find src/pages/gosafe -type f | head -200)",
+      "Bash(python -c \"import openpyxl; wb=openpyxl.load_workbook\\('Thông tin API.xlsx'\\); print\\([ws.title for ws in wb.worksheets]\\)\")",
+      "Bash(node -e ' *)",
+      "Read(//f/f/Code/ankle-tracking-fe/**)",
+      "Bash(cd \"/f/Code/ankle-tracking-fe\" && echo \"=== API/services ===\" && find src -type d \\\\\\( -iname \"*api*\" -o -iname \"*service*\" -o -iname \"*hook*\" \\\\\\) | head && echo \"---\" && find src -iname \"axios*\" -o -iname \"*client*\" -o -iname \"apiConfig*\" | head)",
+      "PowerShell(npx tsc --noEmit -p tsconfig.json 2>&1)"
+    ]
+  }
+}
