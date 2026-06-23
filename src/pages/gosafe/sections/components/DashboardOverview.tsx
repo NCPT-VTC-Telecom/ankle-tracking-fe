@@ -21,6 +21,7 @@ interface DashboardOverviewProps {
   store: TrackingStore;
   setDashboardView: (view: 'overview' | 'tracking' | 'devices' | 'prisoners' | 'alerts' | 'users' | 'regions' | 'compliance') => void;
   scopeRegionId?: string | null;
+  refreshKey?: number;
 }
 
 interface AlertItem {
@@ -42,7 +43,7 @@ function levelOf(raw: number | string | null | undefined): 'P1' | 'P2' | 'P3' {
 }
 const LEVEL_COLOR: Record<string, string> = { P1: '#dc2626', P2: '#ea580c', P3: '#ca8a04' };
 
-export default function DashboardOverview({ isDark, store, setDashboardView, scopeRegionId }: DashboardOverviewProps) {
+export default function DashboardOverview({ isDark, store, setDashboardView, scopeRegionId, refreshKey }: DashboardOverviewProps) {
   const { devices, geofences, deviceViolations, setSelectedDeviceId } = store;
 
   const [serverAlerts, setServerAlerts] = useState<AlertItem[] | null>(null);
@@ -69,7 +70,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
       })
       .catch(() => { if (!cancelled) setServerAlerts(null); });
     return () => { cancelled = true; };
-  }, [scopeRegionId]);
+  }, [scopeRegionId, refreshKey]);
 
   // ── Derived counts ──
   const subjects = useMemo(() => devices.filter((d) => d.subject !== null), [devices]);
@@ -126,7 +127,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
   const donutStroke = isDark ? '#0f172a' : '#ffffff';
 
   const panel = (accentColor = '#1e6fd9') => ({
-    borderRadius: '12px',
+    borderRadius: '16px',
     border: `1px solid ${panelBorder}`,
     background: isDark
       ? `linear-gradient(135deg, rgba(15,23,42,0.75) 0%, rgba(20,30,55,0.75) 100%)`
@@ -150,7 +151,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
   });
 
   const cardStyle = (accentColor: string) => ({
-    borderRadius: '12px',
+    borderRadius: '16px',
     border: `1px solid ${panelBorder}`,
     background: isDark
       ? `linear-gradient(135deg, rgba(15,23,42,0.7) 0%, rgba(30,41,59,0.7) 100%)`
@@ -404,7 +405,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
                     onClick={() => { if (dev) { setSelectedDeviceId(dev.id); setDashboardView('tracking'); } }}
                     sx={{
                       display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 0.75, alignItems: 'center',
-                      p: 1.1, borderRadius: '10px',
+                      p: 1.1, borderRadius: '12px',
                       border: '1px solid',
                       borderColor: a.level === 'P1' ? `${color}40` : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
                       background: a.level === 'P1'
@@ -424,14 +425,14 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
                       } : {}
                     }}
                   >
-                    <Box sx={{ width: 40, height: 40, borderRadius: '10px', display: 'grid', placeItems: 'center', bgcolor: `${color}18`, color }}>
+                    <Box sx={{ width: 40, height: 40, borderRadius: '12px', display: 'grid', placeItems: 'center', bgcolor: `${color}18`, color }}>
                       <Danger size={20} variant="Bold" />
                     </Box>
                     <Box sx={{ minWidth: 0 }}>
                       <Typography sx={{ fontSize: '15px', fontWeight: 600, color: txtPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.title}</Typography>
                       <Typography sx={{ fontSize: '13px', fontWeight: 500, color: txtSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.desc}{a.time ? ` · ${a.time}` : ''}</Typography>
                     </Box>
-                    <Chip label={a.level} size="small" sx={{ height: 24, fontWeight: 700, fontSize: '11.5px', color, bgcolor: `${color}1a`, borderRadius: '6px' }} />
+                    <Chip label={a.level} size="small" sx={{ height: 24, fontWeight: 700, fontSize: '11.5px', color, bgcolor: `${color}1a`, borderRadius: '12px' }} />
                   </Box>
                 );
               })}
@@ -480,7 +481,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
                     onClick={() => { setSelectedDeviceId(dev.id); setDashboardView('tracking'); }}
                     sx={{
                       display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 0.75, alignItems: 'center',
-                      p: 1.1, borderRadius: '10px',
+                      p: 1.1, borderRadius: '12px',
                       border: '1px solid',
                       borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
                       background: isDark ? 'rgba(255,255,255,0.02)' : '#ffffff',
@@ -522,7 +523,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
                         color: statusColor,
                         bgcolor: `${statusColor}14`,
                         border: `1px solid ${statusColor}30`,
-                        borderRadius: '6px',
+                        borderRadius: '12px',
                         
                       }}
                     />

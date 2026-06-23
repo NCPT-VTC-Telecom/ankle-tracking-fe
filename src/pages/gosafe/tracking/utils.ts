@@ -112,6 +112,74 @@ export function timeAgo(date: Date | null): string {
   return `${Math.floor(m / 60)} giờ trước`;
 }
 
+// ─── ENUM DICTIONARIES (khớp api-docs offender_management) ──────────────────────
+
+/** subjectType — phân loại đối tượng (CreateOffenderDto.subjectType). */
+export const OFFENDER_SUBJECT_TYPE_VI: Record<string, string> = {
+  DRUG_ADDICT: 'Nghiện ma túy',
+  POST_REHAB: 'Sau cai nghiện',
+  COMMUNITY_SENTENCE: 'Án phạt cộng đồng'
+};
+
+/** sentenceType — hình thức án (CreateOffenderDto.sentenceType). */
+export const SENTENCE_TYPE_VI: Record<string, string> = {
+  suspended: 'Án treo',
+  conditional: 'Án có điều kiện',
+  community_service: 'Lao động công ích'
+};
+
+/** status — trạng thái đối tượng (UpdateOffenderDto.status). */
+export const OFFENDER_STATUS_VI: Record<string, string> = {
+  MONITORING: 'Đang giám sát',
+  VIOLATING: 'Vi phạm',
+  SUSPENDED: 'Tạm đình chỉ',
+  COMPLETED: 'Hoàn thành'
+};
+
+/** Danh sách key gợi ý cho ô chọn (Autocomplete) — nhãn hiển thị dùng translate*. */
+export const SUBJECT_TYPE_OPTIONS = Object.keys(OFFENDER_SUBJECT_TYPE_VI);
+export const SENTENCE_TYPE_OPTIONS = Object.keys(SENTENCE_TYPE_VI);
+
+/** Key dạng enum (SNAKE_CASE / snake_case) → chữ thường có dấu cách, viết hoa đầu. */
+function prettifyEnum(key: string): string {
+  const s = key.replace(/_/g, ' ').trim().toLowerCase();
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : key;
+}
+
+/** Tội danh: dịch subjectType nếu khớp; còn lại là chuỗi tự do → giữ nguyên. */
+export function translateCrime(value?: string | null): string {
+  if (!value) return '—';
+  return OFFENDER_SUBJECT_TYPE_VI[value] ?? value;
+}
+
+/** Hình phạt: có thể là "community_service" hoặc "community_service · 36 tháng". */
+export function translateSentence(value?: string | null): string {
+  if (!value) return '—';
+  return value
+    .split(' · ')
+    .map((seg) => {
+      const k = seg.trim();
+      return SENTENCE_TYPE_VI[k] ?? (/^[a-z][a-z_]+$/.test(k) ? prettifyEnum(k) : k);
+    })
+    .join(' · ');
+}
+
+/** Trạng thái đối tượng: dịch enum status; fallback prettify. */
+export function translateOffenderStatus(value?: string | null): string {
+  if (!value) return '—';
+  return OFFENDER_STATUS_VI[value] ?? prettifyEnum(value);
+}
+
+/** ISO/Date string → dd/mm/yyyy. Không phải ngày hợp lệ → trả nguyên; rỗng → '—'. */
+export function formatDateVN(value?: string | null): string {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}
+
 export function getBatteryColor(level: number) {
   if (level > 50) return '#22c55e';
   if (level > 20) return '#f59e0b';
@@ -155,6 +223,38 @@ export function isFiberCut(name: string): boolean {
 /** Thiết bị test cứng từ backend (IMEI 'TEST...') — ẩn khỏi danh sách & cảnh báo */
 export function isTestDevice(imei: string | null | undefined): boolean {
   return /^test/i.test((imei ?? '').trim());
+}
+
+/**
+ * Validate thời hạn án theo BLHS 2015 (Thông tư 65/2019 dẫn chiếu).
+ * Trả về message lỗi (chặn lưu) hoặc null nếu hợp lệ.
+ *  - suspended (Án treo): 1–5 năm (Điều 65)
+ *  - conditional (Cải tạo không giam giữ): 6 tháng–3 năm (Điều 36)
+ *  - community_service (Lao động phục vụ cộng đồng): 6 tháng–3 năm (Điều 36 k.4)
+ */
+const SENTENCE_RULES: Record<string, { minYears: number; maxYears: number; label: string; cite: string }> = {
+  suspended: { minYears: 1, maxYears: 5, label: 'Án treo: thời gian thử thách', cite: 'BLHS Điều 65' },
+  conditional: { minYears: 0.5, maxYears: 3, label: 'Cải tạo không giam giữ: thời hạn', cite: 'BLHS Điều 36' },
+  community_service: { minYears: 0.5, maxYears: 3, label: 'Lao động phục vụ cộng đồng: thời hạn', cite: 'BLHS Điều 36' }
+};
+
+export function validateSentence(
+  sentenceType: string | null | undefined,
+  start: string | null | undefined,
+  end: string | null | undefined
+): string | null {
+  if (start && end && new Date(start).getTime() >= new Date(end).getTime()) {
+    return 'Ngày mãn hạn phải sau ngày bắt đầu thi hành án.';
+  }
+  const rule = sentenceType ? SENTENCE_RULES[sentenceType] : undefined;
+  if (!rule) return null; // loại án không ràng buộc thời hạn
+  if (!start || !end) return 'Vui lòng nhập ngày bắt đầu và mãn hạn để kiểm tra theo luật.';
+  const years = (new Date(end).getTime() - new Date(start).getTime()) / (365.25 * 86400000);
+  if (years < rule.minYears || years > rule.maxYears) {
+    const fmt = (y: number) => (y < 1 ? `${Math.round(y * 12)} tháng` : `${y} năm`);
+    return `${rule.label} phải từ ${fmt(rule.minYears)} đến ${fmt(rule.maxYears)} (${rule.cite}).`;
+  }
+  return null;
 }
 
 // ─── SESSION STORAGE ──────────────────────────────────────────────────────────

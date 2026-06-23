@@ -12,6 +12,7 @@ import {
   devicesApi,
   offendersApi,
   alertsApi,
+  regionsApi,
   mapApiZoneToGeofence,
   mapApiOffenderToSubject,
   offenderDeviceKeys,
@@ -105,6 +106,11 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
   // ── UI ──
   const [activeTab, setActiveTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  // ── Phạm vi địa bàn (region scope) — map/list chỉ hiện "cấp cơ sở đổ xuống" ──
+  const [scopeRegionId, setScopeRegionId] = useState<string | null>(null);
+  const [scopeRegions, setScopeRegions] = useState<{ id: string; name: string; path: string; level: number }[]>([]);
+  const [regionPathById, setRegionPathById] = useState<Record<string, string>>({});
+  const [deviceRegionByImei, setDeviceRegionByImei] = useState<Record<string, string>>({});
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => ssGet(SS.SOUND, true));
   const [followDevice, setFollowDevice] = useState<boolean>(() => ssGet(SS.FOLLOW, true));
   const [showAlertOverlay, setShowAlertOverlay] = useState(false);
@@ -308,16 +314,51 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     return map;
   }, [devices, geofences]);
 
+  // Nạp cây địa bàn (path) + map IMEI→regionId (device_management) cho bộ lọc phạm vi.
+  useEffect(() => {
+    let cancelled = false;
+    regionsApi.list({ pageSize: 500 }).then((r) => {
+      if (cancelled) return;
+      const list = extractList(r.data);
+      const pmap: Record<string, string> = {};
+      list.forEach((x: any) => { pmap[String(x.id)] = String(x.path ?? ''); });
+      setRegionPathById(pmap);
+      setScopeRegions(list.map((x: any) => ({ id: String(x.id), name: x.name ?? x.code ?? x.id, path: String(x.path ?? ''), level: Number(x.level ?? 1) })));
+    }).catch(() => {});
+    devicesApi.list({ pageSize: 500 }).then((r) => {
+      if (cancelled) return;
+      const dmap: Record<string, string> = {};
+      extractList(r.data).forEach((d: any) => {
+        const imei = String(d.imei ?? '').trim();
+        if (imei && d.regionId) dmap[imei] = String(d.regionId);
+      });
+      setDeviceRegionByImei(dmap);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  // "Cấp cơ sở đổ xuống": chỉ giữ thiết bị thuộc cây con của địa bàn scope (theo path).
+  const scopedDevices = useMemo(() => {
+    if (!scopeRegionId) return devices;
+    const scopePath = regionPathById[scopeRegionId];
+    if (!scopePath) return devices; // chưa biết path → không lọc (tránh ẩn nhầm)
+    return devices.filter((d) => {
+      const rid = deviceRegionByImei[d.uniqueId];
+      const rpath = rid ? regionPathById[rid] : undefined;
+      return rpath ? rpath === scopePath || rpath.startsWith(scopePath + '.') : false;
+    });
+  }, [devices, scopeRegionId, regionPathById, deviceRegionByImei]);
+
   const filteredDevices = useMemo(() => {
-    if (!searchQuery) return devices;
+    if (!searchQuery) return scopedDevices;
     const q = searchQuery.toLowerCase();
-    return devices.filter(
+    return scopedDevices.filter(
       (d) =>
         d.name.toLowerCase().includes(q) ||
         d.uniqueId.includes(q) ||
         (d.subject?.fullName.toLowerCase().includes(q) ?? false)
     );
-  }, [devices, searchQuery]);
+  }, [scopedDevices, searchQuery]);
 
   const syncMinutesMap = useMemo(() => {
     const m: Record<string, number> = {};
@@ -558,7 +599,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
       coords: [...BASE_CENTER] as [number, number],
       angle: 0,
       pathHistory: [],
-      assignedGeofenceId: null
+      assignedGeofenceId: f.assignedGeofenceId
     };
     setDevices((prev) => [...prev, newDev]);
     setSelectedDeviceId(newId);
@@ -574,7 +615,8 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
         deviceCode: f.name,
         imei: f.uniqueId,
         deviceType: f.deviceType,
-        phoneNumber: f.phoneNumber
+        phoneNumber: f.phoneNumber,
+        ...(f.regionId ? { regionId: f.regionId } : {})
       })
       .catch(() =>
         addLog(`Không tạo được thiết bị "${f.name}" trên máy chủ (lưu cục bộ).`, 'warning')
@@ -663,6 +705,8 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
       uniqueId: dev.uniqueId,
       phoneNumber: dev.phoneNumber,
       color: dev.color,
+      assignedGeofenceId: dev.assignedGeofenceId,
+      regionId: null,
       subjectFullName: dev.subject?.fullName ?? '',
       subjectIdNumber: dev.subject?.idNumber ?? '',
       subjectCrime: dev.subject?.crime ?? '',
@@ -1175,6 +1219,11 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     setActiveTab,
     searchQuery,
     setSearchQuery,
+    // Region scope (lọc map/list theo cấp cơ sở đổ xuống)
+    scopeRegionId,
+    setScopeRegionId,
+    scopeRegions,
+    scopedDevices,
     soundEnabled,
     setSoundEnabled,
     followDevice,

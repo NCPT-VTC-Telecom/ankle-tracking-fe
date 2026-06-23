@@ -27,9 +27,9 @@ export default function GlassKpiCard({ label, value, sub, color, icon, isDark = 
   return (
     <Box
       sx={{
-        p: 2.5,
+        p: 3,
         height: '100%',
-        borderRadius: '12px',
+        borderRadius: '16px',
         border: `1px solid ${isDark ? `${color}22` : `${color}18`}`,
         background: isDark
           ? `linear-gradient(135deg, ${color}18 0%, ${color}06 100%), rgba(9,13,31,0.55)`
@@ -57,7 +57,7 @@ export default function GlassKpiCard({ label, value, sub, color, icon, isDark = 
         <Box sx={{ minWidth: 0 }}>
           <Typography
             variant="caption"
-            sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b' }}
+            sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, fontSize: '0.78rem', color: isDark ? '#94a3b8' : '#64748b' }}
           >
             {label}
           </Typography>
@@ -73,7 +73,7 @@ export default function GlassKpiCard({ label, value, sub, color, icon, isDark = 
             )}
           </Stack>
           {sub && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75, fontSize: '0.7rem' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75, fontSize: '0.8rem' }}>
               {sub}
             </Typography>
           )}
@@ -82,8 +82,8 @@ export default function GlassKpiCard({ label, value, sub, color, icon, isDark = 
           sx={{
             bgcolor: `${color}1a`,
             color,
-            width: 48,
-            height: 48,
+            width: 52,
+            height: 52,
             border: `1.5px solid ${color}30`,
             boxShadow: `0 4px 16px ${color}25`,
             flexShrink: 0

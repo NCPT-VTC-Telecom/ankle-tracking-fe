@@ -14,7 +14,7 @@ export default function StatCard({ title, value, subtext, icon, color, gradient 
   return (
     <Card
       sx={{
-        borderRadius: 2,
+        borderRadius: '16px',
         boxShadow: 'none',
         border: '1px solid',
         borderColor: (theme) => (theme.palette.mode === 'dark' ? `${gradient}25` : `${gradient}35`),
@@ -62,7 +62,7 @@ export default function StatCard({ title, value, subtext, icon, color, gradient 
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 letterSpacing: 0.8,
-                fontSize: '0.65rem',
+                fontSize: '0.75rem',
                 opacity: 0.85
               }}
             >
@@ -73,14 +73,14 @@ export default function StatCard({ title, value, subtext, icon, color, gradient 
               sx={{
                 fontWeight: 700,
                 color: (theme) => (theme.palette.mode === 'dark' ? '#f8fafc' : `${gradient}cc`),
-                fontSize: '1.75rem',
+                fontSize: '1.85rem',
                 lineHeight: 1.1,
                 letterSpacing: -0.5
               }}
             >
               {value}
             </Typography>
-            <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', fontSize: '0.7rem', fontWeight: 600 }}>
+            <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', fontSize: '0.8rem', fontWeight: 600 }}>
               {subtext}
             </Typography>
           </Stack>
@@ -88,7 +88,7 @@ export default function StatCard({ title, value, subtext, icon, color, gradient 
             className="stat-icon-box"
             sx={{
               p: 1.25,
-              borderRadius: 1.5,
+              borderRadius: '12px',
               background: `linear-gradient(135deg, ${gradient} 0%, ${gradient}bb 100%)`,
               color: '#ffffff',
               display: 'flex',

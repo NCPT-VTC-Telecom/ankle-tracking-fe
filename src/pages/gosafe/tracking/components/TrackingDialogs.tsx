@@ -24,7 +24,8 @@ import {
   Alert
 } from '@mui/material';
 import { DEVICE_PALETTE, ZONE_PRESETS, DEFAULT_ZONE_SCHEDULE, WEEKDAY_LABELS, ZONE_PRESET_MAP } from '../constants';
-import { getMockBiometrics } from '../utils';
+import { getMockBiometrics, translateCrime, translateSentence, formatDateVN } from '../utils';
+import { regionsApi, extractList } from 'api/gosafe.management.api';
 import type { ZoneType, ZoneSchedule } from '../types';
 import type { TrackingStore } from '../useTracking';
 import SideDrawer from '../../components/SideDrawer';
@@ -35,9 +36,20 @@ interface Props {
 }
 
 function DeviceFormContent({ store }: Props) {
-  const { addDeviceForm, setAddDeviceForm } = store;
+  const { addDeviceForm, setAddDeviceForm, geofences } = store;
   const f = addDeviceForm;
   const set = (patch: Partial<typeof f>) => setAddDeviceForm((prev) => ({ ...prev, ...patch }));
+
+  // Địa bàn (region) cho selector — tải từ API quản lý địa bàn.
+  const [regions, setRegions] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    regionsApi
+      .list({ pageSize: 200 })
+      .then((r) => { if (!cancelled) setRegions(extractList(r.data).map((x: any) => ({ id: String(x.id), name: x.name ?? x.code ?? x.id }))); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <Stack spacing={2.5}>
@@ -73,52 +85,39 @@ function DeviceFormContent({ store }: Props) {
         ))}
       </Stack>
 
-      {f.type === 'Person' && (
-        <>
-          <Divider>
-            <Typography variant="caption" color="text.secondary" sx={{ px: 1 }}>
-              Thông tin phạm nhân
-            </Typography>
-          </Divider>
-          <Stack direction="row" spacing={2}>
-            <TextField label="Họ và tên *" fullWidth value={f.subjectFullName} onChange={(e) => set({ subjectFullName: e.target.value })} />
-            <TextField label="CCCD/CMND" fullWidth value={f.subjectIdNumber} onChange={(e) => set({ subjectIdNumber: e.target.value })} />
-          </Stack>
-          <TextField label="Tội danh" fullWidth value={f.subjectCrime} onChange={(e) => set({ subjectCrime: e.target.value })} />
-          <TextField
-            label="Bản án / Hình phạt"
-            fullWidth
-            value={f.subjectSentence}
-            onChange={(e) => set({ subjectSentence: e.target.value })}
-          />
-          <Stack direction="row" spacing={2}>
-            <TextField
-              label="Ngày bắt đầu"
-              fullWidth
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={f.subjectStartDate}
-              onChange={(e) => set({ subjectStartDate: e.target.value })}
-            />
-            <TextField
-              label="Ngày kết thúc"
-              fullWidth
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={f.subjectReleaseDate}
-              onChange={(e) => set({ subjectReleaseDate: e.target.value })}
-            />
-          </Stack>
-          <TextField
-            label="Ghi chú"
-            fullWidth
-            multiline
-            rows={2}
-            value={f.subjectNotes}
-            onChange={(e) => set({ subjectNotes: e.target.value })}
-          />
-        </>
-      )}
+      <Divider>
+        <Typography variant="caption" color="text.secondary" sx={{ px: 1 }}>
+          Vùng quản lý
+        </Typography>
+      </Divider>
+      <Stack direction="row" spacing={2}>
+        <FormControl fullWidth>
+          <InputLabel>Vùng giám sát (geofence)</InputLabel>
+          <Select
+            value={f.assignedGeofenceId ?? ''}
+            label="Vùng giám sát (geofence)"
+            onChange={(e) => set({ assignedGeofenceId: e.target.value || null })}
+          >
+            <MenuItem value=""><em>— Chưa gán —</em></MenuItem>
+            {geofences.map((g) => (
+              <MenuItem key={g.id} value={g.id}>{g.name}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl fullWidth>
+          <InputLabel>Địa bàn (region)</InputLabel>
+          <Select
+            value={f.regionId ?? ''}
+            label="Địa bàn (region)"
+            onChange={(e) => set({ regionId: e.target.value || null })}
+          >
+            <MenuItem value=""><em>— Chưa gán —</em></MenuItem>
+            {regions.map((r) => (
+              <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Stack>
     </Stack>
   );
 }
@@ -523,10 +522,10 @@ export default function TrackingDialogs({ store }: Props) {
                 {[
                   ['Thiết bị', dev.name],
                   ['IMEI', dev.uniqueId],
-                  ['Tội danh', sub.crime],
-                  ['Bản án', sub.sentence],
-                  ['Ngày bắt đầu', sub.startDate || '—'],
-                  ['Ngày mãn hạn', sub.releaseDate || '—']
+                  ['Tội danh', translateCrime(sub.crime)],
+                  ['Bản án', translateSentence(sub.sentence)],
+                  ['Ngày bắt đầu', formatDateVN(sub.startDate)],
+                  ['Ngày mãn hạn', formatDateVN(sub.releaseDate)]
                 ].map(([label, value]) => (
                   <Stack key={label} direction="row" justifyContent="space-between" spacing={2}>
                     <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0 }}>

@@ -128,6 +128,8 @@ export const EMPTY_DEVICE_FORM: DeviceFormState = {
   uniqueId: '',
   phoneNumber: '',
   color: DEVICE_PALETTE[2],
+  assignedGeofenceId: null,
+  regionId: null,
   subjectFullName: '',
   subjectIdNumber: '',
   subjectCrime: '',

@@ -140,7 +140,7 @@ interface Props {
 export default function TrackingMap({ store, hideOverlays = false }: Props) {
   const {
     isDark,
-    devices,
+    scopedDevices: devices,
     geofences,
     selectedDeviceId,
     deviceViolations,

@@ -15,7 +15,7 @@ import {
   Grid
 } from '@mui/material';
 import { Add, Edit, Trash, DocumentText, Gps, Clock, Flash, Lock1, BatteryFull, Activity } from 'iconsax-react';
-import { getBatteryColor, timeAgo, getMockBiometrics } from '../utils';
+import { getBatteryColor, timeAgo, getMockBiometrics, translateCrime } from '../utils';
 import type { TrackingStore } from '../useTracking';
 
 interface Props {
@@ -254,7 +254,7 @@ export default function DeviceList({ store }: Props) {
                           mt: 0.25
                         }}
                       >
-                        {dev.subject.crime}
+                        {translateCrime(dev.subject.crime)}
                       </Typography>
                     </Box>
                     <Tooltip title="Xem hồ sơ chi tiết">

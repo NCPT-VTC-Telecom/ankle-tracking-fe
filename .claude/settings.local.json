@@ -30,7 +30,8 @@
       "Bash(cd \"/f/Code/ankle-tracking-fe\" && echo \"=== API/services ===\" && find src -type d \\\\\\( -iname \"*api*\" -o -iname \"*service*\" -o -iname \"*hook*\" \\\\\\) | head && echo \"---\" && find src -iname \"axios*\" -o -iname \"*client*\" -o -iname \"apiConfig*\" | head)",
       "PowerShell(npx tsc --noEmit -p tsconfig.json 2>&1)",
       "Bash(node -e \"const i=require\\('iconsax-react'\\); console.log\\('Send2:', !!i.Send2, 'CloseCircle:', !!i.CloseCircle\\)\")",
-      "Bash(node -e \"const i=require\\('iconsax-react'\\); console.log\\('Send2:', !!i.Send2, 'CloseCircle:', !!i.CloseCircle, 'Send:', !!i.Send\\)\")"
+      "Bash(node -e \"const i=require\\('iconsax-react'\\); console.log\\('Send2:', !!i.Send2, 'CloseCircle:', !!i.CloseCircle, 'Send:', !!i.Send\\)\")",
+      "WebFetch(domain:tkshcm.edu.vn)"
     ]
   }
 }

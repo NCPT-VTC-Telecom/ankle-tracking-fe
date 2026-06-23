@@ -4,9 +4,7 @@ import {
   Stack,
   Badge,
   Typography,
-  Chip,
   IconButton,
-  Button,
   Menu,
   MenuItem,
   Avatar,
@@ -24,16 +22,17 @@ import {
   Category,
   Logout,
   HambergerMenu,
-  Gps,
   Danger,
   Cpu,
   Profile2User,
   Clock,
   SecuritySafe,
   Buildings2,
-  Calendar
+  Calendar,
+  Refresh
 } from 'iconsax-react';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import useAuth from 'hooks/useAuth';
 import logoVTC from 'assets/logo/logo-VTC.png';
 import FeedbackProvider from '../components/FeedbackProvider';
@@ -67,6 +66,9 @@ interface TrackingSectionProps {
 // Các view chỉ dành cho superadmin (quản trị hệ thống: thiết bị, SIM/NCC, địa bàn, người dùng).
 const SUPER_ONLY_VIEWS = ['devices', 'regions', 'users'] as const;
 
+type DashboardView = 'overview' | 'tracking' | 'devices' | 'prisoners' | 'alerts' | 'users' | 'regions' | 'compliance';
+const VALID_VIEWS: DashboardView[] = ['overview', 'tracking', 'devices', 'prisoners', 'alerts', 'users', 'regions', 'compliance'];
+
 export default function TrackingSection({
   isDark,
   primaryColor,
@@ -82,9 +84,7 @@ export default function TrackingSection({
         (user as any).gosafeRoles.some((r: string) => /super/i.test(r)))
   );
   const {
-    showAlertOverlay,
     devices,
-    geofences,
     deviceViolations,
     activeTab,
     setActiveTab,
@@ -99,41 +99,29 @@ export default function TrackingSection({
     acknowledgeCriticalAlert
   } = store;
 
-  // Dashboard views: overview (Tổng quan), tracking (Giám sát), devices (Thiết bị), prisoners (Phạm nhân), sims (Sim Card)
-  const [dashboardView, setDashboardView] = useState<
-    | 'overview'
-    | 'tracking'
-    | 'devices'
-    | 'prisoners'
-    | 'alerts'
-    | 'users'
-    | 'regions'
-    | 'compliance'
-  >('overview');
-  const [scopeRegionId, setScopeRegionId] = useState<string | null>(null);
-  const [scopeRegions, setScopeRegions] = useState<{ id: string; name: string }[]>([]);
+  // Dashboard view đồng bộ với URL (/gosafe/:view) — đổi tab là đổi route.
+  const navigate = useNavigate();
+  const { view } = useParams();
+  const dashboardView: DashboardView = (VALID_VIEWS as string[]).includes(view ?? '')
+    ? (view as DashboardView)
+    : 'overview';
+  const setDashboardView = useCallback(
+    (v: DashboardView) => navigate(`/gosafe/${v}`),
+    [navigate]
+  );
+  // Phạm vi địa bàn lấy từ store (lọc map/list "cấp cơ sở đổ xuống").
+  const { scopeRegionId, setScopeRegionId, scopeRegions } = store;
 
-  // Nạp danh sách địa bàn cho bộ lọc phạm vi (chỉ superadmin mới có quyền + cần selector).
-  useEffect(() => {
-    if (!isSuperAdmin) return;
-    let cancelled = false;
-    import('api/gosafe.management.api')
-      .then(({ regionsApi, extractList }) =>
-        regionsApi.list({ pageSize: 200 }).then((res) => {
-          if (!cancelled)
-            setScopeRegions(
-              extractList(res.data).map((r: any) => ({
-                id: String(r.id),
-                name: r.name ?? r.code ?? r.id
-              }))
-            );
-        })
-      )
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [isSuperAdmin]);
+  // Refresh đúng tab đang focus: tăng refreshKey → view đang hiển thị nạp lại dữ liệu.
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    setRefreshKey((k) => k + 1);
+    store.fetchLiveDevices?.(); // các view dùng store (tracking/prisoner) nạp lại từ feed
+    // tín hiệu spinner ngắn cho phản hồi tức thì (view tự fetch theo refreshKey).
+    setTimeout(() => setRefreshing(false), 700);
+  }, [store]);
 
   // Admin không được vào các view super-only → ép về Tổng quan.
   useEffect(() => {
@@ -186,8 +174,8 @@ export default function TrackingSection({
     prisoners: { crumb: 'Thông tin phạm nhân', title: 'Hồ sơ giám sát phạm nhân' },
     alerts: { crumb: 'Quản lý cảnh báo', title: 'Trung tâm cảnh báo' },
     compliance: { crumb: 'Lịch trình bắt buộc', title: 'Quy tắc tuân thủ & lịch bắt buộc' },
-    regions: { crumb: 'Địa bàn quản lý', title: 'Quản lý địa bàn' },
-    users: { crumb: 'Người dùng & phân quyền', title: 'Người dùng & phân quyền (RBAC)' }
+    regions: { crumb: 'Quản lý địa bàn', title: 'Quản lý địa bàn' },
+    users: { crumb: 'Người dùng & phân quyền', title: 'Người dùng & phân quyền' }
   };
   const viewMeta = VIEW_META[dashboardView] ?? VIEW_META.overview;
 
@@ -204,12 +192,12 @@ export default function TrackingSection({
           position: 'relative'
         }}
       >
-        {showAlertOverlay && <Box className="gs-alert-border" />}
         {/* Floating Notification FAB & Popovers */}
         <Box sx={{ position: 'absolute', top: 0, right: 0, pointerEvents: 'none', zIndex: 1100 }}>
           <Box sx={{ pointerEvents: 'auto' }}>
             <IconButton
               onClick={handleBellOpen}
+              className={totalViolating > 0 ? 'gs-fab-violation' : undefined}
               sx={{
                 position: 'fixed',
                 top: 20,
@@ -217,7 +205,7 @@ export default function TrackingSection({
                 width: 52,
                 height: 52,
                 bgcolor: isDark ? '#1e293b' : '#ffffff',
-                color: isDark ? '#f8fafc' : '#475569',
+                color: totalViolating > 0 ? '#ef4444' : (isDark ? '#f8fafc' : '#475569'),
                 boxShadow: isDark
                   ? '0 8px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08)'
                   : '0 8px 30px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04)',
@@ -343,55 +331,9 @@ export default function TrackingSection({
           </Box>
         </Box>
 
-        {/* ═══ GLOBAL ALARM BANNER (CRITICAL MONITORING) ══════════════════════ */}
-        {devices
-          .filter((d) => deviceViolations[d.id])
-          .map((dev) => (
-            <Box
-              key={dev.id}
-              sx={{
-                px: 3,
-                py: 1,
-                bgcolor: '#fef2f2',
-                borderBottom: '1px solid #fee2e2',
-                zIndex: 1000,
-                boxShadow: '0 2px 5px rgba(239, 68, 68, 0.05)'
-              }}
-            >
-              <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-                <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: dev.color }} />
-                  <Danger size="24" color="#ef4444" variant="Bold" />
-                  <Typography variant="body2" sx={{ color: '#991b1b', fontWeight: 700 }}>
-                    {dev.subject?.fullName ?? dev.name} ({dev.name}) — RA NGOÀI vùng an toàn "
-                    {geofences.find((g) => g.id === dev.assignedGeofenceId)?.name}"
-                  </Typography>
-                </Stack>
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="error"
-                    onClick={() => {
-                      setDashboardView('tracking');
-                      setSelectedDeviceId(dev.id);
-                    }}
-                    startIcon={<Gps size={16} />}
-                    sx={{ borderRadius: 1.5, fontWeight: 700, px: 2, textTransform: 'none' }}
-                  >
-                    Định vị
-                  </Button>
-                  <Chip
-                    label="CẢNH BÁO VI PHẠM"
-                    color="error"
-                    size="small"
-                    className="gs-blink"
-                    sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}
-                  />
-                </Stack>
-              </Stack>
-            </Box>
-          ))}
+        {/* Cảnh báo "ra ngoài vùng" KHÔNG còn glow/banner toàn màn hình — chuyển vào
+            badge + glow của FAB chuông (xem .gs-fab-violation) vì có thể có nhiều thiết bị
+            vi phạm cùng lúc; chi tiết liệt kê trong popover NotificationList. */}
 
         {/* ═══ WORKSPACE LAYOUT ═══════════════════════════════════════════════ */}
         <Box sx={{ display: 'flex', flexGrow: 1, overflow: 'hidden', position: 'relative' }}>
@@ -404,7 +346,8 @@ export default function TrackingSection({
             const glassBase = 'linear-gradient(180deg, #0b1a30 0%, #050c18 100%)';
             const glassBorder = 'rgba(255, 255, 255, 0.08)';
             const rowBorder = 'rgba(255, 255, 255, 0.08)';
-            const activeBg = 'linear-gradient(90deg, rgba(56, 189, 248, 0.22) 0%, rgba(56, 189, 248, 0.05) 100%)';
+            const activeBg =
+              'linear-gradient(90deg, rgba(56, 189, 248, 0.22) 0%, rgba(56, 189, 248, 0.05) 100%)';
             const activeBorder = 'rgba(56, 189, 248, 0.35)';
             const activeShadow = '0 4px 20px rgba(0, 0, 0, 0.25)';
             const activeTxt = '#ffffff';
@@ -415,29 +358,69 @@ export default function TrackingSection({
               {
                 title: 'Theo dõi',
                 items: [
-                  { id: 'overview' as const, label: 'Tổng quan', icon: <Category size={19} variant="Bold" />, superOnly: false },
-                  { id: 'tracking' as const, label: 'Bản đồ giám sát', icon: <MapIcon size={19} variant="Bold" />, superOnly: false },
-                  { id: 'prisoners' as const, label: 'Thông tin phạm nhân', icon: <Profile2User size={19} variant="Bold" />, superOnly: false },
-                  { id: 'regions' as const, label: 'Địa bàn quản lý', icon: <Buildings2 size={19} variant="Bold" />, superOnly: true }
+                  {
+                    id: 'overview' as const,
+                    label: 'Tổng quan',
+                    icon: <Category size={19} variant="Bold" />,
+                    superOnly: false
+                  },
+                  {
+                    id: 'tracking' as const,
+                    label: 'Bản đồ giám sát',
+                    icon: <MapIcon size={19} variant="Bold" />,
+                    superOnly: false
+                  },
+                  {
+                    id: 'prisoners' as const,
+                    label: 'Thông tin phạm nhân',
+                    icon: <Profile2User size={19} variant="Bold" />,
+                    superOnly: false
+                  },
+                  {
+                    id: 'regions' as const,
+                    label: 'Quản lý địa bàn',
+                    icon: <Buildings2 size={19} variant="Bold" />,
+                    superOnly: true
+                  }
                 ]
               },
               {
                 title: 'Cảnh báo',
                 items: [
-                  { id: 'alerts' as const, label: 'Quản lý cảnh báo', icon: <Danger size={19} variant="Bold" />, superOnly: false },
-                  { id: 'compliance' as const, label: 'Lịch trình bắt buộc', icon: <Calendar size={19} variant="Bold" />, superOnly: false }
+                  {
+                    id: 'alerts' as const,
+                    label: 'Quản lý cảnh báo',
+                    icon: <Danger size={19} variant="Bold" />,
+                    superOnly: false
+                  },
+                  {
+                    id: 'compliance' as const,
+                    label: 'Lịch trình bắt buộc',
+                    icon: <Calendar size={19} variant="Bold" />,
+                    superOnly: false
+                  }
                 ]
               },
               {
                 title: 'Thiết bị',
                 items: [
-                  { id: 'devices' as const, label: 'Quản lý thiết bị', icon: <Cpu size={19} variant="Bold" />, superOnly: true }
+                  {
+                    id: 'devices' as const,
+                    label: 'Quản lý thiết bị',
+                    icon: <Cpu size={19} variant="Bold" />,
+                    superOnly: true
+                  }
                 ]
               },
               {
                 title: 'Người dùng',
                 items: [
-                  { id: 'users' as const, label: 'Người dùng & quyền', icon: <SecuritySafe size={19} variant="Bold" />, superOnly: true }
+                  {
+                    id: 'users' as const,
+                    label: 'Người dùng & quyền',
+                    icon: <SecuritySafe size={19} variant="Bold" />,
+                    superOnly: true
+                  }
                 ]
               }
             ];
@@ -526,7 +509,10 @@ export default function TrackingSection({
                     flexDirection: 'column',
                     gap: 3,
                     '&::-webkit-scrollbar': { width: 4 },
-                    '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 2 }
+                    '&::-webkit-scrollbar-thumb': {
+                      bgcolor: 'rgba(255,255,255,0.08)',
+                      borderRadius: 2
+                    }
                   }}
                 >
                   {visibleSections.map((section) => (
@@ -757,7 +743,9 @@ export default function TrackingSection({
                         }}
                       >
                         {user?.role ||
-                          (user?.username === 'gosafe_admin' ? 'Quản trị viên GoSafe' : 'Quản trị viên')}
+                          (user?.username === 'gosafe_admin'
+                            ? 'Quản trị viên GoSafe'
+                            : 'Quản trị viên')}
                       </Typography>
                     </Box>
                   </Stack>
@@ -1153,7 +1141,12 @@ export default function TrackingSection({
                           >
                             {tabItem.icon}
                             <Typography
-                              sx={{ fontSize: '13.5px', fontWeight: 600, fontFamily: '"Inter", sans-serif', color: 'inherit' }}
+                              sx={{
+                                fontSize: '13.5px',
+                                fontWeight: 600,
+                                fontFamily: '"Inter", sans-serif',
+                                color: 'inherit'
+                              }}
                             >
                               {tabItem.label}
                             </Typography>
@@ -1225,30 +1218,48 @@ export default function TrackingSection({
               /* ═══ OTHER VIEWS: OVERVIEW, DEVICES, PRISONERS, SIMS ═══ */
               <Box sx={{ px: { xs: 2, md: 3.5 }, py: 3, flexGrow: 1 }}>
                 {/* Breadcrumbs Header */}
-                <Box sx={{ mb: 1.5 }}>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{
-                      fontWeight: 500,
-                      textTransform: 'uppercase',
-                      letterSpacing: 0.8,
-                      fontSize: '0.68rem'
-                    }}
-                  >
-                    Hệ thống quản lý & Giám sát / {viewMeta.crumb}
-                  </Typography>
-                  <Typography
-                    variant="h5"
-                    sx={{
-                      fontWeight: 500,
-                      mt: 0.5,
-                      color: isDark ? '#f8fafc' : '#0f172a'
-                    }}
-                  >
-                    {viewMeta.title}
-                  </Typography>
-                </Box>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+                  <Box>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{
+                        fontWeight: 500,
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.8,
+                        fontSize: '0.68rem'
+                      }}
+                    >
+                      Hệ thống quản lý & Giám sát / {viewMeta.crumb}
+                    </Typography>
+                    <Typography
+                      variant="h5"
+                      sx={{
+                        fontWeight: 500,
+                        mt: 0.5,
+                        color: isDark ? '#f8fafc' : '#0f172a'
+                      }}
+                    >
+                      {viewMeta.title}
+                    </Typography>
+                  </Box>
+                  <Tooltip title="Tải lại dữ liệu trang này">
+                    <IconButton
+                      onClick={handleRefresh}
+                      sx={{
+                        width: 40, height: 40, borderRadius: '12px',
+                        border: '1px solid',
+                        borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
+                        bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#fff',
+                        color: 'text.secondary',
+                        '& svg': { transition: 'transform 0.6s', transform: refreshing ? 'rotate(360deg)' : 'none' },
+                        '&:hover': { color: primaryColor, borderColor: primaryColor }
+                      }}
+                    >
+                      <Refresh size={18} />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
 
                 {/* ═══ VIEW 1: OVERVIEW DASHBOARD ════════════════════════════════ */}
                 {dashboardView === 'overview' && (
@@ -1257,6 +1268,7 @@ export default function TrackingSection({
                     store={store}
                     setDashboardView={setDashboardView}
                     scopeRegionId={scopeRegionId}
+                    refreshKey={refreshKey}
                   />
                 )}
 
@@ -1266,6 +1278,7 @@ export default function TrackingSection({
                     isDark={isDark}
                     store={store}
                     setDashboardView={setDashboardView}
+                    refreshKey={refreshKey}
                   />
                 )}
 
@@ -1275,26 +1288,27 @@ export default function TrackingSection({
                     isDark={isDark}
                     store={store}
                     setDashboardView={setDashboardView}
+                    refreshKey={refreshKey}
                   />
                 )}
 
                 {/* ═══ VIEW 6: ALERTS MANAGEMENT ═══════════════════════════════ */}
                 {dashboardView === 'alerts' && (
-                  <AlertsManagement isDark={isDark} scopeRegionId={scopeRegionId} />
+                  <AlertsManagement isDark={isDark} scopeRegionId={scopeRegionId} refreshKey={refreshKey} />
                 )}
 
                 {/* ═══ VIEW 7: COMPLIANCE (lịch trình bắt buộc) ════════════════ */}
                 {dashboardView === 'compliance' && (
-                  <ComplianceManagement isDark={isDark} isSuperAdmin={isSuperAdmin} />
+                  <ComplianceManagement isDark={isDark} isSuperAdmin={isSuperAdmin} refreshKey={refreshKey} />
                 )}
 
                 {/* ═══ VIEW 8: REGION MANAGEMENT (super-only) ═════════════════ */}
                 {dashboardView === 'regions' && isSuperAdmin && (
-                  <RegionManagement isDark={isDark} />
+                  <RegionManagement isDark={isDark} refreshKey={refreshKey} />
                 )}
 
                 {/* ═══ VIEW 9: USERS & RBAC (super-only) ══════════════════════ */}
-                {dashboardView === 'users' && isSuperAdmin && <UserManagement isDark={isDark} />}
+                {dashboardView === 'users' && isSuperAdmin && <UserManagement isDark={isDark} refreshKey={refreshKey} />}
               </Box>
             )}
           </Box>

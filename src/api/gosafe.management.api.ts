@@ -1,7 +1,8 @@
 import { AxiosPromise } from 'axios';
 import axiosGosafe from 'utils/axiosGosafe';
-import type { Geofence, SubjectInfo, ZoneType, ZoneSchedule } from 'pages/gosafe/tracking/types';
+import type { Geofence, SubjectInfo, ZoneType, ZoneSchedule, Device } from 'pages/gosafe/tracking/types';
 import { ZONE_PRESET_MAP } from 'pages/gosafe/tracking/constants';
+import { num, voltageToPercent, placeholderStatus } from 'pages/gosafe/tracking/utils';
 
 export interface GosafePaginated<T> {
   code: number;
@@ -317,12 +318,18 @@ export const regionsApi = {
       method: 'GET',
       params: rootId != null ? { rootId } : undefined
     }),
+  /**
+   * Tạo địa bàn. BE bắt buộc: name, code, description, path, level (đã xác minh bằng test
+   * thật — không phải optional như api-docs cắt). parentId null cho địa bàn gốc.
+   * path = materialized path (vd "vn", "vn.79"); level: gốc = 1.
+   */
   create: (body: {
     name: string;
     code: string;
-    path?: string;
-    level?: number;
-    parentId?: string | number;
+    description: string;
+    path: string;
+    level: number;
+    parentId?: string | null;
   }): AxiosPromise<GosafeSingle<any>> =>
     axiosGosafe({ url: '/v1/region_management/create', method: 'POST', data: body }),
   update: (id: string | number, body: any): AxiosPromise<GosafeSingle<any>> =>
@@ -527,6 +534,99 @@ export function offenderDeviceKeys(o: any): string[] {
         .map((v) => String(v).trim().toLowerCase())
     )
   );
+}
+
+/**
+ * device_management item → Device domain (nguồn chính cho bảng Quản lý thiết bị).
+ * Mỗi item kèm `gpsStatus` (telemetry mới nhất, null nếu chưa ping). Nếu có thiết bị
+ * sống cùng IMEI từ feed GPS (`live`) → tái dùng telemetry sống (SSE) + id để thao tác
+ * (định vị/sửa) khớp store; chỉ ghi đè field inventory. Field đọc phòng thủ vì schema
+ * device_management không công bố đầy đủ trong api-docs.
+ */
+export function mapApiMgmtDeviceToDevice(raw: any, live: Device | undefined, fallbackColor: string): Device {
+  const pick = (...keys: string[]) => {
+    for (const k of keys) if (raw?.[k] != null && raw[k] !== '') return raw[k];
+    return undefined;
+  };
+  const imei = String(pick('imei', 'deviceImei', 'device_imei') ?? '').trim() || (live?.uniqueId ?? '');
+  const name = String(pick('name', 'deviceName', 'device_name') ?? '') || live?.name || imei || 'Thiết bị';
+  const model = String(pick('model', 'deviceModel', 'device_model') ?? '') || live?.deviceType || '';
+  const sim = String(pick('phoneNumber', 'phone', 'msisdn', 'sim', 'simNumber', 'sim_number') ?? '') || live?.phoneNumber || '';
+  const fw = String(pick('firmwareVersion', 'firmware_version') ?? '') || live?.status.firmwareVersion || '';
+
+  const offenderRaw = raw?.offender ?? raw?.assignedOffender ?? raw?.assigned_offender ?? null;
+  const subject = live?.subject ?? (offenderRaw ? mapApiOffenderToSubject(offenderRaw) : null);
+
+  // Có telemetry sống (SSE) → giữ nguyên, chỉ ghi đè field inventory + giữ id store.
+  if (live) {
+    return {
+      ...live,
+      name,
+      deviceType: model || live.deviceType,
+      uniqueId: imei || live.uniqueId,
+      phoneNumber: sim,
+      subject,
+      status: {
+        ...live.status,
+        firmwareVersion: fw || live.status.firmwareVersion,
+        deviceModel: model || live.status.deviceModel
+      }
+    };
+  }
+
+  // Không có live → đọc telemetry từ gpsStatus đính kèm (có thể null nếu chưa ping).
+  const gps = raw?.gpsStatus ?? raw?.gps_status ?? raw?.latestTelemetry ?? {};
+  const gp = (...keys: string[]) => {
+    for (const k of keys) if (gps?.[k] != null && gps[k] !== '') return gps[k];
+    return undefined;
+  };
+  const hasGps = gps && Object.keys(gps).length > 0;
+  const lat = num(gp('latitude', 'lat'), 0);
+  const lng = num(gp('longitude', 'lng', 'lon'), 0);
+  const batV = gp('batteryVoltage', 'battery_voltage');
+  const bpRaw = gp('batteryPercent', 'battery_percent');
+  const battery = bpRaw != null
+    ? Math.max(0, Math.min(100, Math.round(num(bpRaw))))
+    : voltageToPercent(batV != null ? num(batV) : null, 0);
+  const lastRep = gp('lastReportAt', 'last_report_at', 'lastSeen', 'last_seen', 'lastDeviceTime', 'last_device_time');
+  const lastSeen = lastRep ? new Date(lastRep) : null;
+  const minutesSince = lastSeen ? (Date.now() - lastSeen.getTime()) / 60000 : Infinity;
+
+  const base = placeholderStatus(model);
+  return {
+    id: `mgmt-${pick('id', '_id', 'deviceId') ?? imei}`,
+    name,
+    type: 'Person',
+    deviceType: model,
+    uniqueId: imei,
+    phoneNumber: sim,
+    color: fallbackColor,
+    subject,
+    status: {
+      ...base,
+      battery: hasGps ? battery : 0,
+      batteryVoltage: batV != null ? num(batV) : null,
+      signalStrength: Math.min(4, Math.max(0, num(gp('gsmSignal', 'gsm_signal', 'signalStrength')) - 1)),
+      connectionStatus:
+        gp('isOnline') === true ? 'online'
+          : minutesSince > 10 ? 'offline'
+          : minutesSince > 2 ? 'unstable'
+          : hasGps ? 'online' : 'offline',
+      lastGpsUpdate: lastSeen,
+      lastServerSync: lastSeen,
+      satelliteCount: num(gp('satelliteCount', 'satellite_count', 'gpsSatellites')),
+      speed: num(gp('speed')),
+      altitude: num(gp('altitude')),
+      gpsFix: Boolean(gp('gpsFixed', 'gps_fixed', 'gpsFix')) || (hasGps && (lat !== 0 || lng !== 0)),
+      eventName: String(gp('eventName', 'event_name') ?? 'Normal'),
+      firmwareVersion: fw,
+      deviceModel: model
+    },
+    coords: [lat, lng],
+    angle: 0,
+    pathHistory: [],
+    assignedGeofenceId: null
+  };
 }
 
 /** Đọc mảng data an toàn từ response GoSafe (data | data.items). */

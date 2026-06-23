@@ -12,6 +12,7 @@ interface Props {
   isDark: boolean;
   /** Chỉ super_admin mới được tạo/sửa/xoá lịch điểm danh */
   isSuperAdmin?: boolean;
+  refreshKey?: number;
 }
 
 const EVENT_TYPES = [
@@ -38,7 +39,7 @@ interface RuleRow {
   raw?: any;
 }
 
-export default function ComplianceManagement({ isDark, isSuperAdmin = false }: Props) {
+export default function ComplianceManagement({ isDark, isSuperAdmin = false, refreshKey }: Props) {
   const [rows, setRows] = useState<RuleRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +75,7 @@ export default function ComplianceManagement({ isDark, isSuperAdmin = false }: P
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, refreshKey]);
 
   const removeRow = async (row: RuleRow) => {
     const ok = await confirm({
@@ -97,28 +98,30 @@ export default function ComplianceManagement({ isDark, isSuperAdmin = false }: P
     <Box>
       <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '1.05rem', color: isDark ? '#f8fafc' : '#0f172a' }}>Quy tắc tuân thủ & lịch điểm danh</Typography>
-        <Tooltip title="Tải lại"><IconButton onClick={load} sx={{ border: '1px solid', borderColor: cardBorder, borderRadius: '8px', width: 44, height: 44 }}><Refresh size={20} /></IconButton></Tooltip>
+        <Tooltip title="Tải lại">
+          <IconButton onClick={load} sx={{ border: '1px solid', borderColor: cardBorder, borderRadius: '12px', width: 44, height: 44 }}><Refresh size={20} /></IconButton>
+        </Tooltip>
         {isSuperAdmin ? (
-          <Button variant="contained" startIcon={<Add size={18} />} onClick={() => setDialog({ mode: 'add' })} sx={{ borderRadius: '8px', fontWeight: 700, fontSize: '0.9rem', py: 1, px: 2.25, ml: 'auto' }}>Tạo điểm danh / quy tắc</Button>
+          <Button variant="contained" startIcon={<Add size={18} />} onClick={() => setDialog({ mode: 'add' })} sx={{ borderRadius: '12px', fontWeight: 700, fontSize: '0.9rem', py: 1.2, px: 2.5, ml: 'auto' }}>Tạo điểm danh / quy tắc</Button>
         ) : (
-          <Chip label="Chỉ super admin được tạo điểm danh" sx={{ ml: 'auto', fontWeight: 600, fontSize: '0.82rem', height: 32, bgcolor: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9', color: isDark ? '#94a3b8' : '#64748b' }} />
+          <Chip label="Chỉ super admin được tạo điểm danh" sx={{ ml: 'auto', fontWeight: 600, fontSize: '0.82rem', height: 32, bgcolor: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9', color: isDark ? '#94a3b8' : '#64748b', borderRadius: '12px' }} />
         )}
       </Stack>
 
       {/* Type legend */}
       <Stack direction="row" spacing={1.25} sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
         {EVENT_TYPES.map((e) => (
-          <Chip key={e.value} icon={e.icon as any} label={e.label} sx={{ fontWeight: 600, fontSize: '0.85rem', height: 32, bgcolor: `${e.color}14`, color: e.color, '& .MuiChip-icon': { ml: 1 } }} />
+          <Chip key={e.value} icon={e.icon as any} label={e.label} sx={{ fontWeight: 600, fontSize: '0.85rem', height: 32, bgcolor: `${e.color}14`, color: e.color, borderRadius: '12px', '& .MuiChip-icon': { ml: 1 } }} />
         ))}
       </Stack>
 
-      <Box sx={{ borderRadius: '8px', border: '1px solid', borderColor: cardBorder, bgcolor: cardBg, overflow: 'hidden' }}>
+      <Box sx={{ borderRadius: '16px', border: '1px solid', borderColor: cardBorder, bgcolor: cardBg, overflow: 'hidden' }}>
         {loading ? (
           <Stack alignItems="center" sx={{ py: 6 }}><CircularProgress size={24} /></Stack>
         ) : (
           <Table>
             <TableHead>
-              <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.8rem', color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase', letterSpacing: 0.4, borderColor: cardBorder, py: 1.5 } }}>
+              <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.85rem', color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase', letterSpacing: 0.4, borderColor: cardBorder, py: 2, px: 2.5 } }}>
                 <TableCell>Tên quy tắc</TableCell>
                 <TableCell>Loại</TableCell>
                 <TableCell>Áp dụng</TableCell>
@@ -131,7 +134,7 @@ export default function ComplianceManagement({ isDark, isSuperAdmin = false }: P
               {rows.map((r) => {
                 const em = eventMeta(r.eventType);
                 return (
-                  <TableRow key={r.id} hover sx={{ '& td': { borderColor: cardBorder, fontSize: '0.92rem', py: 1.5 } }}>
+                  <TableRow key={r.id} hover sx={{ '& td': { borderColor: cardBorder, fontSize: '0.95rem', py: 2, px: 2.5 } }}>
                     <TableCell sx={{ fontWeight: 600 }}>{r.name}</TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: em.color, fontWeight: 600 }}>
@@ -139,18 +142,18 @@ export default function ComplianceManagement({ isDark, isSuperAdmin = false }: P
                       </Stack>
                     </TableCell>
                     <TableCell sx={{ fontWeight: 500 }}>{r.targetType === 'INDIVIDUAL' || r.targetType === 'OFFENDER' ? `Đối tượng ${r.offenderId ?? ''}` : r.targetType === 'GROUP' ? 'Theo nhóm' : 'Toàn bộ'}</TableCell>
-                    <TableCell sx={{ fontSize: '0.82rem' }}>{r.recurrence || '—'}</TableCell>
+                    <TableCell sx={{ fontSize: '0.88rem' }}>{r.recurrence || '—'}</TableCell>
                     <TableCell>
-                      <Chip label={r.isActive ? 'Hoạt động' : 'Tạm dừng'} size="small" color={r.isActive ? 'success' : 'default'} sx={{ height: 26, fontWeight: 700, fontSize: '0.78rem', borderRadius: '6px' }} />
+                      <Chip label={r.isActive ? 'Hoạt động' : 'Tạm dừng'} size="small" color={r.isActive ? 'success' : 'default'} sx={{ height: 26, fontWeight: 700, fontSize: '0.78rem', borderRadius: '12px' }} />
                     </TableCell>
                     <TableCell align="right">
                       {isSuperAdmin ? (
                         <Stack direction="row" spacing={0.75} justifyContent="flex-end">
-                          <IconButton onClick={() => setDialog({ mode: 'edit', row: r })} sx={{ color: '#1e6fd9', border: '1px solid', borderColor: cardBorder, borderRadius: '8px', width: 38, height: 38 }}><Edit size={18} /></IconButton>
-                          <IconButton onClick={() => removeRow(r)} sx={{ color: '#ef4444', border: '1px solid', borderColor: cardBorder, borderRadius: '8px', width: 38, height: 38 }}><Trash size={18} /></IconButton>
+                          <IconButton onClick={() => setDialog({ mode: 'edit', row: r })} sx={{ color: '#1e6fd9', border: '1px solid', borderColor: cardBorder, borderRadius: '12px', width: 38, height: 38 }}><Edit size={18} /></IconButton>
+                          <IconButton onClick={() => removeRow(r)} sx={{ color: '#ef4444', border: '1px solid', borderColor: cardBorder, borderRadius: '12px', width: 38, height: 38 }}><Trash size={18} /></IconButton>
                         </Stack>
                       ) : (
-                        <Typography sx={{ fontSize: '0.82rem', color: isDark ? '#64748b' : '#94a3b8' }}>Chỉ xem</Typography>
+                        <Typography sx={{ fontSize: '0.88rem', color: isDark ? '#64748b' : '#94a3b8' }}>Chỉ xem</Typography>
                       )}
                     </TableCell>
                   </TableRow>

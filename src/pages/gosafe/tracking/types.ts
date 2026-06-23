@@ -92,6 +92,10 @@ export type DeviceFormState = {
   uniqueId: string;
   phoneNumber: string;
   color: string;
+  /** Vùng giám sát (geofence) gán cho thiết bị */
+  assignedGeofenceId: string | null;
+  /** Địa bàn hành chính (region) quản lý thiết bị */
+  regionId: string | null;
   subjectFullName: string;
   subjectIdNumber: string;
   subjectCrime: string;

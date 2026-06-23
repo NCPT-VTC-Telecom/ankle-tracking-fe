@@ -12,6 +12,7 @@ import { useFeedback } from '../../components/FeedbackProvider';
 interface Props {
   isDark: boolean;
   scopeRegionId?: string | null;
+  refreshKey?: number;
 }
 
 interface AlertRow {
@@ -59,7 +60,7 @@ function statusMeta(status: unknown): { label: string; color: string } {
   return { label: s ? String(status) : '—', color: '#64748b' };
 }
 
-export default function AlertsManagement({ isDark, scopeRegionId }: Props) {
+export default function AlertsManagement({ isDark, scopeRegionId, refreshKey }: Props) {
   const [rows, setRows] = useState<AlertRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,7 +96,7 @@ export default function AlertsManagement({ isDark, scopeRegionId }: Props) {
     }
   }, [level, status, scopeRegionId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, refreshKey]);
 
   const filtered = useMemo(() => {
     if (!search) return rows;
@@ -153,24 +154,24 @@ export default function AlertsManagement({ isDark, scopeRegionId }: Props) {
           {STATUSES.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
         </TextField>
         <Tooltip title="Tải lại">
-          <IconButton onClick={load} sx={{ border: '1px solid', borderColor: cardBorder, borderRadius: '8px', width: 44, height: 44 }}><Refresh size={20} /></IconButton>
+          <IconButton onClick={load} sx={{ border: '1px solid', borderColor: cardBorder, borderRadius: '12px', width: 44, height: 44 }}><Refresh size={20} /></IconButton>
         </Tooltip>
         <Button
           variant="outlined" startIcon={<Setting2 size={18} />} onClick={() => setTypesOpen(true)}
-          sx={{ borderRadius: '8px', fontWeight: 600, fontSize: '0.9rem', py: 1, px: 2, ml: 'auto' }}
+          sx={{ borderRadius: '12px', fontWeight: 600, fontSize: '0.9rem', py: 1, px: 2, ml: 'auto' }}
         >
           Loại cảnh báo
         </Button>
       </Stack>
 
       {/* Table */}
-      <Box sx={{ borderRadius: '8px', border: '1px solid', borderColor: cardBorder, bgcolor: cardBg, overflow: 'hidden' }}>
+      <Box sx={{ borderRadius: '16px', border: '1px solid', borderColor: cardBorder, bgcolor: cardBg, overflow: 'hidden' }}>
         {loading ? (
           <Stack alignItems="center" sx={{ py: 6 }}><CircularProgress size={24} /></Stack>
         ) : (
           <Table>
             <TableHead>
-              <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.8rem', color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase', letterSpacing: 0.4, borderColor: cardBorder, py: 1.5 } }}>
+              <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.85rem', color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase', letterSpacing: 0.4, borderColor: cardBorder, py: 2, px: 2.5 } }}>
                 <TableCell>Thời gian</TableCell>
                 <TableCell>Loại cảnh báo</TableCell>
                 <TableCell>Đối tượng</TableCell>
@@ -185,8 +186,8 @@ export default function AlertsManagement({ isDark, scopeRegionId }: Props) {
                 const sm = statusMeta(r.status);
                 const closed = sm.label === 'Đã đóng';
                 return (
-                  <TableRow key={r.id} hover sx={{ '& td': { borderColor: cardBorder, fontSize: '0.92rem', py: 1.5 } }}>
-                    <TableCell sx={{ fontSize: '0.82rem', color: isDark ? '#94a3b8' : '#64748b' }}>
+                  <TableRow key={r.id} hover sx={{ '& td': { borderColor: cardBorder, fontSize: '0.95rem', py: 2, px: 2.5 } }}>
+                    <TableCell sx={{ fontSize: '0.88rem', color: isDark ? '#94a3b8' : '#64748b' }}>
                       {r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN') : '—'}
                     </TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>
@@ -195,20 +196,20 @@ export default function AlertsManagement({ isDark, scopeRegionId }: Props) {
                       </Stack>
                     </TableCell>
                     <TableCell sx={{ fontWeight: 500 }}>{r.offender}</TableCell>
-                    <TableCell><Chip label={lm.label} size="small" sx={{ height: 26, fontWeight: 700, fontSize: '0.78rem', color: lm.color, bgcolor: lm.bg, borderRadius: '6px' }} /></TableCell>
+                    <TableCell><Chip label={lm.label} size="small" sx={{ height: 26, fontWeight: 700, fontSize: '0.78rem', color: lm.color, bgcolor: lm.bg, borderRadius: '12px' }} /></TableCell>
                     <TableCell><Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: sm.color }}>{sm.label}</Typography></TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={0.75} justifyContent="flex-end">
                         <Tooltip title="Nhận xử lý">
                           <span>
-                            <IconButton disabled={closed} onClick={() => handleAck(r)} sx={{ color: '#ea580c', border: '1px solid', borderColor: cardBorder, borderRadius: '8px', width: 38, height: 38 }}>
+                            <IconButton disabled={closed} onClick={() => handleAck(r)} sx={{ color: '#ea580c', border: '1px solid', borderColor: cardBorder, borderRadius: '12px', width: 38, height: 38 }}>
                               <TickCircle size={18} />
                             </IconButton>
                           </span>
                         </Tooltip>
                         <Tooltip title="Đóng cảnh báo">
                           <span>
-                            <IconButton disabled={closed} onClick={() => handleClose(r)} sx={{ color: '#16a34a', border: '1px solid', borderColor: cardBorder, borderRadius: '8px', width: 38, height: 38 }}>
+                            <IconButton disabled={closed} onClick={() => handleClose(r)} sx={{ color: '#16a34a', border: '1px solid', borderColor: cardBorder, borderRadius: '12px', width: 38, height: 38 }}>
                               <CloseCircle size={18} />
                             </IconButton>
                           </span>

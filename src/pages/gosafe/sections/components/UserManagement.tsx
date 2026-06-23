@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   Box, Stack, Typography, Button, IconButton, Tooltip, TextField, Chip, CircularProgress, Avatar,
   Table, TableHead, TableBody, TableRow, TableCell, MenuItem, ListItemText,
-  Checkbox, FormControlLabel, Divider, Select, OutlinedInput, InputLabel, FormControl
+  Checkbox, FormControlLabel, Divider, Select, OutlinedInput, InputLabel, FormControl, Menu
 } from '@mui/material';
 import {
   Add, Edit, Trash, Lock1, Unlock, Key, ShieldTick, Profile2User, SecuritySafe, Refresh, SearchNormal1
@@ -13,6 +13,7 @@ import { useFeedback } from '../../components/FeedbackProvider';
 
 interface Props {
   isDark: boolean;
+  refreshKey?: number;
 }
 
 interface UserRow {
@@ -32,34 +33,49 @@ interface RoleRow {
   raw: any;
 }
 
-export default function UserManagement({ isDark }: Props) {
+export default function UserManagement({ isDark, refreshKey }: Props) {
   const [tab, setTab] = useState<'users' | 'roles'>('users');
-  const cardBorder = isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0';
 
   return (
     <Box>
       {/* Sub tabs */}
-      <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+      <Stack direction="row" spacing={1} sx={{ mb: 2.5 }}>
         {([
           { id: 'users' as const, label: 'Người dùng', icon: <Profile2User size={16} variant="Bold" /> },
           { id: 'roles' as const, label: 'Vai trò & quyền', icon: <SecuritySafe size={16} variant="Bold" /> }
         ]).map((t) => (
           <Button
-            key={t.id} startIcon={t.icon} onClick={() => setTab(t.id)}
-            variant={tab === t.id ? 'contained' : 'outlined'}
-            sx={{ borderRadius: '10px', fontWeight: 700, borderColor: cardBorder }}
+            key={t.id}
+            startIcon={t.icon}
+            onClick={() => setTab(t.id)}
+            sx={{
+              borderRadius: '12px',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              px: 2.25,
+              py: 0.85,
+              textTransform: 'none',
+              bgcolor: tab === t.id ? (isDark ? 'rgba(30, 111, 217, 0.16)' : 'rgba(30, 111, 217, 0.08)') : 'transparent',
+              color: tab === t.id ? (isDark ? '#38bdf8' : '#1e6fd9') : (isDark ? '#94a3b8' : '#64748b'),
+              border: '1px solid',
+              borderColor: tab === t.id ? (isDark ? '#38bdf8' : '#1e6fd9') : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'),
+              transition: 'all 0.2s',
+              '&:hover': {
+                bgcolor: tab === t.id ? undefined : (isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)')
+              }
+            }}
           >
             {t.label}
           </Button>
         ))}
       </Stack>
-      {tab === 'users' ? <UsersTab isDark={isDark} /> : <RolesTab isDark={isDark} />}
+      {tab === 'users' ? <UsersTab isDark={isDark} refreshKey={refreshKey} /> : <RolesTab isDark={isDark} refreshKey={refreshKey} />}
     </Box>
   );
 }
 
 // ════════════════════════════ USERS TAB ════════════════════════════
-function UsersTab({ isDark }: { isDark: boolean }) {
+function UsersTab({ isDark, refreshKey }: { isDark: boolean; refreshKey?: number }) {
   const [rows, setRows] = useState<UserRow[]>([]);
   const [roles, setRoles] = useState<RoleRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -68,6 +84,7 @@ function UsersTab({ isDark }: { isDark: boolean }) {
   const [formDialog, setFormDialog] = useState<{ mode: 'add' | 'edit'; row?: UserRow } | null>(null);
   const [assignDialog, setAssignDialog] = useState<{ kind: 'roles' | 'regions'; row: UserRow } | null>(null);
   const [resetRow, setResetRow] = useState<UserRow | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<{ el: HTMLElement; row: UserRow } | null>(null);
 
   const cardBorder = isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0';
   const cardBg = isDark ? 'rgba(255,255,255,0.03)' : '#fff';
@@ -98,7 +115,7 @@ function UsersTab({ isDark }: { isDark: boolean }) {
   useEffect(() => {
     load();
     rolesApi.list({ pageSize: 100 }).then((res) => setRoles(extractList(res.data).map((r: any) => ({ id: String(r.id), name: r.name, description: r.description, permCount: 0, raw: r })))).catch(() => {});
-  }, [load]);
+  }, [load, refreshKey]);
 
   const toggleLock = async (row: UserRow) => {
     const locking = row.status === 'ACTIVE';
@@ -139,14 +156,47 @@ function UsersTab({ isDark }: { isDark: boolean }) {
 
   return (
     <Box>
-      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
-        <TextField size="small" placeholder="Tìm tên / username..." value={search} onChange={(e) => setSearch(e.target.value)}
-          InputProps={{ startAdornment: <SearchNormal1 size={16} style={{ marginRight: 6, color: '#94a3b8' }} /> }} sx={{ minWidth: 240 }} />
-        <Tooltip title="Tải lại"><IconButton size="small" onClick={load} sx={{ border: '1px solid', borderColor: cardBorder, borderRadius: '10px' }}><Refresh size={16} /></IconButton></Tooltip>
-        <Button variant="contained" startIcon={<Add size={18} />} onClick={() => setFormDialog({ mode: 'add' })} sx={{ borderRadius: '10px', fontWeight: 700, ml: 'auto' }}>Thêm người dùng</Button>
+      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
+        <TextField
+          size="small"
+          placeholder="Tìm tên / username..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          InputProps={{
+            startAdornment: <SearchNormal1 size={16} style={{ marginRight: 6, color: '#94a3b8' }} />
+          }}
+          sx={{
+            minWidth: 240,
+            '& .MuiInputBase-root': { borderRadius: '12px', fontSize: '0.85rem' }
+          }}
+        />
+        <Tooltip title="Tải lại">
+          <IconButton
+            size="small"
+            onClick={load}
+            sx={{ border: '1px solid', borderColor: cardBorder, borderRadius: '12px', p: 1 }}
+          >
+            <Refresh size={16} />
+          </IconButton>
+        </Tooltip>
+        <Button
+          variant="contained"
+          startIcon={<Add size={18} />}
+          onClick={() => setFormDialog({ mode: 'add' })}
+          sx={{
+            borderRadius: '12px',
+            fontWeight: 700,
+            ml: 'auto',
+            textTransform: 'none',
+            py: 1,
+            px: 2
+          }}
+        >
+          Thêm người dùng
+        </Button>
       </Stack>
 
-      <Box sx={{ borderRadius: '12px', border: '1px solid', borderColor: cardBorder, bgcolor: cardBg, overflow: 'hidden' }}>
+      <Box sx={{ borderRadius: '16px', border: '1px solid', borderColor: cardBorder, bgcolor: cardBg, overflow: 'hidden' }}>
         {loading ? <Stack alignItems="center" sx={{ py: 6 }}><CircularProgress size={24} /></Stack> : (
           <Table size="small">
             <TableHead>
@@ -158,23 +208,45 @@ function UsersTab({ isDark }: { isDark: boolean }) {
               {filtered.map((r) => (
                 <TableRow key={r.id} hover sx={{ '& td': { borderColor: cardBorder, fontSize: '0.8rem' } }}>
                   <TableCell>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Avatar sx={{ width: 30, height: 30, fontSize: '0.7rem', bgcolor: '#1e6fd9', fontWeight: 700 }}>{r.fullname.slice(0, 2).toUpperCase()}</Avatar>
-                      <Box><Typography sx={{ fontWeight: 600, fontSize: '0.82rem' }}>{r.fullname}</Typography>{r.email && <Typography sx={{ fontSize: '0.68rem', color: 'text.secondary' }}>{r.email}</Typography>}</Box>
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                      <Avatar sx={{ width: 32, height: 32, fontSize: '0.75rem', bgcolor: '#1e6fd9', fontWeight: 700 }}>{r.fullname.slice(0, 2).toUpperCase()}</Avatar>
+                      <Box>
+                        <Typography sx={{ fontWeight: 600, fontSize: '0.82rem', color: isDark ? '#ffffff' : '#0f172a' }}>{r.fullname}</Typography>
+                        {r.email && <Typography sx={{ fontSize: '0.68rem', color: 'text.secondary' }}>{r.email}</Typography>}
+                      </Box>
                     </Stack>
                   </TableCell>
-                  <TableCell sx={{ fontSize: '0.74rem' }}>{r.username}</TableCell>
+                  <TableCell sx={{ fontSize: '0.76rem', fontWeight: 600 }}>{r.username}</TableCell>
                   <TableCell>{r.roleNames}</TableCell>
-                  <TableCell><Chip label={r.status === 'ACTIVE' ? 'Hoạt động' : 'Khoá'} size="small" color={r.status === 'ACTIVE' ? 'success' : 'default'} sx={{ height: 20, fontWeight: 700, fontSize: '0.65rem' }} /></TableCell>
+                  <TableCell>
+                    <Chip
+                      label={r.status === 'ACTIVE' ? 'Hoạt động' : 'Khoá'}
+                      size="small"
+                      color={r.status === 'ACTIVE' ? 'success' : 'default'}
+                      sx={{ height: 20, fontWeight: 700, fontSize: '0.65rem', borderRadius: '12px' }}
+                    />
+                  </TableCell>
                   <TableCell align="right">
-                    <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                      <Tooltip title="Gán vai trò"><IconButton size="small" onClick={() => setAssignDialog({ kind: 'roles', row: r })} sx={iconBtn(cardBorder, '#1e6fd9')}><ShieldTick size={15} /></IconButton></Tooltip>
-                      <Tooltip title="Gán địa bàn"><IconButton size="small" onClick={() => setAssignDialog({ kind: 'regions', row: r })} sx={iconBtn(cardBorder, '#0891b2')}><SecuritySafe size={15} /></IconButton></Tooltip>
-                      <Tooltip title="Đặt lại mật khẩu"><IconButton size="small" onClick={() => setResetRow(r)} sx={iconBtn(cardBorder, '#ca8a04')}><Key size={15} /></IconButton></Tooltip>
-                      <Tooltip title={r.status === 'ACTIVE' ? 'Khoá' : 'Mở khoá'}><IconButton size="small" onClick={() => toggleLock(r)} sx={iconBtn(cardBorder, r.status === 'ACTIVE' ? '#ea580c' : '#16a34a')}>{r.status === 'ACTIVE' ? <Lock1 size={15} /> : <Unlock size={15} />}</IconButton></Tooltip>
-                      <Tooltip title="Sửa"><IconButton size="small" onClick={() => setFormDialog({ mode: 'edit', row: r })} sx={iconBtn(cardBorder, '#1e6fd9')}><Edit size={15} /></IconButton></Tooltip>
-                      <Tooltip title="Xoá"><IconButton size="small" onClick={() => removeRow(r)} sx={iconBtn(cardBorder, '#ef4444')}><Trash size={15} /></IconButton></Tooltip>
-                    </Stack>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => setMenuAnchor({ el: e.currentTarget, row: r })}
+                      sx={{
+                        border: '1px solid',
+                        borderColor: cardBorder,
+                        borderRadius: '12px',
+                        p: 0.6,
+                        color: isDark ? '#94a3b8' : '#64748b',
+                        '&:hover': {
+                          bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'
+                        }
+                      }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="1" />
+                        <circle cx="12" cy="5" r="1" />
+                        <circle cx="12" cy="19" r="1" />
+                      </svg>
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               ))}
@@ -187,11 +259,95 @@ function UsersTab({ isDark }: { isDark: boolean }) {
       {formDialog && <UserFormDialog isDark={isDark} mode={formDialog.mode} row={formDialog.row} onClose={() => setFormDialog(null)} onSaved={load} />}
       {assignDialog && <AssignDialog isDark={isDark} kind={assignDialog.kind} row={assignDialog.row} roles={roles} onClose={() => setAssignDialog(null)} />}
       {resetRow && <ResetPwDialog isDark={isDark} row={resetRow} onClose={() => setResetRow(null)} />}
+
+      <Menu
+        anchorEl={menuAnchor?.el}
+        open={Boolean(menuAnchor)}
+        onClose={() => setMenuAnchor(null)}
+        PaperProps={{
+          sx: {
+            borderRadius: '12px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+            border: '1px solid',
+            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+            bgcolor: isDark ? '#0f172a' : '#ffffff',
+            backgroundImage: 'none'
+          }
+        }}
+      >
+        <MenuItem
+          onClick={() => {
+            const row = menuAnchor!.row;
+            setMenuAnchor(null);
+            setFormDialog({ mode: 'edit', row });
+          }}
+          sx={{ gap: 1, fontSize: '0.82rem', fontWeight: 600, py: 1, px: 2 }}
+        >
+          <Edit size={16} /> Chỉnh sửa thông tin
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            const row = menuAnchor!.row;
+            setMenuAnchor(null);
+            setResetRow(row);
+          }}
+          sx={{ gap: 1, fontSize: '0.82rem', fontWeight: 600, py: 1, px: 2 }}
+        >
+          <Key size={16} /> Đặt lại mật khẩu
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            const row = menuAnchor!.row;
+            setMenuAnchor(null);
+            setAssignDialog({ kind: 'roles', row });
+          }}
+          sx={{ gap: 1, fontSize: '0.82rem', fontWeight: 600, py: 1, px: 2 }}
+        >
+          <ShieldTick size={16} /> Gán vai trò
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            const row = menuAnchor!.row;
+            setMenuAnchor(null);
+            setAssignDialog({ kind: 'regions', row });
+          }}
+          sx={{ gap: 1, fontSize: '0.82rem', fontWeight: 600, py: 1, px: 2 }}
+        >
+          <SecuritySafe size={16} /> Gán địa bàn
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            const row = menuAnchor!.row;
+            setMenuAnchor(null);
+            toggleLock(row);
+          }}
+          sx={{ gap: 1, fontSize: '0.82rem', fontWeight: 600, py: 1, px: 2, color: menuAnchor?.row.status === 'ACTIVE' ? '#ea580c' : '#16a34a' }}
+        >
+          {menuAnchor?.row.status === 'ACTIVE' ? (
+            <>
+              <Lock1 size={16} /> Khóa tài khoản
+            </>
+          ) : (
+            <>
+              <Unlock size={16} /> Mở khóa tài khoản
+            </>
+          )}
+        </MenuItem>
+        <Divider sx={{ my: 0.5 }} />
+        <MenuItem
+          onClick={() => {
+            const row = menuAnchor!.row;
+            setMenuAnchor(null);
+            removeRow(row);
+          }}
+          sx={{ gap: 1, fontSize: '0.82rem', fontWeight: 600, py: 1, px: 2, color: '#ef4444' }}
+        >
+          <Trash size={16} /> Xóa người dùng
+        </MenuItem>
+      </Menu>
     </Box>
   );
 }
-
-const iconBtn = (border: string, color: string) => ({ color, border: '1px solid', borderColor: border, borderRadius: '8px', p: 0.6 });
 
 const GENDERS = [
   { value: 'MALE', label: 'Nam' },
@@ -444,12 +600,14 @@ function AssignDialog({ isDark, kind, row, roles, onClose }: { isDark: boolean; 
 }
 
 // ════════════════════════════ ROLES TAB ════════════════════════════
-function RolesTab({ isDark }: { isDark: boolean }) {
+function RolesTab({ isDark, refreshKey }: { isDark: boolean; refreshKey?: number }) {
   const [rows, setRows] = useState<RoleRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formDialog, setFormDialog] = useState<{ mode: 'add' | 'edit'; row?: RoleRow } | null>(null);
   const [permRow, setPermRow] = useState<RoleRow | null>(null);
+  const [roleMenuAnchor, setRoleMenuAnchor] = useState<{ el: HTMLElement; row: RoleRow } | null>(null);
+
   const cardBorder = isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0';
   const cardBg = isDark ? 'rgba(255,255,255,0.03)' : '#fff';
   const { confirm, notify } = useFeedback();
@@ -467,7 +625,7 @@ function RolesTab({ isDark }: { isDark: boolean }) {
       setError('Chưa kết nối được API vai trò (cần đăng nhập tài khoản GoSafe thật).');
     } finally { setLoading(false); }
   }, []);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, refreshKey]);
 
   const removeRow = async (row: RoleRow) => {
     const ok = await confirm({ title: 'Xóa vai trò', message: <>Xóa vai trò <b>{row.name}</b>? Người dùng đang gán vai trò này sẽ mất quyền tương ứng.</>, confirmText: 'Xóa', tone: 'danger' });
@@ -483,28 +641,78 @@ function RolesTab({ isDark }: { isDark: boolean }) {
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" sx={{ mb: 1.5 }}>
-        <Tooltip title="Tải lại"><IconButton size="small" onClick={load} sx={{ border: '1px solid', borderColor: cardBorder, borderRadius: '10px', mr: 1 }}><Refresh size={16} /></IconButton></Tooltip>
-        <Button variant="contained" startIcon={<Add size={18} />} onClick={() => setFormDialog({ mode: 'add' })} sx={{ borderRadius: '10px', fontWeight: 700, ml: 'auto' }}>Thêm vai trò</Button>
+      <Stack direction="row" alignItems="center" sx={{ mb: 2 }}>
+        <Tooltip title="Tải lại">
+          <IconButton
+            size="small"
+            onClick={load}
+            sx={{ border: '1px solid', borderColor: cardBorder, borderRadius: '12px', p: 1, mr: 1 }}
+          >
+            <Refresh size={16} />
+          </IconButton>
+        </Tooltip>
+        <Button
+          variant="contained"
+          startIcon={<Add size={18} />}
+          onClick={() => setFormDialog({ mode: 'add' })}
+          sx={{
+            borderRadius: '12px',
+            fontWeight: 700,
+            ml: 'auto',
+            textTransform: 'none',
+            py: 1,
+            px: 2
+          }}
+        >
+          Thêm vai trò
+        </Button>
       </Stack>
-      <Box sx={{ borderRadius: '12px', border: '1px solid', borderColor: cardBorder, bgcolor: cardBg, overflow: 'hidden' }}>
+      <Box sx={{ borderRadius: '16px', border: '1px solid', borderColor: cardBorder, bgcolor: cardBg, overflow: 'hidden' }}>
         {loading ? <Stack alignItems="center" sx={{ py: 6 }}><CircularProgress size={24} /></Stack> : (
           <Table size="small">
-            <TableHead><TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase', borderColor: cardBorder } }}>
-              <TableCell>Vai trò</TableCell><TableCell>Mô tả</TableCell><TableCell>Số quyền</TableCell><TableCell align="right">Hành động</TableCell>
-            </TableRow></TableHead>
+            <TableHead>
+              <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase', borderColor: cardBorder } }}>
+                <TableCell>Vai trò</TableCell><TableCell>Mô tả</TableCell><TableCell>Số quyền</TableCell><TableCell align="right">Hành động</TableCell>
+              </TableRow>
+            </TableHead>
             <TableBody>
               {rows.map((r) => (
                 <TableRow key={r.id} hover sx={{ '& td': { borderColor: cardBorder, fontSize: '0.8rem' } }}>
-                  <TableCell sx={{ fontWeight: 700 }}><Stack direction="row" spacing={0.75} alignItems="center"><SecuritySafe size={16} color="#1e6fd9" variant="Bold" />{r.name}</Stack></TableCell>
-                  <TableCell sx={{ color: 'text.secondary' }}>{r.description || '—'}</TableCell>
-                  <TableCell><Chip label={`${r.permCount} quyền`} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700 }} /></TableCell>
-                  <TableCell align="right">
-                    <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                      <Tooltip title="Phân quyền"><IconButton size="small" onClick={() => setPermRow(r)} sx={iconBtn(cardBorder, '#0891b2')}><ShieldTick size={15} /></IconButton></Tooltip>
-                      <Tooltip title="Sửa"><IconButton size="small" onClick={() => setFormDialog({ mode: 'edit', row: r })} sx={iconBtn(cardBorder, '#1e6fd9')}><Edit size={15} /></IconButton></Tooltip>
-                      <Tooltip title="Xoá"><IconButton size="small" onClick={() => removeRow(r)} sx={iconBtn(cardBorder, '#ef4444')}><Trash size={15} /></IconButton></Tooltip>
+                  <TableCell sx={{ fontWeight: 700 }}>
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      <SecuritySafe size={16} color="#1e6fd9" variant="Bold" />
+                      <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', color: isDark ? '#ffffff' : '#0f172a' }}>{r.name}</Typography>
                     </Stack>
+                  </TableCell>
+                  <TableCell sx={{ color: 'text.secondary' }}>{r.description || '—'}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={`${r.permCount} quyền`}
+                      size="small"
+                      sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, borderRadius: '12px' }}
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <IconButton
+                      size="small"
+                      onClick={(e) => setRoleMenuAnchor({ el: e.currentTarget, row: r })}
+                      sx={{
+                        border: '1px solid',
+                        borderColor: cardBorder,
+                        borderRadius: '12px',
+                        p: 0.6,
+                        color: isDark ? '#94a3b8' : '#64748b',
+                        '&:hover': {
+                          bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'
+                        }
+                      }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="1" />
+                        <circle cx="12" cy="5" r="1" />
+                        <circle cx="12" cy="19" r="1" />
+                      </svg>
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               ))}
@@ -515,6 +723,54 @@ function RolesTab({ isDark }: { isDark: boolean }) {
       </Box>
       {formDialog && <RoleFormDialog isDark={isDark} mode={formDialog.mode} row={formDialog.row} onClose={() => setFormDialog(null)} onSaved={load} />}
       {permRow && <PermMatrixDialog isDark={isDark} role={permRow} onClose={() => setPermRow(null)} />}
+
+      <Menu
+        anchorEl={roleMenuAnchor?.el}
+        open={Boolean(roleMenuAnchor)}
+        onClose={() => setRoleMenuAnchor(null)}
+        PaperProps={{
+          sx: {
+            borderRadius: '12px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+            border: '1px solid',
+            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+            bgcolor: isDark ? '#0f172a' : '#ffffff',
+            backgroundImage: 'none'
+          }
+        }}
+      >
+        <MenuItem
+          onClick={() => {
+            const row = roleMenuAnchor!.row;
+            setRoleMenuAnchor(null);
+            setPermRow(row);
+          }}
+          sx={{ gap: 1, fontSize: '0.82rem', fontWeight: 600, py: 1, px: 2 }}
+        >
+          <ShieldTick size={16} /> Phân quyền
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            const row = roleMenuAnchor!.row;
+            setRoleMenuAnchor(null);
+            setFormDialog({ mode: 'edit', row });
+          }}
+          sx={{ gap: 1, fontSize: '0.82rem', fontWeight: 600, py: 1, px: 2 }}
+        >
+          <Edit size={16} /> Chỉnh sửa thông tin
+        </MenuItem>
+        <Divider sx={{ my: 0.5 }} />
+        <MenuItem
+          onClick={() => {
+            const row = roleMenuAnchor!.row;
+            setRoleMenuAnchor(null);
+            removeRow(row);
+          }}
+          sx={{ gap: 1, fontSize: '0.82rem', fontWeight: 600, py: 1, px: 2, color: '#ef4444' }}
+        >
+          <Trash size={16} /> Xóa vai trò
+        </MenuItem>
+      </Menu>
     </Box>
   );
 }

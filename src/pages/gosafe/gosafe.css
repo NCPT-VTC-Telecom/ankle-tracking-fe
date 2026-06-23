@@ -792,6 +792,16 @@
   animation: gs-live-blink 1s ease-in-out infinite;
 }
 
+/* FAB chuông nhấp nháy đỏ khi có thiết bị/phạm nhân RA NGOÀI vùng */
+@keyframes gs-fab-violation-pulse {
+  0%, 100% { box-shadow: 0 8px 30px rgba(239,68,68,0.35), 0 0 0 0 rgba(239,68,68,0.55); }
+  50%      { box-shadow: 0 8px 30px rgba(239,68,68,0.35), 0 0 0 10px rgba(239,68,68,0); }
+}
+.gs-fab-violation {
+  animation: gs-fab-violation-pulse 1.4s ease-in-out infinite;
+  border-color: rgba(239,68,68,0.5) !important;
+}
+
 /* Section badge pill */
 .gs-badge-pill {
   display: inline-flex;
