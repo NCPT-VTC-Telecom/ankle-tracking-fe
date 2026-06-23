@@ -1,4 +1,4 @@
-import type { Device } from './types';
+import type { Device, DeviceStatus } from './types';
 import type { ApiDevice } from 'api/gosafe.tracking.api';
 
 // ─── GEOGRAPHIC ───────────────────────────────────────────────────────────────
@@ -184,6 +184,34 @@ export function ssSet(key: string, value: unknown): void {
   } catch {}
 }
 
+/** Thiết bị có nguồn từ API (id 'api-<serverId>') — để phân biệt với thiết bị thủ công. */
+export const isApiDevice = (d: { id: string }) => d.id.startsWith('api-');
+
+/**
+ * Trạng thái telemetry trung tính (placeholder) — dùng khi hydrate từ cache để KHÔNG
+ * hiển thị số liệu cũ như thể đang hiện hành. Giữ lại deviceModel để có nhãn thiết bị.
+ */
+export function placeholderStatus(deviceModel = ''): DeviceStatus {
+  return {
+    battery: 0,
+    batteryVoltage: null,
+    externalVoltage: null,
+    signalStrength: 0,
+    connectionStatus: 'offline',
+    lastGpsUpdate: null,
+    lastServerSync: null,
+    gpsAccuracy: 0,
+    gpsFix: false,
+    satelliteCount: 0,
+    speed: 0,
+    altitude: 0,
+    eventId: 0,
+    eventName: 'Normal',
+    deviceModel,
+    firmwareVersion: ''
+  };
+}
+
 /** Serialize Device → JSON-safe (Date fields → ISO strings) */
 export function deviceToSS(d: Device) {
   return {
@@ -196,7 +224,11 @@ export function deviceToSS(d: Device) {
   };
 }
 
-/** Deserialize: restore Date fields after JSON.parse + ép coords về number */
+/**
+ * Deserialize từ cache: chỉ khôi phục ĐỊNH DANH/CONFIG + toạ độ + gán geofence.
+ * Telemetry biến động (pin/sự kiện/kết nối/sync…) KHÔNG khôi phục — dùng placeholder
+ * để tránh hiển thị dữ liệu cũ; chờ snapshot/SSE đầu tiên cập nhật giá trị thật.
+ */
 export function deviceFromSS(raw: ReturnType<typeof deviceToSS>): Device {
   const toNum = (v: unknown) => {
     const n = Number(v);
@@ -205,14 +237,9 @@ export function deviceFromSS(raw: ReturnType<typeof deviceToSS>): Device {
   return {
     ...raw,
     coords: [toNum(raw.coords?.[0]), toNum(raw.coords?.[1])] as [number, number],
-    pathHistory: Array.isArray(raw.pathHistory)
-      ? raw.pathHistory.map((p: any) => [toNum(p?.[0]), toNum(p?.[1])] as [number, number])
-      : [],
-    status: {
-      ...raw.status,
-      lastGpsUpdate: raw.status.lastGpsUpdate ? new Date(raw.status.lastGpsUpdate) : null,
-      lastServerSync: raw.status.lastServerSync ? new Date(raw.status.lastServerSync) : null
-    }
+    pathHistory: [],
+    angle: 0,
+    status: placeholderStatus(raw.status?.deviceModel ?? '')
   };
 }
 

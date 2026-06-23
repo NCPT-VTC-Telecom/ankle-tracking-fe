@@ -1,6 +1,7 @@
 import { AxiosPromise } from 'axios';
 import axiosGosafe from 'utils/axiosGosafe';
-import type { Geofence, SubjectInfo } from 'pages/gosafe/tracking/types';
+import type { Geofence, SubjectInfo, ZoneType, ZoneSchedule } from 'pages/gosafe/tracking/types';
+import { ZONE_PRESET_MAP } from 'pages/gosafe/tracking/constants';
 
 export interface GosafePaginated<T> {
   code: number;
@@ -30,6 +31,15 @@ export interface ListParams {
 export const zonesApi = {
   list: (params?: ListParams): AxiosPromise<GosafePaginated<any>> =>
     axiosGosafe({ url: '/v1/zone_management/list', method: 'GET', params }),
+  /** Vùng giao với khung nhìn bản đồ (bounding box). Cap 500 + cờ meta.truncated. */
+  map: (bbox: {
+    swLat: number;
+    swLng: number;
+    neLat: number;
+    neLng: number;
+    offenderId?: string;
+  }): AxiosPromise<GosafePaginated<any>> =>
+    axiosGosafe({ url: '/v1/zone_management/map', method: 'GET', params: bbox }),
   detail: (id: string): AxiosPromise<GosafeSingle<any>> =>
     axiosGosafe({ url: '/v1/zone_management/detail', method: 'GET', params: { id } }),
   create: (body: any): AxiosPromise<GosafeSingle<any>> =>
@@ -52,6 +62,15 @@ export const zonesApi = {
 export const devicesApi = {
   list: (params?: ListParams): AxiosPromise<GosafePaginated<any>> =>
     axiosGosafe({ url: '/v1/device_management/list', method: 'GET', params }),
+  /** Thiết bị trong khung nhìn bản đồ (bounding box) — đồng nhất với zonesApi.map. */
+  map: (bbox: {
+    swLat: number;
+    swLng: number;
+    neLat: number;
+    neLng: number;
+    offenderId?: string;
+  }): AxiosPromise<GosafePaginated<any>> =>
+    axiosGosafe({ url: '/v1/device_management/map', method: 'GET', params: bbox }),
   detail: (id: string): AxiosPromise<GosafeSingle<any>> =>
     axiosGosafe({ url: '/v1/device_management/detail', method: 'GET', params: { id } }),
   create: (body: any): AxiosPromise<GosafeSingle<any>> =>
@@ -96,8 +115,58 @@ export const offendersApi = {
     offenderId: string;
     deviceId: string | null;
   }): AxiosPromise<GosafeSingle<any>> =>
-    axiosGosafe({ url: '/v1/offender_management/assign_device', method: 'POST', data: body })
+    axiosGosafe({ url: '/v1/offender_management/assign_device', method: 'POST', data: body }),
+
+  // ── Cán bộ phụ trách ──
+  /** Danh sách cán bộ được gán cho phạm nhân */
+  officers: (offenderId: string): AxiosPromise<GosafePaginated<any>> =>
+    axiosGosafe({ url: '/v1/offender_management/officers', method: 'GET', params: { id: offenderId } }),
+  addOfficer: (body: {
+    offenderId: string;
+    officerId: string;
+    assignmentRole?: 'PRIMARY' | 'SECONDARY' | 'SUPPORT';
+    isPrimary?: boolean;
+  }): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/offender_management/add_officer', method: 'POST', data: body }),
+  setPrimaryOfficer: (body: { offenderId: string; officerId: string }): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/offender_management/set_primary_officer', method: 'POST', data: body }),
+  removeOfficer: (body: { offenderId: string; officerId: string }): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/offender_management/remove_officer', method: 'POST', data: body }),
+
+  // ── Bản án (offenses) ──
+  /** Danh sách bản án của phạm nhân (bản án hiệu lực xếp trước) */
+  offenses: (offenderId: string): AxiosPromise<GosafePaginated<any>> =>
+    axiosGosafe({ url: '/v1/offender_management/offenses', method: 'GET', params: { id: offenderId } }),
+  addOffense: (body: OffenseBody & { offenderId: string }): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/offender_management/add_offense', method: 'POST', data: body }),
+  updateOffense: (body: OffenseBody & { offenseId: string }): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/offender_management/update_offense', method: 'POST', data: body }),
+  setCurrentOffense: (offenseId: string): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/offender_management/set_current_offense', method: 'POST', data: { offenseId } }),
+  deleteOffense: (offenseId: string): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/offender_management/delete_offense', method: 'POST', data: { offenseId } }),
+
+  // ── Tài khoản ứng dụng cho phạm nhân ──
+  createAccount: (body: {
+    offenderId: string;
+    usernameType?: 'CITIZEN_ID' | 'PHONE';
+    phoneNumber?: string;
+  }): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/offender_management/create_account', method: 'POST', data: body })
 };
+
+/** Trường bản án dùng chung cho add/update offense. */
+export interface OffenseBody {
+  crime?: string;
+  lawArticle?: string;
+  sentenceType?: string;
+  sentenceTerm?: string;
+  probationMonths?: number;
+  courtName?: string;
+  judgmentNumber?: string;
+  judgmentDate?: string;
+  isCurrent?: boolean;
+}
 
 // ─── ALERTS ─────────────────────────────────────────────────────────────────
 
@@ -114,9 +183,30 @@ export const alertsApi = {
 
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
 
+/** Body POST /v1/notifications/send (SendNotificationDto). title & body bắt buộc. */
+export interface SendNotificationBody {
+  title: string;
+  body: string;
+  /** UUID người nhận; bỏ trống → gửi theo role */
+  userIds?: string[];
+  /** Role ID người nhận (nếu không truyền userIds) */
+  roleIds?: number[];
+  /** Dữ liệu bổ sung key-value (vd: offenderId, alertId) */
+  data?: Record<string, unknown>;
+}
+
 export const notificationsApi = {
   list: (params?: ListParams): AxiosPromise<GosafePaginated<any>> =>
     axiosGosafe({ url: '/v1/notifications', method: 'GET', params }),
+  /** Admin soạn & gửi thông báo CHỦ ĐỘNG (push FCM + lưu DB). type mặc định = system. */
+  send: (body: SendNotificationBody): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/notifications/send', method: 'POST', data: body }),
+  /** Cập nhật 1 thông báo (UpdateUserNotificationDto): đánh dấu đã đọc / xoá. */
+  update: (
+    notificationId: string,
+    patch: { isRead?: boolean; isDeleted?: boolean }
+  ): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: `/v1/notifications/${notificationId}`, method: 'POST', data: patch }),
   markRead: (notificationId: string): AxiosPromise<GosafeSingle<any>> =>
     axiosGosafe({ url: `/v1/notifications/${notificationId}`, method: 'POST', data: { isRead: true } }),
   /** Đăng ký FCM token để nhận push notification (POST /v1/notifications/register_device) */
@@ -166,6 +256,12 @@ export const usersApi = {
     axiosGosafe({ url: '/v1/user_management/unlock', method: 'POST', params: { id } }),
   resetPassword: (body: { userId: string; newPassword: string }): AxiosPromise<GosafeSingle<any>> =>
     axiosGosafe({ url: '/v1/user_management/reset_password', method: 'POST', data: body }),
+  /** Người dùng tự đổi mật khẩu (cần mật khẩu cũ). */
+  changePassword: (
+    id: string,
+    body: { oldPassword: string; newPassword: string }
+  ): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/user_management/change_password', method: 'POST', params: { id }, data: body }),
   assignRoles: (body: {
     userId: string;
     roleIds: (string | number)[];
@@ -260,6 +356,36 @@ export const complianceApi = {
     axiosGosafe({ url: '/v1/compliance_management/delete', method: 'POST', params: { id } })
 };
 
+// ─── CHECK-IN (Điểm danh) ──────────────────────────────────────────────────────
+
+export const checkinApi = {
+  // ── Phía quản lý (cán bộ/superadmin) ──
+  /** Danh sách lượt điểm danh */
+  list: (params?: ListParams): AxiosPromise<GosafePaginated<any>> =>
+    axiosGosafe({ url: '/v1/checkin_management/list', method: 'GET', params }),
+  detail: (id: string): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/checkin_management/detail', method: 'GET', params: { id } }),
+  /** Các lần điểm danh phát sinh theo lịch (occurrences) */
+  occurrences: (params?: ListParams): AxiosPromise<GosafePaginated<any>> =>
+    axiosGosafe({ url: '/v1/checkin_management/occurrences', method: 'GET', params }),
+  /** Xác minh (duyệt/từ chối) một lượt điểm danh */
+  verify: (body: { id: string; approve: boolean; rejectionReason?: string }): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/checkin_management/verify', method: 'POST', data: body }),
+
+  // ── Phía đối tượng (self check-in) ──
+  /** Tạo lượt điểm danh (kèm ảnh + toạ độ) */
+  selfCreate: (body: { ruleId: string; locationLat: number; locationLng: number; imageProof?: string }): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/checkin_self/create', method: 'POST', data: body }),
+  selfToday: (): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/checkin_self/today', method: 'GET' }),
+  selfUpcoming: (): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/checkin_self/upcoming', method: 'GET' }),
+  selfHistory: (params?: ListParams): AxiosPromise<GosafePaginated<any>> =>
+    axiosGosafe({ url: '/v1/checkin_self/history', method: 'GET', params }),
+  selfUpload: (data: FormData): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/checkin_self/upload', method: 'POST', data })
+};
+
 // ─── MAP HELPERS ──────────────────────────────────────────────────────────────
 
 /** Xấp xỉ hình tròn → polygon n đỉnh quanh tâm (lat,lng) bán kính mét. */
@@ -295,14 +421,36 @@ export function mapApiZoneToGeofence(z: any, idx = 0): Geofence {
     coordinates = circleToPolygon(Number(z.latitude), Number(z.longitude), Number(z.radius));
   }
 
+  const zoneType = normalizeZoneType(z.zoneType ?? z.category);
+
   return {
     id: String(z.id ?? z.zoneId ?? `zone-${idx}`),
     name: z.name ?? z.zoneName ?? `Vùng ${idx + 1}`,
     address: z.address ?? z.description ?? '',
-    color: z.color ?? ZONE_COLORS[idx % ZONE_COLORS.length],
+    color: z.color ?? ZONE_PRESET_MAP[zoneType].color ?? ZONE_COLORS[idx % ZONE_COLORS.length],
+    zoneType,
+    schedule: normalizeSchedule(z.schedule),
     coordinates,
     active: z.isActive ?? z.active ?? true
   };
+}
+
+/** Chuẩn hoá ZoneScheduleDto từ API → ZoneSchedule (null nếu thiếu/không hợp lệ). */
+function normalizeSchedule(raw: any): ZoneSchedule | null {
+  if (!raw || !Array.isArray(raw.daysOfWeek) || !raw.startTime || !raw.endTime) return null;
+  return {
+    daysOfWeek: raw.daysOfWeek.map((d: any) => Number(d)).filter((d: number) => d >= 1 && d <= 7),
+    startTime: String(raw.startTime),
+    endTime: String(raw.endTime)
+  };
+}
+
+/** Chuẩn hoá zoneType/category bất kỳ (hoa/thường, FORBIDDEN…) về ZoneType hợp lệ. */
+function normalizeZoneType(raw: unknown): ZoneType {
+  const v = String(raw ?? '').toLowerCase();
+  if (v === 'allowed' || v === 'safe') return 'allowed';
+  if (v === 'warning' || v === 'warn') return 'warning';
+  return 'restricted';
 }
 
 /**
@@ -311,16 +459,21 @@ export function mapApiZoneToGeofence(z: any, idx = 0): Geofence {
  * mô tả dùng `description`, toạ độ dạng ZoneCoordinateDto {latitude, longitude}.
  */
 export function geofenceToApiBody(gf: Partial<Geofence>): any {
-  return {
+  const zoneType = gf.zoneType ?? 'restricted';
+  const preset = ZONE_PRESET_MAP[zoneType];
+  const body: any = {
     name: gf.name,
     description: gf.address ?? '',
     color: gf.color,
-    zoneType: 'restricted',
-    category: 'FORBIDDEN',
+    zoneType,
+    category: preset.category,
     fenceType: 'polygon',
     coordinates: (gf.coordinates ?? []).map(([lat, lng]) => ({ latitude: lat, longitude: lng })),
     isActive: gf.active ?? true
   };
+  // Chỉ gửi schedule khi có giới hạn giờ; null = áp dụng 24/7.
+  if (gf.schedule) body.schedule = gf.schedule;
+  return body;
 }
 
 /**

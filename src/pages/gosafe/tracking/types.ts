@@ -47,11 +47,31 @@ export interface Device {
   assignedGeofenceId: string | null;
 }
 
+/**
+ * Loại vùng — ánh xạ trực tiếp `zoneType` của API zone_management:
+ *  - allowed:    vùng an toàn (inclusion) → cảnh báo khi đối tượng RA khỏi vùng
+ *  - restricted: vùng cấm (exclusion)     → cảnh báo khi đối tượng VÀO vùng
+ *  - warning:    vùng cảnh báo            → cảnh báo mức thấp khi VÀO vùng
+ */
+export type ZoneType = 'allowed' | 'restricted' | 'warning';
+
+/**
+ * Lịch áp dụng vùng — khớp ZoneScheduleDto của API.
+ * null = áp dụng 24/7 (không giới hạn giờ).
+ */
+export interface ZoneSchedule {
+  daysOfWeek: number[]; // 1=T2 … 7=CN
+  startTime: string;    // 'HH:mm'
+  endTime: string;      // 'HH:mm'
+}
+
 export interface Geofence {
   id: string;
   name: string;
   address: string;
   color: string;
+  zoneType: ZoneType;
+  schedule: ZoneSchedule | null;
   coordinates: [number, number][];
   active: boolean;
 }
@@ -81,7 +101,14 @@ export type DeviceFormState = {
   subjectNotes: string;
 };
 
-export type GfFormState = { name: string; address: string; color: string };
+export type GfFormState = {
+  name: string;
+  address: string;
+  color: string;
+  zoneType: ZoneType;
+  schedule: ZoneSchedule | null;
+  coordinates?: [number, number][];
+};
 
 // ─── HISTORY ──────────────────────────────────────────────────────────────────
 
@@ -110,6 +137,8 @@ export interface CriticalAlert {
   /** GPS coordinates at the moment the alert fired */
   coords: [number, number];
   timestamp: Date;
+  /** id bản ghi alert_management (nếu khớp được) — dùng để acknowledge/close trên server */
+  alertId?: string;
 }
 
 // ─── THEME PROPS (shared by sub-components) ───────────────────────────────────

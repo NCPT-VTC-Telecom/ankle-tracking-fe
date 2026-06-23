@@ -5,6 +5,7 @@ import {
 import { Add, Edit, Trash, Buildings2, ArrowDown2, ArrowRight2, Refresh } from 'iconsax-react';
 import { regionsApi, extractList } from 'api/gosafe.management.api';
 import SideDrawer from '../../components/SideDrawer';
+import { useFeedback } from '../../components/FeedbackProvider';
 
 interface Props {
   isDark: boolean;
@@ -40,6 +41,7 @@ export default function RegionManagement({ isDark }: Props) {
   const [dialog, setDialog] = useState<{ mode: 'add' | 'edit'; node?: RegionNode; parent?: RegionNode } | null>(null);
 
   const cardBorder = isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0';
+  const { confirm, notify } = useFeedback();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -61,11 +63,23 @@ export default function RegionManagement({ isDark }: Props) {
 
   const toggle = (id: string) => setExpanded((p) => ({ ...p, [id]: !p[id] }));
 
-  const removeNode = (node: RegionNode) => {
-    const prune = (nodes: RegionNode[]): RegionNode[] =>
-      nodes.filter((n) => n.id !== node.id).map((n) => ({ ...n, children: prune(n.children) }));
-    setTree((prev) => prune(prev));
-    regionsApi.delete(node.id).catch(() => {});
+  const removeNode = async (node: RegionNode) => {
+    const ok = await confirm({
+      title: 'Xóa địa bàn',
+      message: <>Xóa địa bàn <b>{node.name}</b>{node.children.length ? ' và toàn bộ cấp con' : ''}? Hành động không thể hoàn tác.</>,
+      confirmText: 'Xóa',
+      tone: 'danger'
+    });
+    if (!ok) return;
+    try {
+      await regionsApi.delete(node.id);
+      const prune = (nodes: RegionNode[]): RegionNode[] =>
+        nodes.filter((n) => n.id !== node.id).map((n) => ({ ...n, children: prune(n.children) }));
+      setTree((prev) => prune(prev));
+      notify('Đã xóa địa bàn', 'success');
+    } catch {
+      notify('Xóa địa bàn thất bại', 'error');
+    }
   };
 
   const renderNode = (node: RegionNode, depth = 0) => {
@@ -82,7 +96,7 @@ export default function RegionManagement({ isDark }: Props) {
           </IconButton>
           <Buildings2 size={18} color="#1e6fd9" variant="Bold" />
           <Typography sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{node.name}</Typography>
-          {node.code && <Typography sx={{ fontFamily: 'monospace', fontSize: '0.7rem', color: 'text.secondary' }}>{node.code}</Typography>}
+          {node.code && <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>{node.code}</Typography>}
           {node.level != null && <Chip label={LEVEL_LABEL[node.level] ?? `Cấp ${node.level}`} size="small" sx={{ height: 18, fontSize: '0.62rem' }} />}
           <Stack direction="row" spacing={0.5} sx={{ ml: 'auto' }}>
             <Tooltip title="Thêm cấp con">
@@ -104,9 +118,9 @@ export default function RegionManagement({ isDark }: Props) {
   return (
     <Box>
       <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1.5 }}>
-        <Typography sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Cây địa bàn quản lý</Typography>
-        <Tooltip title="Tải lại"><IconButton size="small" onClick={load} sx={{ border: '1px solid', borderColor: cardBorder, borderRadius: '9px' }}><Refresh size={16} /></IconButton></Tooltip>
-        <Button variant="contained" startIcon={<Add size={18} />} onClick={() => setDialog({ mode: 'add' })} sx={{ borderRadius: '9px', fontWeight: 700, ml: 'auto' }}>
+        <Typography sx={{ fontWeight: 700, fontSize: '1.05rem', color: isDark ? '#f8fafc' : '#0f172a' }}>Cây địa bàn quản lý</Typography>
+        <Tooltip title="Tải lại"><IconButton size="small" onClick={load} sx={{ border: '1px solid', borderColor: cardBorder, borderRadius: '10px' }}><Refresh size={16} /></IconButton></Tooltip>
+        <Button variant="contained" startIcon={<Add size={18} />} onClick={() => setDialog({ mode: 'add' })} sx={{ borderRadius: '10px', fontWeight: 700, ml: 'auto' }}>
           Thêm địa bàn gốc
         </Button>
       </Stack>
@@ -140,16 +154,25 @@ function RegionDialog({ isDark, mode, node, parent, onClose, onSaved }: {
 }) {
   const [name, setName] = useState(node?.name ?? '');
   const [code, setCode] = useState(node?.code ?? '');
+  const [saving, setSaving] = useState(false);
+  const { notify } = useFeedback();
 
-  const save = () => {
+  const save = async () => {
     if (!name) return;
-    if (mode === 'edit' && node) {
-      regionsApi.update(node.id, { name, code }).catch(() => {});
-    } else {
-      regionsApi.create({ name, code, parentId: parent?.id, level: parent?.level != null ? parent.level + 1 : 0 }).catch(() => {});
+    setSaving(true);
+    try {
+      if (mode === 'edit' && node) {
+        await regionsApi.update(node.id, { name, code });
+      } else {
+        await regionsApi.create({ name, code, parentId: parent?.id, level: parent?.level != null ? parent.level + 1 : 0 });
+      }
+      notify(mode === 'edit' ? 'Đã cập nhật địa bàn' : 'Đã thêm địa bàn', 'success');
+      onClose();
+      setTimeout(onSaved, 300);
+    } catch {
+      notify('Lưu địa bàn thất bại', 'error');
+      setSaving(false);
     }
-    onClose();
-    setTimeout(onSaved, 300);
   };
 
   return (
@@ -162,7 +185,7 @@ function RegionDialog({ isDark, mode, node, parent, onClose, onSaved }: {
       footer={
         <>
           <Button onClick={onClose} sx={{ borderRadius: 2.5, fontWeight: 600, color: 'text.secondary' }}>Hủy</Button>
-          <Button variant="contained" onClick={save} disabled={!name} sx={{ borderRadius: 2.5, fontWeight: 700, px: 3 }}>Lưu</Button>
+          <Button variant="contained" onClick={save} disabled={!name || saving} sx={{ borderRadius: 2.5, fontWeight: 700, px: 3 }}>{saving ? 'Đang lưu…' : 'Lưu'}</Button>
         </>
       }
     >

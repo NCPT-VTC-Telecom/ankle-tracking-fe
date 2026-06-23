@@ -1,14 +1,15 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   Box, Stack, Typography, Button, IconButton, Tooltip, TextField, Chip, CircularProgress, Avatar,
-  Table, TableHead, TableBody, TableRow, TableCell,
-  Checkbox, FormControlLabel, Divider
+  Table, TableHead, TableBody, TableRow, TableCell, MenuItem, ListItemText,
+  Checkbox, FormControlLabel, Divider, Select, OutlinedInput, InputLabel, FormControl
 } from '@mui/material';
 import {
   Add, Edit, Trash, Lock1, Unlock, Key, ShieldTick, Profile2User, SecuritySafe, Refresh, SearchNormal1
 } from 'iconsax-react';
-import { usersApi, rolesApi, permissionsApi, extractList } from 'api/gosafe.management.api';
+import { usersApi, rolesApi, permissionsApi, regionsApi, extractList } from 'api/gosafe.management.api';
 import SideDrawer from '../../components/SideDrawer';
+import { useFeedback } from '../../components/FeedbackProvider';
 
 interface Props {
   isDark: boolean;
@@ -70,6 +71,7 @@ function UsersTab({ isDark }: { isDark: boolean }) {
 
   const cardBorder = isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0';
   const cardBg = isDark ? 'rgba(255,255,255,0.03)' : '#fff';
+  const { confirm, notify } = useFeedback();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -98,14 +100,39 @@ function UsersTab({ isDark }: { isDark: boolean }) {
     rolesApi.list({ pageSize: 100 }).then((res) => setRoles(extractList(res.data).map((r: any) => ({ id: String(r.id), name: r.name, description: r.description, permCount: 0, raw: r })))).catch(() => {});
   }, [load]);
 
-  const toggleLock = (row: UserRow) => {
+  const toggleLock = async (row: UserRow) => {
     const locking = row.status === 'ACTIVE';
+    const ok = await confirm({
+      title: locking ? 'Khóa tài khoản' : 'Mở khóa tài khoản',
+      message: <>{locking ? 'Khóa' : 'Mở khóa'} tài khoản <b>{row.fullname}</b> ({row.username})?</>,
+      confirmText: locking ? 'Khóa' : 'Mở khóa',
+      tone: locking ? 'danger' : 'primary'
+    });
+    if (!ok) return;
     setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, status: locking ? 'INACTIVE' : 'ACTIVE' } : r)));
-    (locking ? usersApi.lock(row.id) : usersApi.unlock(row.id)).catch(() => {});
+    try {
+      await (locking ? usersApi.lock(row.id) : usersApi.unlock(row.id));
+      notify(locking ? 'Đã khóa tài khoản' : 'Đã mở khóa tài khoản', 'success');
+    } catch {
+      setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, status: locking ? 'ACTIVE' : 'INACTIVE' } : r)));
+      notify('Thao tác thất bại', 'error');
+    }
   };
-  const removeRow = (row: UserRow) => {
-    setRows((prev) => prev.filter((r) => r.id !== row.id));
-    usersApi.delete(row.id).catch(() => {});
+  const removeRow = async (row: UserRow) => {
+    const ok = await confirm({
+      title: 'Xóa người dùng',
+      message: <>Xóa tài khoản <b>{row.fullname}</b> ({row.username})? Hành động không thể hoàn tác.</>,
+      confirmText: 'Xóa',
+      tone: 'danger'
+    });
+    if (!ok) return;
+    try {
+      await usersApi.delete(row.id);
+      setRows((prev) => prev.filter((r) => r.id !== row.id));
+      notify('Đã xóa người dùng', 'success');
+    } catch {
+      notify('Xóa người dùng thất bại', 'error');
+    }
   };
 
   const filtered = rows.filter((r) => !search || r.fullname.toLowerCase().includes(search.toLowerCase()) || r.username.toLowerCase().includes(search.toLowerCase()));
@@ -115,8 +142,8 @@ function UsersTab({ isDark }: { isDark: boolean }) {
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
         <TextField size="small" placeholder="Tìm tên / username..." value={search} onChange={(e) => setSearch(e.target.value)}
           InputProps={{ startAdornment: <SearchNormal1 size={16} style={{ marginRight: 6, color: '#94a3b8' }} /> }} sx={{ minWidth: 240 }} />
-        <Tooltip title="Tải lại"><IconButton size="small" onClick={load} sx={{ border: '1px solid', borderColor: cardBorder, borderRadius: '9px' }}><Refresh size={16} /></IconButton></Tooltip>
-        <Button variant="contained" startIcon={<Add size={18} />} onClick={() => setFormDialog({ mode: 'add' })} sx={{ borderRadius: '9px', fontWeight: 700, ml: 'auto' }}>Thêm người dùng</Button>
+        <Tooltip title="Tải lại"><IconButton size="small" onClick={load} sx={{ border: '1px solid', borderColor: cardBorder, borderRadius: '10px' }}><Refresh size={16} /></IconButton></Tooltip>
+        <Button variant="contained" startIcon={<Add size={18} />} onClick={() => setFormDialog({ mode: 'add' })} sx={{ borderRadius: '10px', fontWeight: 700, ml: 'auto' }}>Thêm người dùng</Button>
       </Stack>
 
       <Box sx={{ borderRadius: '12px', border: '1px solid', borderColor: cardBorder, bgcolor: cardBg, overflow: 'hidden' }}>
@@ -136,7 +163,7 @@ function UsersTab({ isDark }: { isDark: boolean }) {
                       <Box><Typography sx={{ fontWeight: 600, fontSize: '0.82rem' }}>{r.fullname}</Typography>{r.email && <Typography sx={{ fontSize: '0.68rem', color: 'text.secondary' }}>{r.email}</Typography>}</Box>
                     </Stack>
                   </TableCell>
-                  <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.74rem' }}>{r.username}</TableCell>
+                  <TableCell sx={{ fontSize: '0.74rem' }}>{r.username}</TableCell>
                   <TableCell>{r.roleNames}</TableCell>
                   <TableCell><Chip label={r.status === 'ACTIVE' ? 'Hoạt động' : 'Khoá'} size="small" color={r.status === 'ACTIVE' ? 'success' : 'default'} sx={{ height: 20, fontWeight: 700, fontSize: '0.65rem' }} /></TableCell>
                   <TableCell align="right">
@@ -166,39 +193,168 @@ function UsersTab({ isDark }: { isDark: boolean }) {
 
 const iconBtn = (border: string, color: string) => ({ color, border: '1px solid', borderColor: border, borderRadius: '8px', p: 0.6 });
 
+const GENDERS = [
+  { value: 'MALE', label: 'Nam' },
+  { value: 'FEMALE', label: 'Nữ' },
+  { value: 'OTHER', label: 'Khác' }
+];
+
 function UserFormDialog({ isDark, mode, row, onClose, onSaved }: { isDark: boolean; mode: 'add' | 'edit'; row?: UserRow; onClose: () => void; onSaved: () => void }) {
+  const raw = row?.raw ?? {};
   const [form, setForm] = useState({
-    fullname: row?.fullname ?? '', username: row?.username ?? '', email: row?.email ?? '', password: ''
+    // Tài khoản
+    fullname: row?.fullname ?? '',
+    username: row?.username ?? '',
+    email: row?.email ?? '',
+    password: '',
+    // Cá nhân
+    phoneNumber: raw.phoneNumber ?? raw.phone ?? '',
+    citizenId: raw.citizenId ?? raw.cmnd ?? '',
+    gender: raw.gender ?? '',
+    // Cán bộ
+    officerCode: raw.officerCode ?? '',
+    rank: raw.rank ?? '',
+    // Địa chỉ
+    address: raw.address ?? '',
+    province: raw.province ?? '',
+    district: raw.district ?? '',
+    ward: raw.ward ?? '',
+    // Phân quyền & phạm vi
+    roleIds: Array.isArray(raw.roles) ? raw.roles.map((r: any) => String(r?.id ?? r)) : [],
+    regionIds: Array.isArray(raw.regions) ? raw.regions.map((r: any) => String(r?.id ?? r)) : []
   });
   const set = (p: Partial<typeof form>) => setForm((f) => ({ ...f, ...p }));
-  const save = () => {
+
+  const [roleOpts, setRoleOpts] = useState<{ id: string; name: string }[]>([]);
+  const [regionOpts, setRegionOpts] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    rolesApi.list({ pageSize: 200 }).then((res) => setRoleOpts(extractList(res.data).map((r: any) => ({ id: String(r.id), name: r.name ?? r.code ?? r.id })))).catch(() => {});
+    regionsApi.list({ pageSize: 300 }).then((res) => setRegionOpts(extractList(res.data).map((r: any) => ({ id: String(r.id), name: r.name ?? r.code ?? r.id })))).catch(() => {});
+  }, []);
+
+  const { notify } = useFeedback();
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
     if (!form.fullname || !form.username) return;
-    const body: any = { fullname: form.fullname, username: form.username, email: form.email };
+    // Chỉ gửi field có giá trị (khớp AddUserManagementDto)
+    const body: any = { fullname: form.fullname, username: form.username };
+    const opt: Record<string, any> = {
+      email: form.email, phoneNumber: form.phoneNumber, citizenId: form.citizenId, gender: form.gender,
+      officerCode: form.officerCode, rank: form.rank, address: form.address,
+      province: form.province, district: form.district, ward: form.ward
+    };
+    Object.entries(opt).forEach(([k, v]) => { if (v) body[k] = v; });
     if (form.password) body.password = form.password;
-    if (mode === 'edit' && row) usersApi.update(row.id, body).catch(() => {});
-    else usersApi.create(body).catch(() => {});
-    onClose();
-    setTimeout(onSaved, 300);
+    if (form.roleIds.length) body.roleIds = form.roleIds;
+    if (form.regionIds.length) body.regionIds = form.regionIds;
+    setSaving(true);
+    try {
+      if (mode === 'edit' && row) await usersApi.update(row.id, body);
+      else await usersApi.create(body);
+      notify(mode === 'edit' ? 'Đã cập nhật người dùng' : 'Đã thêm người dùng', 'success');
+      onClose();
+      setTimeout(onSaved, 300);
+    } catch {
+      notify('Lưu người dùng thất bại — kiểm tra lại thông tin', 'error');
+      setSaving(false);
+    }
   };
+
+  const multiRender = (opts: { id: string; name: string }[]) => (selected: unknown) => {
+    const ids = selected as string[];
+    if (!ids.length) return <Typography sx={{ color: 'text.disabled', fontSize: '0.9rem' }}>Chưa chọn</Typography>;
+    return (
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+        {ids.map((id) => <Chip key={id} size="small" label={opts.find((o) => o.id === id)?.name ?? id} sx={{ height: 22, fontWeight: 600, borderRadius: '6px' }} />)}
+      </Box>
+    );
+  };
+
+  const sectionLabel = (t: string) => (
+    <Divider sx={{ borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0' }}>
+      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4 }}>{t}</Typography>
+    </Divider>
+  );
+
   return (
     <SideDrawer
       open
       onClose={onClose}
       isDark={isDark}
+      width={540}
       title={mode === 'edit' ? 'Sửa người dùng' : 'Thêm người dùng'}
       subtitle="Thông tin tài khoản cán bộ"
       footer={
         <>
-          <Button onClick={onClose} sx={{ borderRadius: 2.5, fontWeight: 600, color: 'text.secondary' }}>Hủy</Button>
-          <Button variant="contained" onClick={save} disabled={!form.fullname || !form.username} sx={{ borderRadius: 2.5, fontWeight: 700, px: 3 }}>Lưu</Button>
+          <Button onClick={onClose} sx={{ borderRadius: 2, fontWeight: 600, color: 'text.secondary' }}>Hủy</Button>
+          <Button variant="contained" onClick={save} disabled={!form.fullname || !form.username || saving} sx={{ borderRadius: 2, fontWeight: 700, px: 3 }}>{saving ? 'Đang lưu…' : 'Lưu'}</Button>
         </>
       }
     >
       <Stack spacing={2.5}>
+        {sectionLabel('Tài khoản')}
         <TextField label="Họ và tên *" fullWidth value={form.fullname} onChange={(e) => set({ fullname: e.target.value })} />
         <TextField label="Tên đăng nhập *" fullWidth value={form.username} onChange={(e) => set({ username: e.target.value })} disabled={mode === 'edit'} />
-        <TextField label="Email" fullWidth value={form.email} onChange={(e) => set({ email: e.target.value })} />
+        <TextField label="Email" type="email" fullWidth value={form.email} onChange={(e) => set({ email: e.target.value })} />
         <TextField label={mode === 'edit' ? 'Mật khẩu mới (để trống nếu giữ)' : 'Mật khẩu *'} type="password" fullWidth value={form.password} onChange={(e) => set({ password: e.target.value })} />
+
+        {sectionLabel('Thông tin cá nhân')}
+        <Stack direction="row" spacing={2}>
+          <TextField label="Số điện thoại" fullWidth value={form.phoneNumber} onChange={(e) => set({ phoneNumber: e.target.value })} />
+          <TextField label="Số CCCD/CMND" fullWidth value={form.citizenId} onChange={(e) => set({ citizenId: e.target.value })} />
+        </Stack>
+        <TextField select label="Giới tính" fullWidth value={form.gender} onChange={(e) => set({ gender: e.target.value })}>
+          <MenuItem value=""><em>Không xác định</em></MenuItem>
+          {GENDERS.map((g) => <MenuItem key={g.value} value={g.value}>{g.label}</MenuItem>)}
+        </TextField>
+
+        {sectionLabel('Thông tin cán bộ')}
+        <Stack direction="row" spacing={2}>
+          <TextField label="Mã hiệu cán bộ" fullWidth value={form.officerCode} onChange={(e) => set({ officerCode: e.target.value })} />
+          <TextField label="Cấp bậc" fullWidth value={form.rank} onChange={(e) => set({ rank: e.target.value })} placeholder="VD: Đại úy" />
+        </Stack>
+
+        {sectionLabel('Phân quyền & phạm vi')}
+        <FormControl fullWidth>
+          <InputLabel>Vai trò</InputLabel>
+          <Select
+            multiple value={form.roleIds} input={<OutlinedInput label="Vai trò" />}
+            onChange={(e) => set({ roleIds: typeof e.target.value === 'string' ? e.target.value.split(',') : (e.target.value as string[]) })}
+            renderValue={multiRender(roleOpts)}
+          >
+            {roleOpts.map((o) => (
+              <MenuItem key={o.id} value={o.id}>
+                <Checkbox checked={form.roleIds.includes(o.id)} />
+                <ListItemText primary={o.name} />
+              </MenuItem>
+            ))}
+            {roleOpts.length === 0 && <MenuItem disabled>Chưa có vai trò</MenuItem>}
+          </Select>
+        </FormControl>
+        <FormControl fullWidth>
+          <InputLabel>Địa bàn truy cập</InputLabel>
+          <Select
+            multiple value={form.regionIds} input={<OutlinedInput label="Địa bàn truy cập" />}
+            onChange={(e) => set({ regionIds: typeof e.target.value === 'string' ? e.target.value.split(',') : (e.target.value as string[]) })}
+            renderValue={multiRender(regionOpts)}
+          >
+            {regionOpts.map((o) => (
+              <MenuItem key={o.id} value={o.id}>
+                <Checkbox checked={form.regionIds.includes(o.id)} />
+                <ListItemText primary={o.name} />
+              </MenuItem>
+            ))}
+            {regionOpts.length === 0 && <MenuItem disabled>Chưa có địa bàn</MenuItem>}
+          </Select>
+        </FormControl>
+
+        {sectionLabel('Địa chỉ')}
+        <TextField label="Địa chỉ" fullWidth value={form.address} onChange={(e) => set({ address: e.target.value })} />
+        <Stack direction="row" spacing={2}>
+          <TextField label="Tỉnh/Thành" fullWidth value={form.province} onChange={(e) => set({ province: e.target.value })} />
+          <TextField label="Quận/Huyện" fullWidth value={form.district} onChange={(e) => set({ district: e.target.value })} />
+          <TextField label="Phường/Xã" fullWidth value={form.ward} onChange={(e) => set({ ward: e.target.value })} />
+        </Stack>
       </Stack>
     </SideDrawer>
   );
@@ -206,7 +362,17 @@ function UserFormDialog({ isDark, mode, row, onClose, onSaved }: { isDark: boole
 
 function ResetPwDialog({ isDark, row, onClose }: { isDark: boolean; row: UserRow; onClose: () => void }) {
   const [pw, setPw] = useState('');
-  const save = () => { if (pw) usersApi.resetPassword({ userId: row.id, newPassword: pw }).catch(() => {}); onClose(); };
+  const { notify } = useFeedback();
+  const save = async () => {
+    if (!pw) return;
+    try {
+      await usersApi.resetPassword({ userId: row.id, newPassword: pw });
+      notify('Đã đặt lại mật khẩu', 'success');
+    } catch {
+      notify('Đặt lại mật khẩu thất bại', 'error');
+    }
+    onClose();
+  };
   return (
     <SideDrawer
       open
@@ -241,9 +407,15 @@ function AssignDialog({ isDark, kind, row, roles, onClose }: { isDark: boolean; 
 
   const items = kind === 'roles' ? roles.map((r) => ({ id: r.id, name: r.name })) : regions;
   const toggle = (id: string) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
-  const save = () => {
-    if (kind === 'roles') usersApi.assignRoles({ userId: row.id, roleIds: selected }).catch(() => {});
-    else usersApi.assignRegions({ userId: row.id, regionIds: selected }).catch(() => {});
+  const { notify } = useFeedback();
+  const save = async () => {
+    try {
+      if (kind === 'roles') await usersApi.assignRoles({ userId: row.id, roleIds: selected });
+      else await usersApi.assignRegions({ userId: row.id, regionIds: selected });
+      notify(kind === 'roles' ? 'Đã gán vai trò' : 'Đã gán địa bàn', 'success');
+    } catch {
+      notify('Gán thất bại', 'error');
+    }
     onClose();
   };
   return (
@@ -280,6 +452,7 @@ function RolesTab({ isDark }: { isDark: boolean }) {
   const [permRow, setPermRow] = useState<RoleRow | null>(null);
   const cardBorder = isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0';
   const cardBg = isDark ? 'rgba(255,255,255,0.03)' : '#fff';
+  const { confirm, notify } = useFeedback();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -296,13 +469,23 @@ function RolesTab({ isDark }: { isDark: boolean }) {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const removeRow = (row: RoleRow) => { setRows((prev) => prev.filter((r) => r.id !== row.id)); rolesApi.delete(row.id).catch(() => {}); };
+  const removeRow = async (row: RoleRow) => {
+    const ok = await confirm({ title: 'Xóa vai trò', message: <>Xóa vai trò <b>{row.name}</b>? Người dùng đang gán vai trò này sẽ mất quyền tương ứng.</>, confirmText: 'Xóa', tone: 'danger' });
+    if (!ok) return;
+    try {
+      await rolesApi.delete(row.id);
+      setRows((prev) => prev.filter((r) => r.id !== row.id));
+      notify('Đã xóa vai trò', 'success');
+    } catch {
+      notify('Xóa vai trò thất bại', 'error');
+    }
+  };
 
   return (
     <Box>
       <Stack direction="row" alignItems="center" sx={{ mb: 1.5 }}>
-        <Tooltip title="Tải lại"><IconButton size="small" onClick={load} sx={{ border: '1px solid', borderColor: cardBorder, borderRadius: '9px', mr: 1 }}><Refresh size={16} /></IconButton></Tooltip>
-        <Button variant="contained" startIcon={<Add size={18} />} onClick={() => setFormDialog({ mode: 'add' })} sx={{ borderRadius: '9px', fontWeight: 700, ml: 'auto' }}>Thêm vai trò</Button>
+        <Tooltip title="Tải lại"><IconButton size="small" onClick={load} sx={{ border: '1px solid', borderColor: cardBorder, borderRadius: '10px', mr: 1 }}><Refresh size={16} /></IconButton></Tooltip>
+        <Button variant="contained" startIcon={<Add size={18} />} onClick={() => setFormDialog({ mode: 'add' })} sx={{ borderRadius: '10px', fontWeight: 700, ml: 'auto' }}>Thêm vai trò</Button>
       </Stack>
       <Box sx={{ borderRadius: '12px', border: '1px solid', borderColor: cardBorder, bgcolor: cardBg, overflow: 'hidden' }}>
         {loading ? <Stack alignItems="center" sx={{ py: 6 }}><CircularProgress size={24} /></Stack> : (
@@ -339,11 +522,20 @@ function RolesTab({ isDark }: { isDark: boolean }) {
 function RoleFormDialog({ isDark, mode, row, onClose, onSaved }: { isDark: boolean; mode: 'add' | 'edit'; row?: RoleRow; onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState(row?.name ?? '');
   const [desc, setDesc] = useState(row?.description ?? '');
-  const save = () => {
+  const [saving, setSaving] = useState(false);
+  const { notify } = useFeedback();
+  const save = async () => {
     if (!name) return;
-    if (mode === 'edit' && row) rolesApi.update(row.id, { name, description: desc }).catch(() => {});
-    else rolesApi.create({ name, description: desc }).catch(() => {});
-    onClose(); setTimeout(onSaved, 300);
+    setSaving(true);
+    try {
+      if (mode === 'edit' && row) await rolesApi.update(row.id, { name, description: desc });
+      else await rolesApi.create({ name, description: desc });
+      notify(mode === 'edit' ? 'Đã cập nhật vai trò' : 'Đã thêm vai trò', 'success');
+      onClose(); setTimeout(onSaved, 300);
+    } catch {
+      notify('Lưu vai trò thất bại', 'error');
+      setSaving(false);
+    }
   };
   return (
     <SideDrawer
@@ -355,7 +547,7 @@ function RoleFormDialog({ isDark, mode, row, onClose, onSaved }: { isDark: boole
       footer={
         <>
           <Button onClick={onClose} sx={{ borderRadius: 2.5, fontWeight: 600, color: 'text.secondary' }}>Hủy</Button>
-          <Button variant="contained" onClick={save} disabled={!name} sx={{ borderRadius: 2.5, fontWeight: 700, px: 3 }}>Lưu</Button>
+          <Button variant="contained" onClick={save} disabled={!name || saving} sx={{ borderRadius: 2.5, fontWeight: 700, px: 3 }}>{saving ? 'Đang lưu…' : 'Lưu'}</Button>
         </>
       }
     >
@@ -385,7 +577,16 @@ function PermMatrixDialog({ isDark, role, onClose }: { isDark: boolean; role: Ro
   }, [role]);
 
   const toggle = (id: string | number) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
-  const save = () => { rolesApi.setPermissions({ roleId: role.id, permissionIds: selected }).catch(() => {}); onClose(); };
+  const { notify } = useFeedback();
+  const save = async () => {
+    try {
+      await rolesApi.setPermissions({ roleId: role.id, permissionIds: selected });
+      notify('Đã cập nhật phân quyền', 'success');
+    } catch {
+      notify('Cập nhật phân quyền thất bại', 'error');
+    }
+    onClose();
+  };
 
   return (
     <SideDrawer

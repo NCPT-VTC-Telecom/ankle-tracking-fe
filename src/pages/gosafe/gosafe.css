@@ -727,8 +727,8 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @keyframes gs-critical-sos-pulse {
-  0%, 100% { box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 0 rgba(239,68,68,0.7); }
-  50%       { box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 10px rgba(239,68,68,0); }
+  0%, 100% { box-shadow: var(--gs-alert-pulse-0, 0 8px 32px rgba(0,0,0,0.6)); }
+  50%       { box-shadow: var(--gs-alert-pulse-50, 0 8px 32px rgba(0,0,0,0.6)); }
 }
 
 @keyframes gs-slide-in-right {
@@ -743,7 +743,53 @@
 }
 
 .gs-critical-fiber {
-  animation: gs-slide-in-right 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation:
+    gs-slide-in-right 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+    gs-critical-sos-pulse 1.4s ease-in-out 0.35s infinite; /* Let fiber cut pulse too, but with its own color */
+}
+
+/* Vòng sáng nhịp đập quanh icon SOS */
+@keyframes gs-icon-ring {
+  0%   { box-shadow: 0 0 0 0 var(--gs-icon-ring-start, rgba(239,68,68,0.55)); }
+  70%  { box-shadow: 0 0 0 12px var(--gs-icon-ring-end, rgba(239,68,68,0)); }
+  100% { box-shadow: 0 0 0 0 var(--gs-icon-ring-end, rgba(239,68,68,0)); }
+}
+.gs-critical-icon-sos {
+  animation: gs-icon-ring 1.5s ease-out infinite;
+}
+@keyframes gs-icon-shake {
+  0%, 100% { transform: rotate(0deg); }
+  20%      { transform: rotate(-12deg); }
+  40%      { transform: rotate(12deg); }
+  60%      { transform: rotate(-8deg); }
+  80%      { transform: rotate(8deg); }
+}
+.gs-critical-icon-sos > svg {
+  animation: gs-icon-shake 1.4s ease-in-out infinite;
+}
+/* Dải sáng quét ngang header SOS */
+@keyframes gs-sheen {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(220%); }
+}
+.gs-critical-sheen::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,0.18), transparent);
+  animation: gs-sheen 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+/* Chấm "đang hoạt động" nhấp nháy */
+@keyframes gs-live-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.3; transform: scale(0.7); }
+}
+.gs-live-dot {
+  animation: gs-live-blink 1s ease-in-out infinite;
 }
 
 /* Section badge pill */

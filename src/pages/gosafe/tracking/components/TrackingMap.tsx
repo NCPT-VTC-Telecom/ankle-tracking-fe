@@ -160,6 +160,8 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
     handleDeleteVertex,
     setSelectedDeviceId,
     setActiveTab,
+    finishEditingGeofence,
+    cancelEditingGeofence
   } = store;
 
   const [mapLayer, setMapLayer] = useState<MapLayer>(isDark ? 'dark' : 'light');
@@ -214,7 +216,7 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
           border: 1px solid rgba(255,255,255,0.15) !important;
           color: #e2e8f0 !important;
           font-size: 10px !important;
-          font-family: 'JetBrains Mono', monospace !important;
+          font-family: 'Inter var', Inter, sans-serif !important;
           padding: 2px 7px !important;
           border-radius: 5px !important;
           white-space: nowrap !important;
@@ -245,7 +247,7 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
         </Box>
       )}
 
-      {/* ── Edit-mode live metrics ── */}
+      {/* ── Edit-mode live metrics & action buttons ── */}
       {editingGeofenceId && editGf && (
         <Box
           sx={{
@@ -258,34 +260,87 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
             WebkitBackdropFilter: glassBlur,
             border: `1px solid ${glassBdr}`,
             borderLeft: `3px solid ${editGf.color}`,
-            borderRadius: 2,
+            borderRadius: 3,
             px: 2,
-            py: 1.25,
+            py: 1.75,
+            width: 280,
             color: txtColor,
-            boxShadow: `0 4px 24px ${editGf.color}30, 0 2px 8px rgba(0,0,0,0.2)`,
+            boxShadow: `0 8px 32px ${editGf.color}25, 0 2px 10px rgba(0,0,0,0.15)`,
+            transition: 'all 0.3s ease-in-out'
           }}
         >
           <Typography
             variant="caption"
-            sx={{ fontWeight: 800, color: editGf.color, display: 'block', mb: 0.75, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: 0.5 }}
+            sx={{ fontWeight: 700, color: editGf.color, display: 'block', mb: 0.75, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: 0.5 }}
+          >
+            Đang chỉnh sửa ranh giới
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 700, fontSize: '1rem', mb: 1.5, color: txtColor }}
           >
             {editGf.name}
           </Typography>
-          <Stack direction="row" spacing={2.5}>
+
+          <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
             {[
               { label: 'Diện tích', value: editArea },
               { label: 'Chu vi',    value: editPerimeter },
-              { label: 'Đỉnh',      value: String(editGf.coordinates.length) },
+              { label: 'Số đỉnh',   value: String(editGf.coordinates.length) },
             ].map((m) => (
-              <Box key={m.label}>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.6rem', fontWeight: 600 }}>
+              <Box key={m.label} sx={{ flex: 1 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.62rem', fontWeight: 600 }}>
                   {m.label}
                 </Typography>
-                <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.8rem' }}>
+                <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.82rem' }}>
                   {m.value}
                 </Typography>
               </Box>
             ))}
+          </Stack>
+
+          <Divider sx={{ my: 1.5, opacity: 0.6 }} />
+
+          <Stack spacing={1}>
+            <Button
+              variant="contained"
+              size="small"
+              fullWidth
+              onClick={() => {
+                finishEditingGeofence();
+              }}
+              sx={{
+                bgcolor: editGf.color,
+                color: '#fff',
+                fontWeight: 700,
+                borderRadius: '10px',
+                py: 0.75,
+                textTransform: 'none',
+                '&:hover': {
+                  bgcolor: editGf.color,
+                  opacity: 0.9
+                }
+              }}
+            >
+              Lưu ranh giới
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              fullWidth
+              color="error"
+              onClick={() => {
+                cancelEditingGeofence();
+              }}
+              sx={{
+                fontWeight: 700,
+                borderRadius: '10px',
+                py: 0.75,
+                textTransform: 'none'
+              }}
+            >
+              Hủy chỉnh sửa
+            </Button>
           </Stack>
         </Box>
       )}
@@ -323,7 +378,7 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
                 fontSize: '0.8rem',
                 letterSpacing: 0.8,
                 textTransform: 'uppercase',
-                fontFamily: 'system-ui, sans-serif'
+                
               }}
             >
               Lớp bản đồ
@@ -402,7 +457,7 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
                         color: sel ? store.primaryColor : 'text.secondary',
                         textAlign: 'center',
                         whiteSpace: 'nowrap',
-                        fontFamily: 'system-ui, sans-serif'
+                        
                       }}
                     >
                       {config.label}
@@ -425,7 +480,7 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
                 fontSize: '0.8rem',
                 letterSpacing: 0.8,
                 textTransform: 'uppercase',
-                fontFamily: 'system-ui, sans-serif'
+                
               }}
             >
               Hiển thị
@@ -453,7 +508,7 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
                   />
                 }
                 label={
-                  <Typography sx={{ fontWeight: 500, fontSize: '0.875rem', fontFamily: 'system-ui, sans-serif' }}>
+                  <Typography sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
                     {item.label}
                   </Typography>
                 }
@@ -479,7 +534,6 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
               py: 1,
               borderColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.14)',
               color: isDark ? '#cbd5e1' : '#475569',
-              fontFamily: 'system-ui, sans-serif',
               '&:hover': {
                 borderColor: store.primaryColor,
                 color: store.primaryColor,
@@ -529,7 +583,7 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
                   <Tooltip permanent direction="center" className="gs-gf-label" opacity={1}>
                     <span
                       style={{
-                        fontWeight: 800,
+                        fontWeight: 700,
                         fontSize: '11px',
                         color: gf.color,
                         textShadow: isDark
@@ -764,7 +818,7 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
               <Box sx={{ minWidth: 210, p: 0.5 }}>
                 <Stack direction="row" spacing={0.5} alignItems="center" mb={0.5}>
                   <Location size="16" variant="Bold" color={dev.color} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                     {dev.name}
                   </Typography>
                 </Stack>
@@ -812,7 +866,7 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
                 <Typography variant="caption" display="block" sx={{ mt: 0.75 }}>
                   IMEI: {dev.uniqueId}
                 </Typography>
-                <Typography variant="caption" display="block" sx={{ fontFamily: 'monospace', fontSize: '0.68rem' }}>
+                <Typography variant="caption" display="block" sx={{ fontSize: '0.68rem' }}>
                   {dev.coords[0].toFixed(6)}, {dev.coords[1].toFixed(6)}
                 </Typography>
                 <Typography variant="caption" display="block">

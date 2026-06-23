@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
-import { Stack, Typography, Button, Box, Divider, Switch, FormControlLabel, Chip, CircularProgress } from '@mui/material';
-import { VolumeHigh, VolumeCross, Danger, Warning2, BatteryFull, Wifi, Clock, Notification, TickCircle } from 'iconsax-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Stack, Typography, Button, Box, Divider, Switch, FormControlLabel, Chip, CircularProgress, Collapse, TextField } from '@mui/material';
+import { VolumeHigh, VolumeCross, Danger, Warning2, BatteryFull, Wifi, Clock, Notification, TickCircle, Send2, CloseCircle } from 'iconsax-react';
 import { alertsApi, notificationsApi, extractList } from 'api/gosafe.management.api';
 import { timeAgo } from '../utils';
+import { useFeedback } from '../../components/FeedbackProvider';
 import type { TrackingStore } from '../useTracking';
 
 interface Props {
@@ -89,10 +90,18 @@ function ItemCard({ item, isDark, onAck }: { item: FeedItem; isDark: boolean; on
 }
 
 export default function NotificationList({ store }: Props) {
-  const { isDark, devices, logs, setLogs, soundEnabled, setSoundEnabled, syncMinutesMap } = store;
+  const { isDark, devices, logs, setLogs, soundEnabled, setSoundEnabled, syncMinutesMap, addLog } = store;
+  const { notify } = useFeedback();
 
   const [serverItems, setServerItems] = useState<FeedItem[]>([]);
   const [loadingServer, setLoadingServer] = useState(false);
+
+  // ── Soạn & gửi cảnh báo hệ thống ──
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [composeTitle, setComposeTitle] = useState('');
+  const [composeBody, setComposeBody] = useState('');
+  const [composeRoles, setComposeRoles] = useState('');
 
   // ── Cảnh báo dẫn xuất cục bộ (luôn hoạt động) ──
   const localItems: FeedItem[] = [];
@@ -106,9 +115,7 @@ export default function NotificationList({ store }: Props) {
   });
 
   // ── Tải cảnh báo & thông báo từ máy chủ (best-effort) ──
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
+  const loadServer = useCallback(async () => {
       setLoadingServer(true);
       const out: FeedItem[] = [];
       try {
@@ -148,17 +155,53 @@ export default function NotificationList({ store }: Props) {
           });
         });
       } catch { /* bỏ qua */ }
-      if (!cancelled) {
-        setServerItems(out);
-        setLoadingServer(false);
-      }
-    })();
-    return () => { cancelled = true; };
+      setServerItems(out);
+      setLoadingServer(false);
   }, []);
+
+  useEffect(() => {
+    loadServer();
+  }, [loadServer]);
 
   const handleAck = (alertId: string) => {
     setServerItems((prev) => prev.filter((i) => i.alertId !== alertId));
     alertsApi.acknowledge({ alertId }).catch(() => {});
+  };
+
+  const resetCompose = () => {
+    setComposeTitle('');
+    setComposeBody('');
+    setComposeRoles('');
+    setComposeOpen(false);
+  };
+
+  const handleSendSystemAlert = async () => {
+    const title = composeTitle.trim();
+    const body = composeBody.trim();
+    if (!title || !body) return;
+    // roleIds: "1, 2" → [1, 2]; bỏ trống → gửi theo vai trò mặc định của máy chủ.
+    const roleIds = composeRoles
+      .split(',')
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isFinite(n) && n > 0);
+
+    setSending(true);
+    try {
+      await notificationsApi.send({
+        title,
+        body,
+        ...(roleIds.length ? { roleIds } : {}),
+        data: { source: 'gosafe-tracking', kind: 'system' }
+      });
+      notify('Đã gửi cảnh báo hệ thống', 'success');
+      addLog(`Đã gửi cảnh báo hệ thống: "${title}".`, 'info');
+      resetCompose();
+      loadServer();
+    } catch {
+      notify('Không gửi được cảnh báo hệ thống', 'error');
+    } finally {
+      setSending(false);
+    }
   };
 
   const critical = [...localItems.filter((i) => i.severity === 'critical'), ...serverItems.filter((i) => i.severity === 'critical')];
@@ -172,7 +215,7 @@ export default function NotificationList({ store }: Props) {
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Stack direction="row" spacing={1} alignItems="center">
           <Notification size={20} color={isDark ? '#f8fafc' : '#0f172a'} variant="Bold" />
-          <Typography sx={{ fontWeight: 800, fontSize: '0.95rem' }}>Trung tâm thông báo</Typography>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Trung tâm thông báo</Typography>
         </Stack>
         <Chip
           label={`${totalActive} hoạt động`}
@@ -192,6 +235,63 @@ export default function NotificationList({ store }: Props) {
         }
       />
 
+      {/* ── Gửi cảnh báo hệ thống (POST /v1/notifications/send) ── */}
+      <Box sx={{ border: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
+        <Button
+          fullWidth
+          startIcon={composeOpen ? <CloseCircle size={18} /> : <Send2 size={18} variant="Bold" />}
+          onClick={() => setComposeOpen((o) => !o)}
+          sx={{ justifyContent: 'flex-start', fontWeight: 700, py: 1.1, px: 1.5, borderRadius: 0, color: isDark ? '#f8fafc' : '#0f172a' }}
+        >
+          {composeOpen ? 'Đóng soạn cảnh báo' : 'Gửi cảnh báo hệ thống'}
+        </Button>
+        <Collapse in={composeOpen}>
+          <Stack spacing={1.5} sx={{ p: 1.75, pt: 0.5 }}>
+            <TextField
+              label="Tiêu đề *"
+              size="small"
+              fullWidth
+              value={composeTitle}
+              onChange={(e) => setComposeTitle(e.target.value)}
+              placeholder="VD: Bảo trì hệ thống định vị"
+            />
+            <TextField
+              label="Nội dung *"
+              size="small"
+              fullWidth
+              multiline
+              minRows={2}
+              value={composeBody}
+              onChange={(e) => setComposeBody(e.target.value)}
+              placeholder="VD: Hệ thống sẽ tạm gián đoạn lúc 22:00 hôm nay."
+            />
+            <TextField
+              label="Role ID nhận (tùy chọn)"
+              size="small"
+              fullWidth
+              value={composeRoles}
+              onChange={(e) => setComposeRoles(e.target.value)}
+              placeholder="VD: 1, 2 — bỏ trống = gửi theo vai trò mặc định"
+              helperText="Phân tách bằng dấu phẩy. Để trống sẽ gửi theo vai trò mặc định của máy chủ."
+            />
+            <Stack direction="row" spacing={1} justifyContent="flex-end">
+              <Button onClick={resetCompose} sx={{ fontWeight: 600, color: 'text.secondary', borderRadius: 2 }}>
+                Hủy
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={sending ? <CircularProgress size={14} color="inherit" /> : <Send2 size={16} variant="Bold" />}
+                disabled={sending || !composeTitle.trim() || !composeBody.trim()}
+                onClick={handleSendSystemAlert}
+                sx={{ fontWeight: 700, borderRadius: 2, px: 2.5 }}
+              >
+                Gửi
+              </Button>
+            </Stack>
+          </Stack>
+        </Collapse>
+      </Box>
+
       {loadingServer && (
         <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'text.secondary' }}>
           <CircularProgress size={14} />
@@ -210,7 +310,7 @@ export default function NotificationList({ store }: Props) {
             <Stack key={group.sev} spacing={1}>
               <Stack direction="row" spacing={0.75} alignItems="center">
                 {group.icon}
-                <Typography sx={{ fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5, color: SEV_META[group.sev].color }}>
+                <Typography sx={{ fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5, color: SEV_META[group.sev].color }}>
                   {SEV_META[group.sev].label} ({group.items.length})
                 </Typography>
               </Stack>

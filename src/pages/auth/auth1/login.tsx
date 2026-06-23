@@ -12,6 +12,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { dispatch } from 'store';
 import { handlerIconVariants, openSnackbar } from 'store/reducers/snackbar';
 import * as Yup from 'yup';
+import logoVTC from 'assets/logo/logo-VTC.png';
 
 const PRIMARY = '#2563eb'; // Blue-600
 const PRIMARY_DARK = '#1d4ed8';
@@ -167,9 +168,10 @@ const Login = () => {
         >
           <Box sx={{ position: 'absolute', inset: 0, opacity: 0.5, backgroundImage: `linear-gradient(rgba(37,99,235,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(37,99,235,0.06) 1px, transparent 1px)`, backgroundSize: '40px 40px', pointerEvents: 'none' }} />
 
-          <Stack spacing={0.5} alignItems="center" sx={{ mb: 3.5, position: 'relative', zIndex: 1 }}>
-            <Typography sx={{ fontWeight: 900, fontSize: '1.55rem', color: '#0f172a', letterSpacing: 0.5 }}>
-              GoSafe EMS
+          <Stack spacing={1.25} alignItems="center" sx={{ mb: 3.5, position: 'relative', zIndex: 1 }}>
+            <Box component="img" src={logoVTC} alt="VTC Telecom" sx={{ height: 48, width: 'auto', objectFit: 'contain' }} />
+            <Typography sx={{ fontWeight: 900, fontSize: '1.4rem', color: '#0f172a', letterSpacing: 0.5 }}>
+              Hệ thống Giám sát Điện tử EMS
             </Typography>
             <Typography sx={{ fontSize: '0.66rem', color: PRIMARY, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' }}>
               Electronic Monitoring System
@@ -198,7 +200,8 @@ const Login = () => {
         >
           {/* Mobile brand */}
           <Box sx={{ display: { xs: 'block', md: 'none' }, textAlign: 'center', mb: 3 }}>
-            <Typography sx={{ fontWeight: 900, fontSize: '1.4rem', color: '#0f172a' }}>GoSafe EMS</Typography>
+            <Box component="img" src={logoVTC} alt="VTC Telecom" sx={{ height: 38, width: 'auto', objectFit: 'contain', mb: 1 }} />
+            <Typography sx={{ fontWeight: 900, fontSize: '1.25rem', color: '#0f172a' }}>Hệ thống Giám sát Điện tử EMS</Typography>
             <Typography sx={{ fontSize: '0.6rem', color: PRIMARY, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', mt: 0.5 }}>
               Electronic Monitoring System
             </Typography>

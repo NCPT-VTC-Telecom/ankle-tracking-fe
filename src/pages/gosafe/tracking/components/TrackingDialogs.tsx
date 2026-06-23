@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -19,12 +20,15 @@ import {
   ListItem,
   ListItemText,
   Checkbox,
+  Switch,
   Alert
 } from '@mui/material';
-import { DEVICE_PALETTE } from '../constants';
+import { DEVICE_PALETTE, ZONE_PRESETS, DEFAULT_ZONE_SCHEDULE, WEEKDAY_LABELS, ZONE_PRESET_MAP } from '../constants';
 import { getMockBiometrics } from '../utils';
+import type { ZoneType, ZoneSchedule } from '../types';
 import type { TrackingStore } from '../useTracking';
 import SideDrawer from '../../components/SideDrawer';
+import { useFeedback } from '../../components/FeedbackProvider';
 
 interface Props {
   store: TrackingStore;
@@ -122,6 +126,135 @@ function DeviceFormContent({ store }: Props) {
 // ── GF color swatch row ────────────────────────────────────────────────────────
 const GF_COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#a855f7', '#06b6d4'];
 
+// ── Zone preset picker (chọn loại vùng theo zoneType của API) ───────────────────
+function ZonePresetPicker({
+  value,
+  onChange
+}: {
+  value: ZoneType;
+  onChange: (zoneType: ZoneType, color: string) => void;
+}) {
+  return (
+    <Stack spacing={1}>
+      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+        Loại vùng *
+      </Typography>
+      <Stack direction="row" spacing={1}>
+        {ZONE_PRESETS.map((p) => {
+          const selected = value === p.zoneType;
+          return (
+            <Box
+              key={p.zoneType}
+              onClick={() => onChange(p.zoneType, p.color)}
+              sx={{
+                flex: 1,
+                cursor: 'pointer',
+                borderRadius: '10px',
+                p: 1.25,
+                border: '2px solid',
+                borderColor: selected ? p.color : 'divider',
+                bgcolor: selected ? `${p.color}14` : 'transparent',
+                transition: 'all .15s',
+                '&:hover': { borderColor: p.color }
+              }}
+            >
+              <Stack direction="row" spacing={0.75} alignItems="center" mb={0.5}>
+                <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: p.color, flexShrink: 0 }} />
+                <Typography variant="caption" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
+                  {p.label}
+                </Typography>
+              </Stack>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.66rem', display: 'block', lineHeight: 1.3 }}>
+                {p.description}
+              </Typography>
+            </Box>
+          );
+        })}
+      </Stack>
+    </Stack>
+  );
+}
+
+// ── Zone schedule picker (lịch áp dụng vùng — khớp ZoneScheduleDto) ─────────────
+function ZoneSchedulePicker({
+  value,
+  onChange
+}: {
+  value: ZoneSchedule | null;
+  onChange: (schedule: ZoneSchedule | null) => void;
+}) {
+  const enabled = value != null;
+  const sched = value ?? DEFAULT_ZONE_SCHEDULE;
+
+  const toggleDay = (day: number) => {
+    const days = sched.daysOfWeek.includes(day)
+      ? sched.daysOfWeek.filter((d) => d !== day)
+      : [...sched.daysOfWeek, day].sort((a, b) => a - b);
+    onChange({ ...sched, daysOfWeek: days });
+  };
+
+  return (
+    <Stack spacing={1.25}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Box>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            Lịch áp dụng
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {enabled ? 'Chỉ áp dụng trong khung giờ đã chọn' : 'Áp dụng 24/7 (mọi lúc)'}
+          </Typography>
+        </Box>
+        <Switch
+          checked={enabled}
+          onChange={(e) => onChange(e.target.checked ? DEFAULT_ZONE_SCHEDULE : null)}
+          size="small"
+        />
+      </Stack>
+
+      {enabled && (
+        <Stack spacing={1.25}>
+          <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+            {[1, 2, 3, 4, 5, 6, 7].map((day) => {
+              const active = sched.daysOfWeek.includes(day);
+              return (
+                <Chip
+                  key={day}
+                  label={WEEKDAY_LABELS[day]}
+                  size="small"
+                  onClick={() => toggleDay(day)}
+                  color={active ? 'primary' : 'default'}
+                  variant={active ? 'filled' : 'outlined'}
+                  sx={{ fontWeight: 700, minWidth: 40 }}
+                />
+              );
+            })}
+          </Stack>
+          <Stack direction="row" spacing={2}>
+            <TextField
+              label="Từ giờ"
+              type="time"
+              fullWidth
+              size="small"
+              InputLabelProps={{ shrink: true }}
+              value={sched.startTime}
+              onChange={(e) => onChange({ ...sched, startTime: e.target.value })}
+            />
+            <TextField
+              label="Đến giờ"
+              type="time"
+              fullWidth
+              size="small"
+              InputLabelProps={{ shrink: true }}
+              value={sched.endTime}
+              onChange={(e) => onChange({ ...sched, endTime: e.target.value })}
+            />
+          </Stack>
+        </Stack>
+      )}
+    </Stack>
+  );
+}
+
 function GfColorRow({ value, onChange }: { value: string; onChange: (c: string) => void }) {
   return (
     <Stack direction="row" spacing={1} alignItems="center" className="gs-swatch-row">
@@ -145,6 +278,7 @@ function GfColorRow({ value, onChange }: { value: string; onChange: (c: string) 
 export default function TrackingDialogs({ store }: Props) {
   const {
     isDark,
+    primaryColor,
     devices,
     geofences,
     addDeviceOpen,
@@ -174,14 +308,86 @@ export default function TrackingDialogs({ store }: Props) {
     handleRemoveDevice,
     handleAssignDeviceToGeofence,
     handleSaveGfInfo,
-    handleAddGeofence
+    handleAddGeofence,
+    // Additional items
+    setEditingGeofenceId,
+    setMapCenter,
+    setMapZoom,
+    geofenceDevicesMap,
+    gfMetrics,
+    handleToggleGeofenceActive,
+    mapCenter
   } = store;
+
+  const { notify } = useFeedback();
+  const after = (fn: () => void, msg: string) => () => { fn(); notify(msg, 'success'); };
+
+  const [isEditingGf, setIsEditingGf] = useState(false);
+  const [shapeType, setShapeType] = useState<'square' | 'circle' | 'polygon'>('square');
+
+  useEffect(() => {
+    if (!editGfId) {
+      setIsEditingGf(false);
+    }
+  }, [editGfId]);
+
+  const generateShapeCoords = (shape: 'square' | 'circle' | 'polygon', center: [number, number]): [number, number][] => {
+    const lat = center[0];
+    const lng = center[1];
+    if (shape === 'circle') {
+      const coords: [number, number][] = [];
+      const segments = 16;
+      const radius = 0.0025; // approx 250m
+      for (let i = 0; i < segments; i++) {
+        const angle = (i * 2 * Math.PI) / segments;
+        coords.push([
+          lat + radius * Math.cos(angle),
+          lng + radius * Math.sin(angle)
+        ]);
+      }
+      return coords;
+    }
+    if (shape === 'polygon') {
+      return [
+        [lat + 0.0025, lng],
+        [lat - 0.0015, lng + 0.0025],
+        [lat - 0.002, lng],
+        [lat - 0.0015, lng - 0.0025]
+      ];
+    }
+    // square default
+    return [
+      [lat + 0.002, lng - 0.002],
+      [lat + 0.002, lng + 0.002],
+      [lat - 0.002, lng + 0.002],
+      [lat - 0.002, lng - 0.002]
+    ];
+  };
+
+  const getGeofenceCenter = (coordinates?: [number, number][]): [number, number] => {
+    if (!coordinates || coordinates.length === 0) return mapCenter || [21.0285, 105.8048];
+    let latSum = 0;
+    let lngSum = 0;
+    coordinates.forEach(([lat, lng]) => {
+      latSum += lat;
+      lngSum += lng;
+    });
+    return [latSum / coordinates.length, lngSum / coordinates.length];
+  };
+
+  const handleCreateGeofenceWithPreset = () => {
+    const coords = generateShapeCoords(shapeType, mapCenter || [21.0285, 105.8048]);
+    handleAddGeofence(coords);
+  };
 
   const paperSx = {
     borderRadius: 2,
     bgcolor: isDark ? '#0f172a' : '#fff',
     backgroundImage: 'none'
   };
+
+  const gf = geofences.find((g) => g.id === editGfId);
+  const assigned = gf ? (geofenceDevicesMap[gf.id] ?? []) : [];
 
   return (
     <>
@@ -197,7 +403,7 @@ export default function TrackingDialogs({ store }: Props) {
         footer={
           <>
             <Button onClick={() => setAddDeviceOpen(false)} sx={{ borderRadius: 2.5, fontWeight: 600, color: 'text.secondary', py: 1 }}>Hủy</Button>
-            <Button variant="contained" onClick={handleAddDevice} disabled={!addDeviceForm.name || !addDeviceForm.uniqueId} sx={{ borderRadius: 2.5, fontWeight: 700, py: 1, px: 3 }}>
+            <Button variant="contained" onClick={after(handleAddDevice, 'Đã thêm thiết bị')} disabled={!addDeviceForm.name || !addDeviceForm.uniqueId} sx={{ borderRadius: 2.5, fontWeight: 700, py: 1, px: 3 }}>
               Thêm thiết bị
             </Button>
           </>
@@ -218,7 +424,7 @@ export default function TrackingDialogs({ store }: Props) {
         footer={
           <>
             <Button onClick={() => setEditDeviceId(null)} sx={{ borderRadius: 2.5, fontWeight: 600, color: 'text.secondary', py: 1 }}>Hủy</Button>
-            <Button variant="contained" onClick={handleSaveEditDevice} sx={{ borderRadius: 2.5, fontWeight: 700, py: 1, px: 3 }}>Lưu thay đổi</Button>
+            <Button variant="contained" onClick={after(handleSaveEditDevice, 'Đã cập nhật thiết bị')} sx={{ borderRadius: 2.5, fontWeight: 700, py: 1, px: 3 }}>Lưu thay đổi</Button>
           </>
         }
       >
@@ -240,7 +446,7 @@ export default function TrackingDialogs({ store }: Props) {
           <Button
             variant="contained"
             color="error"
-            onClick={() => handleRemoveDevice(removeConfirmId!)}
+            onClick={() => { handleRemoveDevice(removeConfirmId!); notify('Đã xóa thiết bị', 'success'); }}
             sx={{ borderRadius: 2.5, fontWeight: 700, py: 1, px: 3 }}
           >
             Xoá
@@ -263,7 +469,7 @@ export default function TrackingDialogs({ store }: Props) {
           <Button
             variant="contained"
             color="error"
-            onClick={() => handleDeleteGeofence(removeGfId!)}
+            onClick={() => { handleDeleteGeofence(removeGfId!); setRemoveGfId(null); setEditGfId(null); notify('Đã xóa vùng giám sát', 'success'); }}
             sx={{ borderRadius: 2.5, fontWeight: 700, py: 1, px: 3 }}
           >
             Xoá vùng
@@ -299,13 +505,13 @@ export default function TrackingDialogs({ store }: Props) {
                       height: 56,
                       bgcolor: dev.color,
                       fontSize: '1.4rem',
-                      fontWeight: 800
+                      fontWeight: 700
                     }}
                   >
                     {sub.fullName?.split(' ').slice(-1)[0]?.charAt(0) ?? '?'}
                   </Avatar>
                   <Box>
-                    <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
                       {sub.fullName}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
@@ -454,7 +660,7 @@ export default function TrackingDialogs({ store }: Props) {
                           height: 32,
                           bgcolor: dev.color,
                           fontSize: '0.75rem',
-                          fontWeight: 800,
+                          fontWeight: 700,
                           mr: 1.5,
                           flexShrink: 0
                         }}
@@ -464,7 +670,7 @@ export default function TrackingDialogs({ store }: Props) {
                       <ListItemText
                         primary={
                           <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                            {dev.name}
+                             {dev.name}
                           </Typography>
                         }
                         secondary={
@@ -482,38 +688,285 @@ export default function TrackingDialogs({ store }: Props) {
         );
       })()}
 
-      {/* ── Edit Geofence Info ── */}
+      {/* ── Edit/View Geofence Info (Unified Sidebar CRUD) ── */}
       <SideDrawer
         open={!!editGfId}
         onClose={() => setEditGfId(null)}
         isDark={isDark}
         primaryColor={editGfForm.color || '#2563eb'}
-        width={420}
-        title="Thông tin vùng giám sát"
-        subtitle="Cập nhật tên, địa chỉ & màu vùng"
+        width={440}
+        title={isEditingGf ? "Chỉnh sửa vùng giám sát" : gf?.name || "Thông tin vùng"}
+        subtitle={isEditingGf ? "Cập nhật các thuộc tính của vùng" : "Chi tiết và quản lý vùng giám sát"}
         footer={
-          <>
-            <Button onClick={() => setEditGfId(null)} sx={{ borderRadius: 2.5, fontWeight: 600, color: 'text.secondary', py: 1 }}>Hủy</Button>
-            <Button variant="contained" onClick={handleSaveGfInfo} sx={{ borderRadius: 2.5, fontWeight: 700, py: 1, px: 3 }}>Lưu</Button>
-          </>
+          isEditingGf ? (
+            <>
+              <Button onClick={() => setIsEditingGf(false)} sx={{ borderRadius: 2.5, fontWeight: 600, color: 'text.secondary', py: 1 }}>Hủy</Button>
+              <Button variant="contained" onClick={after(() => { handleSaveGfInfo(); setIsEditingGf(false); }, 'Đã cập nhật vùng')} sx={{ borderRadius: 2.5, fontWeight: 700, py: 1, px: 3 }}>Lưu</Button>
+            </>
+          ) : (
+            <>
+              <Button onClick={() => setEditGfId(null)} sx={{ borderRadius: 2.5, fontWeight: 600, color: 'text.secondary', py: 1 }}>Đóng</Button>
+              <Button variant="contained" onClick={() => setIsEditingGf(true)} sx={{ borderRadius: 2.5, fontWeight: 700, py: 1, px: 3 }}>Chỉnh sửa thông tin</Button>
+            </>
+          )
         }
       >
-        <Stack spacing={2.5}>
-          <TextField
-            label="Tên vùng *"
-            fullWidth
-            value={editGfForm.name}
-            onChange={(e) => setEditGfForm((f) => ({ ...f, name: e.target.value }))}
-          />
-          <TextField
-            label="Địa chỉ"
-            fullWidth
-            value={editGfForm.address}
-            onChange={(e) => setEditGfForm((f) => ({ ...f, address: e.target.value }))}
-            placeholder="VD: 614 Điện Biên Phủ, P.25, Q.Bình Thạnh"
-          />
-          <GfColorRow value={editGfForm.color} onChange={(c) => setEditGfForm((f) => ({ ...f, color: c }))} />
-        </Stack>
+        {gf && (
+          <Stack spacing={3}>
+            {!isEditingGf ? (
+              /* VIEW MODE */
+              <>
+                {/* Visual Swatch & Basic Info */}
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <Box 
+                    sx={{ 
+                      width: 48, 
+                      height: 48, 
+                      borderRadius: '12px', 
+                      bgcolor: gf.color, 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      boxShadow: `0 8px 20px ${gf.color}33`,
+                      border: '2px solid rgba(255,255,255,0.2)'
+                    }}
+                  >
+                    <Box sx={{ width: 16, height: 16, borderRadius: '4px', bgcolor: '#ffffff' }} />
+                  </Box>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                      {gf.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+                      {gf.address || 'Không có địa điểm xác định'}
+                    </Typography>
+                  </Box>
+                </Stack>
+
+                <Divider />
+
+                {/* Switch Active & Zone Type row */}
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                      Loại phân loại vùng
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Hành động cảnh báo của vùng
+                    </Typography>
+                  </Box>
+                  <Chip
+                    label={ZONE_PRESET_MAP[gf.zoneType]?.label || gf.zoneType}
+                    size="small"
+                    sx={{
+                      height: 24,
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      borderRadius: '8px',
+                      color: gf.color,
+                      bgcolor: `${gf.color}14`,
+                      border: `1px solid ${gf.color}33`
+                    }}
+                  />
+                </Stack>
+
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                      Trạng thái hoạt động
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Bật/tắt theo dõi vùng này
+                    </Typography>
+                  </Box>
+                  <Switch checked={gf.active} onChange={() => handleToggleGeofenceActive(gf.id)} size="small" />
+                </Stack>
+
+                <Divider />
+
+                {/* Map Control Buttons */}
+                <Stack direction="row" spacing={1.5}>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    onClick={() => {
+                      if (gf.coordinates.length > 0) {
+                        setMapCenter(gf.coordinates[0]);
+                        setMapZoom(16);
+                      }
+                    }}
+                    sx={{ borderRadius: '12px', fontWeight: 600, py: 1 }}
+                  >
+                    Định vị trên bản đồ
+                  </Button>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    color="warning"
+                    onClick={() => {
+                      setEditingGeofenceId(gf.id);
+                      if (gf.coordinates.length > 0) {
+                        setMapCenter(gf.coordinates[0]);
+                        setMapZoom(16);
+                      }
+                      setEditGfId(null);
+                      notify('Hãy kéo các đỉnh polygon trên bản đồ để chỉnh sửa ranh giới.', 'info');
+                    }}
+                    sx={{ borderRadius: '12px', fontWeight: 600, py: 1 }}
+                  >
+                    Sửa ranh giới
+                  </Button>
+                </Stack>
+
+                {/* Detailed Metrics */}
+                <Box sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderRadius: '14px', p: 2 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: primaryColor, display: 'block', mb: 1.5 }}>
+                    Thông số vùng giám sát
+                  </Typography>
+                  <Stack spacing={1.5}>
+                    {[
+                      ['Diện tích', gfMetrics[gf.id]?.area || '—'],
+                      ['Chu vi', gfMetrics[gf.id]?.perimeter || '—'],
+                      ['Số điểm mốc', `${gf.coordinates.length} đỉnh`],
+                      ['Khung thời gian áp dụng', gf.schedule ? `${gf.schedule.daysOfWeek.map((d) => WEEKDAY_LABELS[d]).join(', ')} · ${gf.schedule.startTime}–${gf.schedule.endTime}` : '24/7 (mọi lúc)']
+                    ].map(([label, val]) => (
+                      <Stack key={label} direction="row" justifyContent="space-between">
+                        <Typography variant="body2" color="text.secondary">
+                          {label}:
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {val}
+                        </Typography>
+                      </Stack>
+                    ))}
+                  </Stack>
+                </Box>
+
+                {/* Assigned Devices */}
+                <Box sx={{ border: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', borderRadius: '14px', p: 2 }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: primaryColor }}>
+                      Thiết bị được gán ({assigned.length})
+                    </Typography>
+                    <Button
+                      size="small"
+                      onClick={() => setAssignGeofenceId(gf.id)}
+                      sx={{ fontSize: '0.8rem', fontWeight: 700 }}
+                    >
+                      + Gán thiết bị
+                    </Button>
+                  </Stack>
+                  {assigned.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 1 }}>
+                      Chưa có thiết bị nào được gán vùng này.
+                    </Typography>
+                  ) : (
+                    <Stack spacing={1.25}>
+                      {assigned.map((dev) => (
+                        <Stack key={dev.id} direction="row" spacing={1.5} alignItems="center" justifyContent="space-between">
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: dev.color }} />
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                {dev.name}
+                              </Typography>
+                              {dev.subject && (
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                  {dev.subject.fullName}
+                                </Typography>
+                              )}
+                            </Box>
+                          </Stack>
+                          <Chip
+                            label="Đang gán"
+                            size="small"
+                            sx={{ height: 18, fontSize: '0.62rem', fontWeight: 700 }}
+                          />
+                        </Stack>
+                      ))}
+                    </Stack>
+                  )}
+                </Box>
+
+                {/* Dangerous Delete button */}
+                <Box sx={{ pt: 2 }}>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    color="error"
+                    onClick={() => setRemoveGfId(gf.id)}
+                    sx={{ borderRadius: '12px', fontWeight: 700, py: 1 }}
+                  >
+                    Xóa vùng giám sát này
+                  </Button>
+                </Box>
+              </>
+            ) : (
+              /* EDIT MODE */
+              <Stack spacing={2.5}>
+                <TextField
+                  label="Tên vùng *"
+                  fullWidth
+                  value={editGfForm.name}
+                  onChange={(e) => setEditGfForm((f) => ({ ...f, name: e.target.value }))}
+                />
+                <TextField
+                  label="Địa chỉ"
+                  fullWidth
+                  value={editGfForm.address}
+                  onChange={(e) => setEditGfForm((f) => ({ ...f, address: e.target.value }))}
+                  placeholder="VD: 614 Điện Biên Phủ, P.25, Q.Bình Thạnh"
+                />
+
+                {/* Shape Presets in Edit Mode */}
+                <FormControl fullWidth>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, mb: 1 }}>
+                    Thay đổi dạng hình học (Ghi đè ranh giới)
+                  </Typography>
+                  <Stack direction="row" spacing={1}>
+                    {[
+                      { value: 'square' as const, label: 'Hình vuông' },
+                      { value: 'circle' as const, label: 'Hình tròn' },
+                      { value: 'polygon' as const, label: 'Đa giác tự do' }
+                    ].map((item) => {
+                      return (
+                        <Chip
+                          key={item.value}
+                          label={item.label}
+                          onClick={() => {
+                            const center = getGeofenceCenter(editGfForm.coordinates || gf.coordinates);
+                            const newCoords = generateShapeCoords(item.value, center);
+                            setEditGfForm((f) => ({ ...f, coordinates: newCoords }));
+                            notify(`Đã áp dụng preset ${item.label}. Bấm Lưu để xác nhận.`, 'info');
+                          }}
+                          variant="outlined"
+                          sx={{
+                            fontSize: '0.85rem',
+                            fontWeight: 700,
+                            height: 32,
+                            borderRadius: '10px',
+                            cursor: 'pointer',
+                            flex: 1
+                          }}
+                        />
+                      );
+                    })}
+                  </Stack>
+                </FormControl>
+
+                <ZonePresetPicker
+                  value={editGfForm.zoneType}
+                  onChange={(zoneType, color) => setEditGfForm((f) => ({ ...f, zoneType, color }))}
+                />
+                <GfColorRow value={editGfForm.color} onChange={(c) => setEditGfForm((f) => ({ ...f, color: c }))} />
+                <ZoneSchedulePicker
+                  value={editGfForm.schedule}
+                  onChange={(schedule) => setEditGfForm((f) => ({ ...f, schedule }))}
+                />
+              </Stack>
+            )}
+          </Stack>
+        )}
       </SideDrawer>
 
       {/* ── Add Geofence ── */}
@@ -528,7 +981,7 @@ export default function TrackingDialogs({ store }: Props) {
         footer={
           <>
             <Button onClick={() => setAddGfOpen(false)} sx={{ borderRadius: 2.5, fontWeight: 600, color: 'text.secondary', py: 1 }}>Hủy</Button>
-            <Button variant="contained" onClick={handleAddGeofence} disabled={!addGfForm.name} sx={{ borderRadius: 2.5, fontWeight: 700, py: 1, px: 3 }}>Thêm</Button>
+            <Button variant="contained" onClick={after(handleCreateGeofenceWithPreset, 'Đã thêm vùng giám sát')} disabled={!addGfForm.name} sx={{ borderRadius: 2.5, fontWeight: 700, py: 1, px: 3 }}>Thêm</Button>
           </>
         }
       >
@@ -546,9 +999,51 @@ export default function TrackingDialogs({ store }: Props) {
               onChange={(e) => setAddGfForm((f) => ({ ...f, address: e.target.value }))}
               placeholder="VD: 614 Điện Biên Phủ, P.25, Q.Bình Thạnh"
             />
+            
+            {/* Shape Presets */}
+            <FormControl fullWidth>
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, mb: 1 }}>
+                Dạng hình học *
+              </Typography>
+              <Stack direction="row" spacing={1}>
+                {[
+                  { value: 'square' as const, label: 'Hình vuông' },
+                  { value: 'circle' as const, label: 'Hình tròn' },
+                  { value: 'polygon' as const, label: 'Đa giác tự do' }
+                ].map((item) => {
+                  const active = shapeType === item.value;
+                  return (
+                    <Chip
+                      key={item.value}
+                      label={item.label}
+                      onClick={() => setShapeType(item.value)}
+                      color={active ? 'primary' : 'default'}
+                      variant={active ? 'filled' : 'outlined'}
+                      sx={{
+                        fontSize: '0.85rem',
+                        fontWeight: 700,
+                        height: 32,
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                        flex: 1
+                      }}
+                    />
+                  );
+                })}
+              </Stack>
+            </FormControl>
+
+            <ZonePresetPicker
+              value={addGfForm.zoneType}
+              onChange={(zoneType, color) => setAddGfForm((f) => ({ ...f, zoneType, color }))}
+            />
             <GfColorRow value={addGfForm.color} onChange={(c) => setAddGfForm((f) => ({ ...f, color: c }))} />
+            <ZoneSchedulePicker
+              value={addGfForm.schedule}
+              onChange={(schedule) => setAddGfForm((f) => ({ ...f, schedule }))}
+            />
             <Alert severity="info" sx={{ borderRadius: 2 }}>
-              Vùng mới xuất hiện ở vị trí mặc định. Bấm "Sửa ranh giới" để điều chỉnh.
+              Vùng mới xuất hiện ở trung tâm bản đồ. Bấm "Sửa ranh giới" để điều chỉnh.
             </Alert>
           </Stack>
       </SideDrawer>

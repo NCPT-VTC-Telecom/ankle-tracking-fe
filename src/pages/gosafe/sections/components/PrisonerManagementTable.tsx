@@ -114,7 +114,7 @@ const SectionHeader = ({
     <Box sx={{ width: 30, height: 30, borderRadius: '8px', bgcolor: `${accent}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
       {icon}
     </Box>
-    <Typography variant="subtitle2" sx={{ fontWeight: 800, fontSize: '0.85rem', color: isDark ? '#f1f5f9' : '#0f172a' }}>
+    <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.85rem', color: isDark ? '#f1f5f9' : '#0f172a' }}>
       {title}
     </Typography>
   </Stack>
@@ -252,7 +252,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
               <Grid item xs={12} sm={6} lg={4} key={dev.id}>
                 <Box
                   sx={{
-                    borderRadius: '16px',
+                    borderRadius: '12px',
                     border: `1px solid ${isDark ? `${dev.color}22` : `${dev.color}18`}`,
                     background: isDark ? 'rgba(9,13,31,0.72)' : 'rgba(255,255,255,0.88)',
                     backdropFilter: glassBlur,
@@ -295,11 +295,11 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
                     </Stack>
 
                     <Stack direction="row" spacing={1.75} alignItems="center">
-                      <Avatar sx={{ width: 44, height: 44, bgcolor: dev.color, fontWeight: 800, fontSize: '1.05rem', boxShadow: `0 0 16px ${dev.color}40`, border: `2px solid ${dev.color}50`, flexShrink: 0 }}>
+                      <Avatar sx={{ width: 44, height: 44, bgcolor: dev.color, fontWeight: 700, fontSize: '1.05rem', boxShadow: `0 0 16px ${dev.color}40`, border: `2px solid ${dev.color}50`, flexShrink: 0 }}>
                         {sub.fullName?.split(' ').slice(-1)[0]?.charAt(0) ?? '?'}
                       </Avatar>
                       <Box>
-                        <Typography variant="body1" sx={{ fontWeight: 800, color: isDark ? '#f1f5f9' : '#0f172a', lineHeight: 1.3 }}>
+                        <Typography variant="body1" sx={{ fontWeight: 700, color: isDark ? '#f1f5f9' : '#0f172a', lineHeight: 1.3 }}>
                           {sub.fullName}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
@@ -419,7 +419,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
 
       {/* ── Table view ── */}
       {viewMode === 'table' && (
-        <Box sx={{ borderRadius: '16px', border: `1px solid ${glassBdr}`, background: isDark ? 'rgba(9,13,31,0.5)' : 'rgba(255,255,255,0.7)', backdropFilter: glassBlur, overflow: 'hidden' }}>
+        <Box sx={{ borderRadius: '12px', border: `1px solid ${glassBdr}`, background: isDark ? 'rgba(9,13,31,0.5)' : 'rgba(255,255,255,0.7)', backdropFilter: glassBlur, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
@@ -444,12 +444,12 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
                     onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = isDark ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.025)'; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = rowBg; }}>
                     <td style={{ padding: '12px 14px', borderBottom: `1px solid ${glassBdr}` }}>
-                      <Avatar sx={{ bgcolor: dev.color, width: 28, height: 28, fontSize: '0.75rem', fontWeight: 800 }}>{sub.fullName?.split(' ').slice(-1)[0]?.charAt(0) ?? '?'}</Avatar>
+                      <Avatar sx={{ bgcolor: dev.color, width: 28, height: 28, fontSize: '0.75rem', fontWeight: 700 }}>{sub.fullName?.split(' ').slice(-1)[0]?.charAt(0) ?? '?'}</Avatar>
                     </td>
                     <td style={{ padding: '12px 14px', borderBottom: `1px solid ${glassBdr}` }}>
                       <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.83rem', color: isDark ? '#f1f5f9' : '#0f172a', cursor: 'pointer', '&:hover': { textDecoration: 'underline' } as any }} onClick={() => setSubjectDetailId(dev.id)}>{sub.fullName}</Typography>
                     </td>
-                    <td style={{ padding: '12px 14px', borderBottom: `1px solid ${glassBdr}` }}><Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary', fontSize: '0.7rem' }}>{sub.idNumber || '—'}</Typography></td>
+                    <td style={{ padding: '12px 14px', borderBottom: `1px solid ${glassBdr}` }}><Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>{sub.idNumber || '—'}</Typography></td>
                     <td style={{ padding: '12px 14px', borderBottom: `1px solid ${glassBdr}` }}><Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>{sub.crime}</Typography></td>
                     <td style={{ padding: '12px 14px', borderBottom: `1px solid ${glassBdr}` }}><Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>{sub.sentence}</Typography></td>
                     <td style={{ padding: '12px 14px', borderBottom: `1px solid ${glassBdr}` }}><Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>{sub.releaseDate || '—'}</Typography></td>
@@ -515,7 +515,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
         >
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: 900, color: isDark ? '#f1f5f9' : '#0f172a', fontSize: '1rem' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, color: isDark ? '#f1f5f9' : '#0f172a', fontSize: '1rem' }}>
                 Thêm phạm nhân mới
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
@@ -551,7 +551,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
                   value={form.subjectIdNumber}
                   onChange={(e) => setF({ subjectIdNumber: e.target.value })}
                   placeholder="12 chữ số"
-                  inputProps={{ maxLength: 12, style: { fontFamily: 'monospace', letterSpacing: 2 } }}
+                  inputProps={{ maxLength: 12, style: { letterSpacing: 2 } }}
                 />
                 <TextField
                   label="Tội danh"
@@ -615,7 +615,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
                   value={form.imei}
                   onChange={(e) => setF({ imei: e.target.value })}
                   placeholder="15 chữ số (in sau thiết bị)"
-                  inputProps={{ maxLength: 20, style: { fontFamily: 'monospace', letterSpacing: 1 } }}
+                  inputProps={{ maxLength: 20, style: { letterSpacing: 1 } }}
                   helperText="Nhập IMEI in trên thân thiết bị hoặc chọn từ danh sách bên dưới"
                 />
 
@@ -633,7 +633,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
                           <Stack direction="row" spacing={1} alignItems="center">
                             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: d.color, flexShrink: 0 }} />
                             <Typography variant="caption" sx={{ fontWeight: 700 }}>{d.name}</Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>{d.uniqueId}</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ }}>{d.uniqueId}</Typography>
                           </Stack>
                         </MenuItem>
                       ))}
@@ -768,7 +768,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
                     <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b' }}>
                       Bán kính cho phép di chuyển
                     </Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 800, color: '#f59e0b' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#f59e0b' }}>
                       {form.allowedRadius} km
                     </Typography>
                   </Stack>

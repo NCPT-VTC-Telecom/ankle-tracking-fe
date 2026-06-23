@@ -13,15 +13,63 @@ import {
   Divider,
   List,
   ListItemButton,
-  ListItemText,
   Chip
 } from '@mui/material';
 import { Clock, ArrowLeft2, ArrowRight2, ReceiptSearch, Location, Danger, SearchNormal1, Gps } from 'iconsax-react';
 import { CircularProgress } from '@mui/material';
 import type { TrackingStore } from '../useTracking';
+import { voltageToPercent } from '../utils';
 
 interface Props {
   store: TrackingStore;
+}
+
+interface PointClassification {
+  label: string;
+  color: 'error' | 'warning' | 'success' | 'info' | 'default';
+  icon: React.ReactNode;
+}
+
+function getPointClassification(pt: any): PointClassification {
+  const isSOSAlert = pt.eventId === 5 || pt.eventName?.toLowerCase().includes('sos');
+  const isWarningAlert =
+    pt.gpsFix === false ||
+    [2, 3, 4, 7, 8, 9, 11].includes(pt.eventId ?? 0) ||
+    pt.eventName?.toLowerCase().includes('cảnh báo') ||
+    pt.eventName?.toLowerCase().includes('yếu') ||
+    pt.eventName?.toLowerCase().includes('đứt') ||
+    pt.eventName?.toLowerCase().includes('lỗi');
+
+  if (isSOSAlert) {
+    return {
+      label: 'SOS',
+      color: 'error',
+      icon: <Danger size="18" color="#ef4444" variant="Bold" />
+    };
+  }
+
+  if (isWarningAlert) {
+    return {
+      label: 'Cảnh báo',
+      color: 'warning',
+      icon: <Danger size="18" color="#f59e0b" variant="Bold" />
+    };
+  }
+
+  const speed = pt.speed ?? 0;
+  if (speed <= 2) {
+    return {
+      label: 'Rest tại khu',
+      color: 'default',
+      icon: <Location size="18" color="#64748b" variant="Bulk" />
+    };
+  }
+
+  return {
+    label: 'Di chuyển',
+    color: 'info',
+    icon: <Gps size="18" color="#3b82f6" variant="Linear" />
+  };
 }
 
 export default function GpsHistoryPanel({ store }: Props) {
@@ -44,6 +92,7 @@ export default function GpsHistoryPanel({ store }: Props) {
   const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
   const [datePreset, setDatePreset] = useState<'today' | 'yesterday' | 'week' | 'custom'>('week');
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   const setPreset = (preset: 'today' | 'yesterday' | 'week' | 'custom') => {
     setDatePreset(preset);
@@ -80,7 +129,7 @@ export default function GpsHistoryPanel({ store }: Props) {
 
   const filteredPoints = useMemo(() => {
     if (!hd?.items) return [];
-    return hd.items.filter((pt) => {
+    const filtered = hd.items.filter((pt) => {
       // 1. Text Search Filter
       if (localSearch) {
         const query = localSearch.toLowerCase();
@@ -108,7 +157,16 @@ export default function GpsHistoryPanel({ store }: Props) {
 
       return true;
     });
-  }, [hd?.items, localSearch, filterType]);
+
+    // Sort by timestamp
+    const sorted = [...filtered];
+    sorted.sort((a, b) => {
+      const tA = new Date(a.timestamp).getTime();
+      const tB = new Date(b.timestamp).getTime();
+      return sortOrder === 'desc' ? tB - tA : tA - tB;
+    });
+    return sorted;
+  }, [hd?.items, localSearch, filterType, sortOrder]);
 
   if (!dev) {
     return (
@@ -129,11 +187,11 @@ export default function GpsHistoryPanel({ store }: Props) {
           bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
           border: '1px solid',
           borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-          borderRadius: '8px',
-          p: 1.25,
+          borderRadius: '16px',
+          p: 1.5,
           display: 'flex',
           flexDirection: 'column',
-          gap: 1.25,
+          gap: 1.5,
           boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.02)',
           transition: 'all 0.3s ease-in-out'
         }}
@@ -154,9 +212,9 @@ export default function GpsHistoryPanel({ store }: Props) {
             <Typography
               variant="body1"
               sx={{
-                fontWeight: 800,
+                fontWeight: 700,
                 color: isDark ? '#f8fafc' : '#0f172a',
-                fontSize: '0.975rem',
+                fontSize: '1rem',
                 letterSpacing: 0.3,
                 textTransform: 'uppercase'
               }}
@@ -177,15 +235,15 @@ export default function GpsHistoryPanel({ store }: Props) {
           </IconButton>
         </Stack>
 
-        {/* Collapsed view summary (displays fully with largest text!) */}
+        {/* Collapsed view summary */}
         {!isFilterExpanded && (
           <Stack spacing={0.75} sx={{ mt: -0.5 }}>
             <Typography
               variant="h5"
               sx={{
-                fontWeight: 900,
+                fontWeight: 700,
                 color: primaryColor,
-                fontSize: '1.25rem',
+                fontSize: '1.35rem',
                 lineHeight: 1.2
               }}
             >
@@ -199,7 +257,7 @@ export default function GpsHistoryPanel({ store }: Props) {
               sx={{
                 fontWeight: 700,
                 color: isDark ? '#e2e8f0' : '#1e293b',
-                fontSize: '0.95rem'
+                fontSize: '1.05rem'
               }}
             >
               {`${new Date(historyFilters.from).toLocaleDateString('vi-VN')} - ${new Date(historyFilters.to).toLocaleDateString('vi-VN')}`}
@@ -207,10 +265,10 @@ export default function GpsHistoryPanel({ store }: Props) {
             <Typography
               variant="body2"
               color="text.secondary"
-              sx={{ fontWeight: 600, fontSize: '0.825rem' }}
+              sx={{ fontWeight: 600, fontSize: '0.875rem' }}
             >
               Tải tối đa:{' '}
-              <span style={{ color: isDark ? '#38bdf8' : '#0284c7', fontWeight: 800, fontSize: '0.95rem' }}>
+              <span style={{ color: isDark ? '#38bdf8' : '#0284c7', fontWeight: 700, fontSize: '1rem' }}>
                 {historyFilters.limit} bản ghi
               </span>
             </Typography>
@@ -219,10 +277,10 @@ export default function GpsHistoryPanel({ store }: Props) {
 
         {/* Expanded view inputs */}
         {isFilterExpanded && (
-          <Stack spacing={1.25}>
+          <Stack spacing={1.5}>
             {/* Time Preset Selector */}
             <Stack spacing={1}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.78rem' }}>
                 Chọn nhanh thời gian
               </Typography>
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -241,10 +299,10 @@ export default function GpsHistoryPanel({ store }: Props) {
                       color={active ? 'primary' : 'default'}
                       variant={active ? 'filled' : 'outlined'}
                       sx={{
-                        fontSize: '0.8rem',
+                        fontSize: '0.85rem',
                         fontWeight: 700,
-                        height: 28,
-                        borderRadius: 1.5,
+                        height: 30,
+                        borderRadius: '10px',
                         cursor: 'pointer',
                         bgcolor: active ? primaryColor : 'transparent',
                         borderColor: active ? primaryColor : (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'),
@@ -258,9 +316,9 @@ export default function GpsHistoryPanel({ store }: Props) {
               </Box>
             </Stack>
 
-            {/* Custom dates fields (displayed if preset is custom) */}
+            {/* Custom dates fields */}
             {datePreset === 'custom' && (
-              <Stack direction="row" spacing={1}>
+              <Stack direction="row" spacing={1.25}>
                 <TextField
                   label="Từ ngày"
                   type="date"
@@ -273,7 +331,7 @@ export default function GpsHistoryPanel({ store }: Props) {
                     setHistoryFilters((f) => ({ ...f, from: e.target.value }));
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  sx={{ '& .MuiInputBase-root': { borderRadius: 1.5 } }}
+                  sx={{ '& .MuiInputBase-root': { borderRadius: '12px', fontSize: '0.9rem' } }}
                 />
                 <TextField
                   label="Đến ngày"
@@ -287,42 +345,61 @@ export default function GpsHistoryPanel({ store }: Props) {
                     setHistoryFilters((f) => ({ ...f, to: e.target.value }));
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  sx={{ '& .MuiInputBase-root': { borderRadius: 1.5 } }}
+                  sx={{ '& .MuiInputBase-root': { borderRadius: '12px', fontSize: '0.9rem' } }}
                 />
               </Stack>
             )}
 
             {/* Limit Selector */}
             <Stack spacing={1}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                Số lượng bản ghi
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.78rem' }}>
+                Số lượng bản ghi tối đa
               </Typography>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                {[20, 50, 150, 500, 1000].map((preset) => {
-                  const active = historyFilters.limit === preset;
-                  return (
-                    <Chip
-                      key={preset}
-                      label={preset}
-                      onClick={() => setHistoryFilters((f) => ({ ...f, limit: preset }))}
-                      color={active ? 'primary' : 'default'}
-                      variant={active ? 'filled' : 'outlined'}
-                      sx={{
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        height: 28,
-                        borderRadius: 1.5,
-                        cursor: 'pointer',
-                        bgcolor: active ? primaryColor : 'transparent',
-                        borderColor: active ? primaryColor : (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'),
-                        '&:hover': {
-                          bgcolor: active ? undefined : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)')
-                        }
-                      }}
-                    />
-                  );
-                })}
-              </Box>
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', flexGrow: 1 }}>
+                  {[100, 500, 1000, 2000, 5000].map((preset) => {
+                    const active = historyFilters.limit === preset;
+                    return (
+                      <Chip
+                        key={preset}
+                        label={preset}
+                        onClick={() => setHistoryFilters((f) => ({ ...f, limit: preset }))}
+                        color={active ? 'primary' : 'default'}
+                        variant={active ? 'filled' : 'outlined'}
+                        sx={{
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          height: 28,
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          bgcolor: active ? primaryColor : 'transparent',
+                          borderColor: active ? primaryColor : (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'),
+                          '&:hover': {
+                            bgcolor: active ? undefined : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)')
+                          }
+                        }}
+                      />
+                    );
+                  })}
+                </Box>
+                <TextField
+                  label="Tự nhập"
+                  type="number"
+                  size="small"
+                  value={historyFilters.limit}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    setHistoryFilters((f) => ({ ...f, limit: isNaN(val) ? 0 : val }));
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  sx={{ 
+                    width: 90, 
+                    '& .MuiInputBase-root': { borderRadius: '8px', fontSize: '0.85rem', height: 32 },
+                    '& .MuiInputLabel-root': { fontSize: '0.75rem', transform: 'translate(10px, 8px) scale(1)' },
+                    '& .MuiInputLabel-shrink': { transform: 'translate(10px, -6px) scale(0.75)' }
+                  }}
+                />
+              </Stack>
             </Stack>
 
             {/* Submit button */}
@@ -338,10 +415,10 @@ export default function GpsHistoryPanel({ store }: Props) {
                 setIsFilterExpanded(false);
               }}
               sx={{
-                borderRadius: '10px',
-                fontWeight: 800,
-                fontSize: '0.925rem',
-                py: 0.75,
+                borderRadius: '14px',
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                py: 1,
                 textTransform: 'none',
                 background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
                 boxShadow: `0 4px 14px ${primaryColor}40`,
@@ -356,17 +433,17 @@ export default function GpsHistoryPanel({ store }: Props) {
         )}
       </Box>
 
-      {hs?.loading && <LinearProgress sx={{ borderRadius: 0.5 }} />}
+      {hs?.loading && <LinearProgress sx={{ borderRadius: '4px' }} />}
 
       {hs?.error && (
-        <Alert severity="error" sx={{ borderRadius: 1.5, py: 0.3, fontSize: '0.78rem' }}>
+        <Alert severity="error" sx={{ borderRadius: '12px', py: 0.5, fontSize: '0.85rem' }}>
           {hs.error}
         </Alert>
       )}
 
       {hd && !hs?.loading && (
-        <Stack spacing={1}>
-          <Alert severity="success" sx={{ borderRadius: 1.5, py: 0.3, fontSize: '0.78rem' }}>
+        <Stack spacing={1.25}>
+          <Alert severity="success" sx={{ borderRadius: '12px', py: 0.5, fontSize: '0.85rem' }}>
             Đã tải <b>{hd.items.length}</b> điểm / tổng <b>{hd.total}</b>
             {hd.totalPages > 1 && ` — trang ${hd.page}/${hd.totalPages}`}
           </Alert>
@@ -384,7 +461,7 @@ export default function GpsHistoryPanel({ store }: Props) {
                 }}
               />
             }
-            label={<Typography variant="body2">Hiển thị trên bản đồ</Typography>}
+            label={<Typography variant="body2" sx={{ fontSize: '0.9rem', fontWeight: 600 }}>Hiển thị trên bản đồ</Typography>}
           />
 
           {/* Quick stats */}
@@ -394,28 +471,28 @@ export default function GpsHistoryPanel({ store }: Props) {
               const last = hd.items[hd.items.length - 1];
               const maxSpd = Math.max(...hd.items.map((p) => p.speed ?? 0));
               return (
-                <Box sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', borderRadius: 1.5, p: 1 }}>
-                  <Stack spacing={0.6}>
+                <Box sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', borderRadius: '12px', p: 1.5 }}>
+                  <Stack spacing={0.8}>
                     {[
                       ['Điểm đầu', first.timestamp ? new Date(first.timestamp).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour12: false }) : '—'],
                       ['Điểm cuối', last.timestamp ? new Date(last.timestamp).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour12: false }) : '—'],
                       ...(maxSpd > 0 ? [['Tốc độ max', `${maxSpd.toFixed(1)} km/h`]] : [])
                     ].map(([label, value]) => (
                       <Stack key={label} direction="row" justifyContent="space-between">
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
                           {label}:
                         </Typography>
-                        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.8rem' }}>
                           {value}
                         </Typography>
                       </Stack>
                     ))}
                     {(first.batteryVoltage != null || first.externalVoltage != null) && (
                       <Stack direction="row" justifyContent="space-between">
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
                           Điện áp (đầu):
                         </Typography>
-                        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.8rem' }}>
                           {first.batteryVoltage != null ? `${first.batteryVoltage.toFixed(2)}V` : first.externalVoltage != null ? `${first.externalVoltage.toFixed(2)}V` : '—'}
                         </Typography>
                       </Stack>
@@ -425,19 +502,40 @@ export default function GpsHistoryPanel({ store }: Props) {
               );
             })()}
 
-          {/* Local Search and Filter Chips */}
-          <Stack spacing={0.75} sx={{ mt: 1 }}>
-            <TextField
-              size="small"
-              placeholder="Lọc nhanh (giờ, tốc độ, sự kiện...)"
-              value={localSearch}
-              onChange={(e) => setLocalSearch(e.target.value)}
-              InputProps={{
-                startAdornment: <SearchNormal1 size="16" style={{ marginRight: 6, color: '#94a3b8' }} />,
-                sx: { borderRadius: 1.5, fontSize: '0.8rem' }
-              }}
-              fullWidth
-            />
+          {/* Local Search, Sort and Filter Chips */}
+          <Stack spacing={1} sx={{ mt: 1 }}>
+            <Stack direction="row" spacing={1}>
+              <TextField
+                size="small"
+                placeholder="Lọc nhanh..."
+                value={localSearch}
+                onChange={(e) => setLocalSearch(e.target.value)}
+                InputProps={{
+                  startAdornment: <SearchNormal1 size="16" style={{ marginRight: 6, color: '#94a3b8' }} />,
+                  sx: { borderRadius: '12px', fontSize: '0.875rem' }
+                }}
+                sx={{ flexGrow: 1 }}
+              />
+              <Chip
+                label={sortOrder === 'desc' ? 'Mới nhất trước' : 'Cũ nhất trước'}
+                onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                variant="outlined"
+                color="primary"
+                sx={{
+                  height: 38,
+                  borderRadius: '12px',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  borderColor: primaryColor,
+                  color: primaryColor,
+                  bgcolor: isDark ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.02)',
+                  '&:hover': {
+                    bgcolor: isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.08)'
+                  }
+                }}
+              />
+            </Stack>
 
             <Box
               sx={{
@@ -464,11 +562,11 @@ export default function GpsHistoryPanel({ store }: Props) {
                     color={active ? 'primary' : 'default'}
                     variant={active ? 'filled' : 'outlined'}
                     sx={{
-                      fontSize: '0.72rem',
-                      height: 24,
+                      fontSize: '0.78rem',
+                      height: 26,
                       fontWeight: active ? 700 : 500,
                       cursor: 'pointer',
-                      borderRadius: 1.5,
+                      borderRadius: '10px',
                       '&:hover': {
                         bgcolor: active ? undefined : isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'
                       }
@@ -482,7 +580,7 @@ export default function GpsHistoryPanel({ store }: Props) {
           {/* Scrollable list of tracking points */}
           {hd.items.length > 0 && (
             <Box>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 0.75, fontSize: '0.8rem' }}>
                 Đang hiển thị {filteredPoints.length} / {hd.items.length} điểm
               </Typography>
               <Box
@@ -491,7 +589,7 @@ export default function GpsHistoryPanel({ store }: Props) {
                   overflowY: 'auto',
                   border: '1px solid',
                   borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-                  borderRadius: 2,
+                  borderRadius: '16px',
                   bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)'
                 }}
               >
@@ -504,19 +602,23 @@ export default function GpsHistoryPanel({ store }: Props) {
                       });
                       const pointId = pt.id || `${pt.timestamp}-${index}`;
                       const isSelected = selectedPointId === pointId;
+                      const classification = getPointClassification(pt);
+                      const ptName = pt.eventName || classification.label;
+                      const batPercent = voltageToPercent(pt.batteryVoltage ?? null);
 
                       return (
                         <Box key={pointId}>
                           <ListItemButton
                             onClick={() => {
-                              setSelectedPointId(pointId);
+                              setSelectedPointId(isSelected ? null : pointId);
                               setMapCenter([pt.lat, pt.lng]);
                               setMapZoom(18);
                             }}
                             sx={{
                               py: 1,
                               px: 1.5,
-                              gap: 1.5,
+                              flexDirection: 'column',
+                              alignItems: 'stretch',
                               borderLeft: '4px solid',
                               borderColor: isSelected ? primaryColor : 'transparent',
                               bgcolor: isSelected ? (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)') : 'transparent',
@@ -526,85 +628,105 @@ export default function GpsHistoryPanel({ store }: Props) {
                               transition: 'all 0.15s ease'
                             }}
                           >
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              {pt.gpsFix === false ? (
-                                <Danger size="18" color="#ef4444" variant="Bold" />
-                              ) : pt.speed && pt.speed > 10 ? (
-                                <Gps size="18" color="#22c55e" variant="Bold" />
-                              ) : pt.speed && pt.speed > 2 ? (
-                                <Gps size="18" color="#3b82f6" variant="Linear" />
-                              ) : (
-                                <Location size="18" color="#94a3b8" variant="Bulk" />
-                              )}
-                            </Box>
+                            <Stack direction="row" alignItems="center" spacing={1.5} sx={{ width: '100%' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                {classification.icon}
+                              </Box>
 
-                            <ListItemText
-                              primary={
+                              <Stack spacing={0.25} sx={{ flexGrow: 1, minWidth: 0 }}>
                                 <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
                                   <Typography
                                     variant="body2"
-                                    sx={{ fontWeight: 700, fontSize: '0.8rem', color: isDark ? '#f8fafc' : '#0f172a' }}
+                                    sx={{ fontWeight: 700, fontSize: '0.85rem', color: isDark ? '#f8fafc' : '#0f172a', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}
                                   >
-                                    {ptDate}
+                                    {ptName}
                                   </Typography>
-                                  {pt.eventName && (
-                                    <Chip
-                                      label={pt.eventName}
-                                      color="error"
-                                      size="small"
-                                      sx={{
-                                        height: 16,
-                                        fontSize: '0.6rem',
-                                        fontWeight: 700,
-                                        borderRadius: 1
-                                      }}
-                                    />
-                                  )}
-                                  {pt.gpsFix === false && (
-                                    <Chip
-                                      label="Mất GPS"
-                                      color="warning"
-                                      size="small"
-                                      sx={{
-                                        height: 16,
-                                        fontSize: '0.6rem',
-                                        fontWeight: 700,
-                                        borderRadius: 1
-                                      }}
-                                    />
-                                  )}
-                                </Stack>
-                              }
-                              secondary={
-                                <Stack spacing={0.3} sx={{ mt: 0.5 }}>
                                   <Typography
                                     variant="caption"
                                     color="text.secondary"
-                                    sx={{ fontSize: '0.72rem', fontFamily: 'monospace' }}
+                                    sx={{ fontSize: '0.75rem', fontWeight: 600, flexShrink: 0 }}
                                   >
-                                    {pt.lat.toFixed(6)}, {pt.lng.toFixed(6)}
+                                    {ptDate.split(' ')[1]}
                                   </Typography>
-                                  <Stack direction="row" spacing={1.5} alignItems="center">
-                                    <Typography
-                                      variant="caption"
-                                      sx={{ fontWeight: 600, color: pt.speed && pt.speed > 10 ? '#22c55e' : 'text.secondary' }}
-                                    >
-                                      Tốc độ: {pt.speed != null ? `${pt.speed.toFixed(1)} km/h` : '0 km/h'}
+                                </Stack>
+                                <Stack direction="row" alignItems="center" justifyContent="space-between">
+                                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                    {ptDate.split(' ')[0]}
+                                  </Typography>
+                                  <Stack direction="row" spacing={1} alignItems="center">
+                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                                      Pin: {batPercent}%
                                     </Typography>
-                                    {pt.batteryVoltage != null && (
-                                      <Typography variant="caption" color="text.secondary">
-                                        Pin: {pt.batteryVoltage.toFixed(2)}V
-                                      </Typography>
-                                    )}
-                                    {pt.altitude != null && pt.altitude > 0 && (
-                                      <Typography variant="caption" color="text.secondary">
-                                        Cao: {pt.altitude.toFixed(0)}m
-                                      </Typography>
-                                    )}
+                                    <Chip
+                                      label={classification.label}
+                                      color={classification.color}
+                                      size="small"
+                                      sx={{
+                                        height: 16,
+                                        fontSize: '0.62rem',
+                                        fontWeight: 700,
+                                        borderRadius: '4px',
+                                        px: 0.5
+                                      }}
+                                    />
                                   </Stack>
                                 </Stack>
-                              }
-                            />
+                              </Stack>
+                            </Stack>
+
+                            {/* Inline Details Box when selected */}
+                            {isSelected && (
+                              <Box
+                                sx={{
+                                  mt: 1.5,
+                                  p: 1.25,
+                                  borderRadius: '10px',
+                                  bgcolor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                                  border: '1px solid',
+                                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 0.75
+                                }}
+                              >
+                                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Tọa độ:</Typography>
+                                  <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 700, color: primaryColor }}>
+                                    {pt.lat.toFixed(6)}, {pt.lng.toFixed(6)}
+                                  </Typography>
+                                </Stack>
+                                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Tốc độ:</Typography>
+                                  <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                    {pt.speed != null ? `${pt.speed.toFixed(1)} km/h` : '0.0 km/h'}
+                                  </Typography>
+                                </Stack>
+                                {pt.batteryVoltage != null && (
+                                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Điện áp:</Typography>
+                                    <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                      {pt.batteryVoltage.toFixed(2)}V
+                                    </Typography>
+                                  </Stack>
+                                )}
+                                {pt.altitude != null && pt.altitude > 0 && (
+                                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Độ cao:</Typography>
+                                    <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                      {pt.altitude.toFixed(0)}m
+                                    </Typography>
+                                  </Stack>
+                                )}
+                                {pt.satelliteCount != null && (
+                                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Vệ tinh:</Typography>
+                                    <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                      {pt.satelliteCount} vệ tinh
+                                    </Typography>
+                                  </Stack>
+                                )}
+                              </Box>
+                            )}
                           </ListItemButton>
                           {index < filteredPoints.length - 1 && <Divider />}
                         </Box>
@@ -613,7 +735,7 @@ export default function GpsHistoryPanel({ store }: Props) {
                   </List>
                 ) : (
                   <Box sx={{ p: 3, textAlign: 'center' }}>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
                       Không tìm thấy điểm phù hợp bộ lọc.
                     </Typography>
                   </Box>
@@ -635,7 +757,7 @@ export default function GpsHistoryPanel({ store }: Props) {
               >
                 <ArrowLeft2 size="18" />
               </IconButton>
-              <Typography variant="caption" sx={{ fontWeight: 700 }}>
+              <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
                 {hd.page} / {hd.totalPages}
               </Typography>
               <IconButton

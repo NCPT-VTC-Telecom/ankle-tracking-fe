@@ -9,6 +9,7 @@ import {
   More, Location, Flash, ShieldSecurity, CloseCircle
 } from 'iconsax-react';
 import { TrackingStore } from '../../tracking/useTracking';
+import GlassKpiCard from './GlassKpiCard';
 
 interface DeviceManagementTableProps {
   isDark: boolean;
@@ -56,32 +57,6 @@ const CARRIER_COLOR: Record<string, string> = {
 };
 
 // ── KPI card glass style ───────────────────────────────────────────────────────
-
-const glassKpiCard = (accent: string, isDark: boolean) => ({
-  p: 2.5,
-  borderRadius: '16px',
-  border: `1px solid ${isDark ? `${accent}22` : `${accent}18`}`,
-  background: isDark
-    ? `linear-gradient(135deg, ${accent}18 0%, ${accent}06 100%), rgba(9,13,31,0.55)`
-    : `linear-gradient(135deg, ${accent}0d 0%, ${accent}04 100%), rgba(255,255,255,0.75)`,
-  backdropFilter: 'blur(20px) saturate(1.8)',
-  WebkitBackdropFilter: 'blur(20px) saturate(1.8)',
-  boxShadow: `0 4px 24px ${accent}20, 0 1px 0 inset rgba(255,255,255,0.12)`,
-  position: 'relative',
-  overflow: 'hidden',
-  transition: 'transform 0.25s ease, box-shadow 0.25s ease',
-  cursor: 'default',
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    top: 0, left: '10%', right: '10%', height: '1px',
-    background: `linear-gradient(90deg, transparent, ${accent}80, transparent)`,
-  },
-  '&:hover': {
-    transform: 'translateY(-3px)',
-    boxShadow: `0 12px 40px ${accent}30, 0 4px 16px rgba(0,0,0,0.1)`,
-  },
-});
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
@@ -144,43 +119,21 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView 
           { label: 'Pin yếu (< 20%)',         value: stats.lowBattery, accent: '#f59e0b', icon: <Flash size={22} variant="Bold" /> },
         ].map((kpi) => (
           <Grid item xs={12} sm={6} md={3} key={kpi.label}>
-            <Box sx={glassKpiCard(kpi.accent, isDark)}>
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                <Box>
-                  <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b' }}>
-                    {kpi.label}
-                  </Typography>
-                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75 }}>
-                    <Typography variant="h3" sx={{ fontWeight: 900, color: kpi.accent, lineHeight: 1 }}>
-                      {kpi.value}
-                    </Typography>
-                    {kpi.live && (
-                      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#22c55e', boxShadow: '0 0 10px #22c55e', animation: 'pulse 2s infinite' }} />
-                    )}
-                    {kpi.blink && kpi.value > 0 && (
-                      <Box className="gs-blink" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#ef4444', boxShadow: '0 0 10px #ef4444' }} />
-                    )}
-                  </Stack>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75, fontSize: '0.7rem' }}>
-                    {kpi.label === 'Tổng thiết bị' ? `${stats.online} đang hoạt động` :
-                     kpi.label === 'Thiết bị Trực tuyến' ? `${stats.total - stats.online} ngoại tuyến` :
-                     kpi.label === 'Vi phạm Geofence' ? (stats.violating > 0 ? 'Cần xử lý ngay' : 'Không có vi phạm') :
-                     (stats.lowBattery > 0 ? 'Cần sạc thiết bị' : 'Pin ổn định')}
-                  </Typography>
-                </Box>
-                <Avatar
-                  sx={{
-                    bgcolor: `${kpi.accent}1a`,
-                    color: kpi.accent,
-                    width: 48, height: 48,
-                    border: `1.5px solid ${kpi.accent}30`,
-                    boxShadow: `0 4px 16px ${kpi.accent}25`,
-                  }}
-                >
-                  {kpi.icon}
-                </Avatar>
-              </Stack>
-            </Box>
+            <GlassKpiCard
+              isDark={isDark}
+              label={kpi.label}
+              value={kpi.value}
+              color={kpi.accent}
+              icon={kpi.icon}
+              live={kpi.live}
+              blink={kpi.blink}
+              sub={
+                kpi.label === 'Tổng thiết bị' ? `${stats.online} đang hoạt động` :
+                kpi.label === 'Thiết bị Trực tuyến' ? `${stats.total - stats.online} ngoại tuyến` :
+                kpi.label === 'Vi phạm Geofence' ? (stats.violating > 0 ? 'Cần xử lý ngay' : 'Không có vi phạm') :
+                (stats.lowBattery > 0 ? 'Cần sạc thiết bị' : 'Pin ổn định')
+              }
+            />
           </Grid>
         ))}
       </Grid>
@@ -188,7 +141,7 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView 
       {/* ── Filter & Table Panel ── */}
       <Box
         sx={{
-          borderRadius: '16px',
+          borderRadius: '12px',
           border: `1px solid ${glassBdr}`,
           background: panelBg,
           backdropFilter: glassBlur,
@@ -358,13 +311,13 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView 
                     <td style={{ padding: '14px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'}`, borderLeft: `3px solid ${isViolating ? '#ef4444' : 'transparent'}` }}>
                       <Stack direction="row" spacing={1.5} alignItems="center">
                         <Box sx={{ position: 'relative', flexShrink: 0 }}>
-                          <Avatar sx={{ bgcolor: `${dev.color}22`, color: dev.color, width: 34, height: 34, fontSize: '0.8rem', fontWeight: 800, border: `1.5px solid ${dev.color}44` }}>
+                          <Avatar sx={{ bgcolor: `${dev.color}22`, color: dev.color, width: 34, height: 34, fontSize: '0.8rem', fontWeight: 700, border: `1.5px solid ${dev.color}44` }}>
                             {(dev.name ?? '—').slice(0, 2).toUpperCase()}
                           </Avatar>
                           <Box sx={{ position: 'absolute', bottom: -1, right: -1, width: 9, height: 9, borderRadius: '50%', bgcolor: statusColor, border: `1.5px solid ${isDark ? '#0d1224' : '#fff'}`, boxShadow: `0 0 6px ${statusColor}` }} />
                         </Box>
                         <Box sx={{ minWidth: 0 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 800, fontSize: '0.88rem', color: isDark ? '#f1f5f9' : '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.88rem', color: isDark ? '#f1f5f9' : '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {dev.name}
                           </Typography>
                           <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem', fontWeight: 600 }}>
@@ -376,7 +329,7 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView 
 
                     {/* IMEI */}
                     <td style={{ padding: '14px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'}` }}>
-                      <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', display: 'block', letterSpacing: 0.5 }}>
+                      <Typography variant="caption" sx={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', display: 'block', letterSpacing: 0.5 }}>
                         {dev.uniqueId}
                       </Typography>
                     </td>
@@ -408,7 +361,7 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView 
                     <td style={{ padding: '14px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'}` }}>
                       {dev.subject ? (
                         <Stack direction="row" spacing={1} alignItems="center">
-                          <Avatar sx={{ bgcolor: dev.color, width: 26, height: 26, fontSize: '0.72rem', fontWeight: 800, boxShadow: `0 0 8px ${dev.color}50`, flexShrink: 0 }}>
+                          <Avatar sx={{ bgcolor: dev.color, width: 26, height: 26, fontSize: '0.72rem', fontWeight: 700, boxShadow: `0 0 8px ${dev.color}50`, flexShrink: 0 }}>
                             {dev.subject?.fullName?.split(' ').slice(-1)[0]?.charAt(0) ?? '?'}
                           </Avatar>
                           <Box sx={{ minWidth: 0 }}>
@@ -433,7 +386,7 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView 
                     <td style={{ padding: '14px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'}` }}>
                       <Stack spacing={0.5}>
                         <Stack direction="row" justifyContent="space-between" alignItems="baseline">
-                          <Typography variant="body2" sx={{ fontWeight: 800, fontSize: '0.82rem', color: isLowBattery ? '#ef4444' : 'text.primary' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.82rem', color: isLowBattery ? '#ef4444' : 'text.primary' }}>
                             {isLowBattery && '⚠ '}{dev.status.battery}%
                           </Typography>
                           <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
@@ -546,11 +499,11 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView 
         {menuDevice && (
           <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${glassBdr}`, bgcolor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)' }}>
             <Stack direction="row" spacing={1.25} alignItems="center">
-              <Avatar sx={{ bgcolor: `${menuDevice.color}22`, color: menuDevice.color, width: 28, height: 28, fontSize: '0.7rem', fontWeight: 800, border: `1.5px solid ${menuDevice.color}44` }}>
+              <Avatar sx={{ bgcolor: `${menuDevice.color}22`, color: menuDevice.color, width: 28, height: 28, fontSize: '0.7rem', fontWeight: 700, border: `1.5px solid ${menuDevice.color}44` }}>
                 {(menuDevice.name ?? '—').slice(0, 2).toUpperCase()}
               </Avatar>
               <Box>
-                <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.8rem', display: 'block', color: isDark ? '#f1f5f9' : '#0f172a' }}>
+                <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.8rem', display: 'block', color: isDark ? '#f1f5f9' : '#0f172a' }}>
                   {menuDevice.name}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
@@ -612,7 +565,7 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView 
         fullWidth
         PaperProps={{
           sx: {
-            borderRadius: '16px',
+            borderRadius: '12px',
             bgcolor: isDark ? 'rgba(9,13,31,0.96)' : 'rgba(255,255,255,0.98)',
             border: `1px solid ${glassBdr}`,
             backdropFilter: 'blur(24px)',
@@ -630,7 +583,7 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView 
             <Box>
               <Stack direction="row" spacing={0.75} alignItems="center" mb={1.75}>
                 <Box sx={{ width: 3, height: 16, borderRadius: 1, bgcolor: color }} />
-                <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.7, fontSize: '0.68rem', color }} >
+                <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.7, fontSize: '0.68rem', color }} >
                   {title}
                 </Typography>
               </Stack>
@@ -643,7 +596,7 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView 
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.62rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.4 }}>
                 {label}
               </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 800, fontSize: '0.85rem', fontFamily: mono ? 'monospace' : undefined, color: color || (isDark ? '#f1f5f9' : '#0f172a') }}>
+              <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.85rem', letterSpacing: mono ? 0.5 : undefined, color: color || (isDark ? '#f1f5f9' : '#0f172a') }}>
                 {value}
               </Typography>
             </Box>
@@ -663,11 +616,11 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView 
               >
                 <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                   <Stack direction="row" spacing={2} alignItems="center">
-                    <Avatar sx={{ bgcolor: `${detailDevice.color}22`, color: detailDevice.color, width: 44, height: 44, fontSize: '1rem', fontWeight: 900, border: `2px solid ${detailDevice.color}44`, boxShadow: `0 4px 16px ${detailDevice.color}30` }}>
+                    <Avatar sx={{ bgcolor: `${detailDevice.color}22`, color: detailDevice.color, width: 44, height: 44, fontSize: '1rem', fontWeight: 700, border: `2px solid ${detailDevice.color}44`, boxShadow: `0 4px 16px ${detailDevice.color}30` }}>
                       {(detailDevice.name ?? '—').slice(0, 2).toUpperCase()}
                     </Avatar>
                     <Box>
-                      <Typography variant="h6" sx={{ fontWeight: 900, color: isDark ? '#f1f5f9' : '#0f172a', lineHeight: 1.2 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 700, color: isDark ? '#f1f5f9' : '#0f172a', lineHeight: 1.2 }}>
                         {detailDevice.name}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>

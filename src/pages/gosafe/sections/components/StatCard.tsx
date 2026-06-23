@@ -71,7 +71,7 @@ export default function StatCard({ title, value, subtext, icon, color, gradient 
             <Typography
               variant="h4"
               sx={{
-                fontWeight: 800,
+                fontWeight: 700,
                 color: (theme) => (theme.palette.mode === 'dark' ? '#f8fafc' : `${gradient}cc`),
                 fontSize: '1.75rem',
                 lineHeight: 1.1,
