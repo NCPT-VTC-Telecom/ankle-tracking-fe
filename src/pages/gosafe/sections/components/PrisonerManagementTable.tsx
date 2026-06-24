@@ -400,7 +400,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
             <thead>
               <tr>
                 {['', 'Họ tên phạm nhân', 'CCCD', 'Loại đối tượng', 'Hình phạt', 'Mãn hạn', 'Thiết bị', 'Cán bộ', 'Trạng thái', ''].map((h) => (
-                  <th key={h} style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: isDark ? '#64748b' : '#94a3b8', borderBottom: `1px solid ${glassBdr}`, whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: isDark ? '#64748b' : '#94a3b8', borderBottom: `1px solid ${glassBdr}`, whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -413,30 +413,30 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
                   <tr key={row.id} style={{ background: rowBg }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = isDark ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.025)'; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = rowBg; }}>
-                    <td style={{ padding: '20px 20px', borderBottom: `1px solid ${glassBdr}` }}>
-                      <Avatar sx={{ bgcolor: color, width: 40, height: 40, fontSize: '0.9rem', fontWeight: 700 }}>{row.fullName.split(' ').slice(-1)[0]?.charAt(0) ?? '?'}</Avatar>
+                    <td style={{ padding: '12px 16px', borderBottom: `1px solid ${glassBdr}` }}>
+                      <Avatar sx={{ bgcolor: color, width: 34, height: 34, fontSize: '0.82rem', fontWeight: 700 }}>{row.fullName.split(' ').slice(-1)[0]?.charAt(0) ?? '?'}</Avatar>
                     </td>
-                    <td style={{ padding: '20px 20px', borderBottom: `1px solid ${glassBdr}` }}>
+                    <td style={{ padding: '12px 16px', borderBottom: `1px solid ${glassBdr}` }}>
                       <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.95rem', color: isDark ? '#f1f5f9' : '#0f172a', cursor: 'pointer', '&:hover': { textDecoration: 'underline' } as any }} onClick={() => openDetail(row)}>{row.fullName}</Typography>
                       {row.profileCode && <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>{row.profileCode}</Typography>}
                     </td>
-                    <td style={{ padding: '20px 20px', borderBottom: `1px solid ${glassBdr}` }}><Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>{row.idNumber || '—'}</Typography></td>
-                    <td style={{ padding: '20px 20px', borderBottom: `1px solid ${glassBdr}` }}><Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem' }}>{translateCrime(row.subjectType)}</Typography></td>
-                    <td style={{ padding: '20px 20px', borderBottom: `1px solid ${glassBdr}` }}><Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem' }}>{translateSentence(row.sentenceType)}</Typography></td>
-                    <td style={{ padding: '20px 20px', borderBottom: `1px solid ${glassBdr}` }}><Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.8rem' }}>{formatDateVN(row.releaseDate)}</Typography></td>
-                    <td style={{ padding: '20px 20px', borderBottom: `1px solid ${glassBdr}` }}>
+                    <td style={{ padding: '12px 16px', borderBottom: `1px solid ${glassBdr}` }}><Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>{row.idNumber || '—'}</Typography></td>
+                    <td style={{ padding: '12px 16px', borderBottom: `1px solid ${glassBdr}` }}><Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem' }}>{translateCrime(row.subjectType)}</Typography></td>
+                    <td style={{ padding: '12px 16px', borderBottom: `1px solid ${glassBdr}` }}><Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem' }}>{translateSentence(row.sentenceType)}</Typography></td>
+                    <td style={{ padding: '12px 16px', borderBottom: `1px solid ${glassBdr}` }}><Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.8rem' }}>{formatDateVN(row.releaseDate)}</Typography></td>
+                    <td style={{ padding: '12px 16px', borderBottom: `1px solid ${glassBdr}` }}>
                       {row.device
                         ? <Chip label={row.device.name} size="small" sx={{ height: 24, fontSize: '0.75rem', borderRadius: '8px', bgcolor: `${color}12`, color, border: `1px solid ${color}25` }} />
                         : <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.78rem', fontStyle: 'italic' }}>Chưa gắn</Typography>}
                     </td>
-                    <td style={{ padding: '20px 20px', borderBottom: `1px solid ${glassBdr}` }}><Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.78rem' }}>{row.officerName || '—'}</Typography></td>
-                    <td style={{ padding: '20px 20px', borderBottom: `1px solid ${glassBdr}` }}>
+                    <td style={{ padding: '12px 16px', borderBottom: `1px solid ${glassBdr}` }}><Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.78rem' }}>{row.officerName || '—'}</Typography></td>
+                    <td style={{ padding: '12px 16px', borderBottom: `1px solid ${glassBdr}` }}>
                       <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1.75, py: 0.75, borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700, bgcolor: `${alertColor}12`, color: alertColor, border: `1px solid ${alertColor}30` }}>
                         <Box className={row.violation ? 'gs-blink' : ''} sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: alertColor }} />
                         {statusLabelOf(row)}
                       </Box>
                     </td>
-                    <td style={{ padding: '20px 20px', borderBottom: `1px solid ${glassBdr}`, textAlign: 'right' }}>
+                    <td style={{ padding: '12px 16px', borderBottom: `1px solid ${glassBdr}`, textAlign: 'right' }}>
                       <Stack direction="row" spacing={0.75} justifyContent="flex-end">
                         <Tooltip title="Hồ sơ chi tiết"><IconButton size="small" color="primary" onClick={() => openDetail(row)} sx={{ borderRadius: '12px' }}><Eye size={18} /></IconButton></Tooltip>
                         <Tooltip title="Chỉnh sửa"><IconButton size="small" onClick={() => openEdit(row)} sx={{ borderRadius: '12px' }}><Edit size={18} /></IconButton></Tooltip>

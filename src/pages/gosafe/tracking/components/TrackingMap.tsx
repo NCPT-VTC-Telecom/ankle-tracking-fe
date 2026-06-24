@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
+import type { Device } from '../types';
 import L from 'leaflet';
-import { Box, Typography, Stack, Divider, Grid, Button, Switch, FormControlLabel } from '@mui/material';
+import { Box, Typography, Stack, Divider, Grid, Button, Switch, FormControlLabel, Chip } from '@mui/material';
 import { MapContainer, TileLayer, Polygon, Polyline, Marker, Popup, Tooltip, Circle, ScaleControl, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Map, Eye, Location } from 'iconsax-react';
 import { createDeviceIcon, createVertexIcon, createCenterMoveIcon, createHistoryMarkerIcon, createMidpointIcon } from '../mapIcons';
-import { getPolygonCentroid, getMockBiometrics, getPolygonArea, getPolygonPerimeter, fmtArea, fmtPerimeter } from '../utils';
+import { getPolygonCentroid, getPolygonArea, getPolygonPerimeter, fmtArea, fmtPerimeter, formatDateVN } from '../utils';
 import type { TrackingStore } from '../useTracking';
 
 // ── Tile layer config ─────────────────────────────────────────────────────────
@@ -144,6 +145,107 @@ function MapBoundsLoader({ onBounds }: { onBounds: (swLat: number, swLng: number
   return null;
 }
 
+/**
+ * Streaming kiểu GTA: báo khung nhìn hiện tại mỗi khi pan/zoom để culling — chỉ render
+ * thành phần trong khu vực đang focus.
+ */
+function MapCullController({ onView }: { onView: (b: L.LatLngBounds) => void }) {
+  const map = useMapEvents({
+    moveend: () => onView(map.getBounds()),
+    zoomend: () => onView(map.getBounds())
+  });
+  useEffect(() => { onView(map.getBounds()); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
+/**
+ * Marker thiết bị memo-hoá — chỉ re-render khi field ẢNH HƯỞNG hiển thị đổi (vị trí, góc,
+ * màu, chọn, vi phạm, hồ sơ). Các gói SSE chỉ đổi pin/đồng bộ → KHÔNG re-render marker.
+ */
+interface DeviceMarkerProps {
+  dev: Device;
+  selected: boolean;
+  violating: boolean;
+  isDark: boolean;
+  onSelect: (id: string) => void;
+}
+const DeviceMarker = memo(
+  function DeviceMarker({ dev, selected, violating, isDark, onSelect }: DeviceMarkerProps) {
+    const icon = useMemo(
+      () => createDeviceIcon(dev.angle, violating, dev.color, selected),
+      [dev.angle, violating, dev.color, selected]
+    );
+    return (
+      <Marker
+        position={dev.coords}
+        icon={icon}
+        eventHandlers={{ click: () => onSelect(dev.id) }}
+      >
+        <Popup>
+          <Box sx={{ minWidth: 220, p: 0.5 }}>
+            {dev.subject ? (
+              <Stack spacing={1}>
+                <Stack direction="row" spacing={0.75} alignItems="center">
+                  <Location size="16" variant="Bold" color={dev.color} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: isDark ? '#f1f5f9' : '#0f172a' }}>
+                    {dev.subject.fullName}
+                  </Typography>
+                </Stack>
+                <Chip
+                  label={dev.subject.crime || dev.subject.sentence || 'Chưa phân loại'}
+                  size="small"
+                  sx={{ alignSelf: 'flex-start', height: 20, fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', bgcolor: 'rgba(239, 68, 68, 0.08)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.15)', borderRadius: '6px' }}
+                />
+                <Divider sx={{ my: 0.25, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }} />
+                <Stack spacing={0.25}>
+                  {dev.subject.startDate && (
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>Bắt đầu:</Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.72rem' }}>{formatDateVN(dev.subject.startDate)}</Typography>
+                    </Stack>
+                  )}
+                  {dev.subject.releaseDate && (
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>Mãn hạn:</Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.72rem' }}>{formatDateVN(dev.subject.releaseDate)}</Typography>
+                    </Stack>
+                  )}
+                </Stack>
+                <Divider sx={{ my: 0.25, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }} />
+                <Box sx={{ p: 0.75, borderRadius: '6px', textAlign: 'center', bgcolor: violating ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)', border: `1.5px solid ${violating ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)'}` }}>
+                  <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.72rem', color: violating ? '#ef4444' : '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                    {violating ? '⚠ VI PHẠM VÙNG CẤM' : '✓ Trong vùng giám sát'}
+                  </Typography>
+                </Box>
+              </Stack>
+            ) : (
+              <Stack spacing={1}>
+                <Stack direction="row" spacing={0.75} alignItems="center">
+                  <Location size="16" variant="Bold" color={dev.color} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>{dev.name}</Typography>
+                </Stack>
+                <Typography variant="caption" color="text.secondary">Thiết bị chưa gán hồ sơ</Typography>
+              </Stack>
+            )}
+          </Box>
+        </Popup>
+      </Marker>
+    );
+  },
+  // Bỏ qua re-render khi chỉ pin/điện áp/đồng bộ đổi (không ảnh hưởng marker).
+  (p, n) =>
+    p.selected === n.selected &&
+    p.violating === n.violating &&
+    p.isDark === n.isDark &&
+    p.onSelect === n.onSelect &&
+    p.dev.coords[0] === n.dev.coords[0] &&
+    p.dev.coords[1] === n.dev.coords[1] &&
+    p.dev.angle === n.dev.angle &&
+    p.dev.color === n.dev.color &&
+    p.dev.name === n.dev.name &&
+    p.dev.subject === n.dev.subject
+);
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 interface Props {
@@ -185,6 +287,49 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
   const [showGfLabels, setShowGfLabels] = useState(true);
   const [showTrails, setShowTrails] = useState(true);
   const [showAccuracyCircles, setShowAccuracyCircles] = useState(false);
+
+  // ── Viewport culling (streaming GTA) ──────────────────────────────────────────
+  // Chỉ render thành phần trong khu vực đang render (renderBounds). Khi BÁM thiết bị →
+  // tự stream theo. Khi pan tự do ra ngoài → hiện nút "Xem khu vực này" (không auto render).
+  const [renderBounds, setRenderBounds] = useState<L.LatLngBounds | null>(null);
+  const [viewMoved, setViewMoved] = useState(false);
+  const pendingBoundsRef = useRef<L.LatLngBounds | null>(null);
+  const renderBoundsRef = useRef<L.LatLngBounds | null>(null);
+  useEffect(() => { renderBoundsRef.current = renderBounds; }, [renderBounds]);
+
+  // Vùng render ĐÓNG BĂNG (chỉ đổi khi bấm "Xem khu vực này" / lần đầu). Pan/zoom KHÔNG
+  // re-render marker → hiệu năng cao như Google Maps. Pan/zoom ra ngoài vùng đang render
+  // (+ đệm) → chỉ bật cờ viewMoved (rẻ) để hiện nút.
+  const handleViewportChange = useCallback((b: L.LatLngBounds) => {
+    pendingBoundsRef.current = b;
+    const rb = renderBoundsRef.current;
+    if (!rb) { setRenderBounds(b); return; }   // lần đầu
+    setViewMoved(!rb.pad(0.3).contains(b));      // khung nhìn vượt ra ngoài vùng đã render
+  }, []);
+
+  const applyPendingView = () => {
+    if (pendingBoundsRef.current) {
+      setRenderBounds(pendingBoundsRef.current);
+      const b = pendingBoundsRef.current;
+      fetchDevicesInBounds?.(b.getSouth(), b.getWest(), b.getNorth(), b.getEast());
+    }
+    setViewMoved(false);
+  };
+
+  // Chỉ giữ thành phần trong vùng render (+ đệm 30% để mép không bị trống).
+  const inRender = useCallback(
+    (latlng: [number, number]) => !renderBounds || renderBounds.pad(0.3).contains(latlng),
+    [renderBounds]
+  );
+  const visibleDevices = useMemo(() => devices.filter((d) => inRender(d.coords)), [devices, inRender]);
+  const handleSelectDevice = useCallback((id: string) => {
+    setSelectedDeviceId(id);
+    setActiveTab(0);
+  }, [setSelectedDeviceId, setActiveTab]);
+  const visibleGeofences = useMemo(
+    () => geofences.filter((g) => g.coordinates.length >= 3 && inRender(getPolygonCentroid(g.coordinates))),
+    [geofences, inRender]
+  );
 
   const mapRef = useRef<L.Map | null>(null);
   // Ref tới polygon đang sửa + điểm bắt đầu kéo tâm — để cập nhật biên realtime
@@ -569,9 +714,24 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
         </Box>
       )}
 
+      {/* Nút "Xem khu vực này" — khi pan tự do ra ngoài vùng đang render (tiết kiệm RAM) */}
+      {viewMoved && (
+        <Box sx={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 1200 }}>
+          <Button
+            onClick={applyPendingView}
+            startIcon={<Eye size={16} />}
+            variant="contained"
+            sx={{ borderRadius: '999px', fontWeight: 700, fontSize: '0.78rem', px: 2.25, py: 0.6, textTransform: 'none', boxShadow: '0 6px 20px rgba(0,0,0,0.28)', bgcolor: '#2563eb', '&:hover': { bgcolor: '#1d4ed8' } }}
+          >
+            Xem khu vực này
+          </Button>
+        </Box>
+      )}
+
       {/* ═══ MAP ═══ */}
       <MapContainer center={mapCenter} zoom={mapZoom} attributionControl={false} zoomControl={false} style={{ width: '100%', height: '100%' }}>
         <MapRefCapture mapRef={mapRef} />
+        <MapCullController onView={handleViewportChange} />
         {fetchDevicesInBounds && (
           <MapBoundsLoader onBounds={(s, w, n, e) => fetchDevicesInBounds(s, w, n, e)} />
         )}
@@ -587,9 +747,9 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
 
         <MapViewUpdater center={mapCenter} zoom={mapZoom} follow={followDevice} target={followTarget} />
 
-        {/* ── Geofence polygons ── */}
+        {/* ── Geofence polygons (chỉ vùng trong khu vực đang render) ── */}
         {showGeofences &&
-          geofences.map((gf) => {
+          visibleGeofences.map((gf) => {
             if (!gf.active) return null;
             const isEditing = editingGeofenceId === gf.id;
             return (
@@ -795,7 +955,7 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
 
         {/* ── Live path trails ── */}
         {showTrails &&
-          devices.map((dev) =>
+          visibleDevices.map((dev) =>
             dev.pathHistory.length > 1 ? (
               <Polyline
                 key={`trail-${dev.id}`}
@@ -812,7 +972,7 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
 
         {/* ── GPS accuracy circles ── */}
         {showAccuracyCircles &&
-          devices.map((dev) => (
+          visibleDevices.map((dev) => (
             <Circle
               key={`acc-${dev.id}`}
               center={dev.coords}
@@ -827,87 +987,16 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
             />
           ))}
 
-        {/* ── Device markers ── */}
-        {devices.map((dev) => (
-          <Marker
+        {/* ── Device markers (memo-hoá + chỉ thiết bị trong khu vực đang render) ── */}
+        {visibleDevices.map((dev) => (
+          <DeviceMarker
             key={dev.id}
-            position={dev.coords}
-            icon={createDeviceIcon(dev.angle, !!deviceViolations[dev.id], dev.color, dev.id === selectedDeviceId)}
-            eventHandlers={{
-              click: () => {
-                setSelectedDeviceId(dev.id);
-                setActiveTab(0);
-              },
-            }}
-          >
-            <Popup>
-              <Box sx={{ minWidth: 210, p: 0.5 }}>
-                <Stack direction="row" spacing={0.5} alignItems="center" mb={0.5}>
-                  <Location size="16" variant="Bold" color={dev.color} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    {dev.name}
-                  </Typography>
-                </Stack>
-                {dev.subject && (
-                  <Box sx={{ bgcolor: 'rgba(0,0,0,0.04)', borderRadius: 1.5, p: 1, mb: 1 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                      {dev.subject.fullName}
-                    </Typography>
-                    <Typography variant="caption" display="block" sx={{ color: '#ef4444', fontWeight: 600 }}>
-                      {dev.subject.crime}
-                    </Typography>
-                    <Typography variant="caption" display="block">
-                      Mãn hạn: {dev.subject.releaseDate || '—'}
-                    </Typography>
-                  </Box>
-                )}
-
-                {dev.subject &&
-                  (() => {
-                    const bio = getMockBiometrics(dev.id);
-                    return (
-                      <Box sx={{ mt: 1, borderTop: '1px solid rgba(0,0,0,0.06)', pt: 1 }}>
-                        <Typography variant="caption" sx={{ fontWeight: 700, color: '#2b5eaf', textTransform: 'uppercase', display: 'block', mb: 0.5, fontSize: '0.65rem' }}>
-                          Cảm biến &amp; Phần cứng
-                        </Typography>
-                        <Stack spacing={0.25}>
-                          {[
-                            { k: 'Khóa vòng chân', v: bio.isTampered ? '⚠ PHÁT HIỆN THÁO' : '✓ Ổn định', c: bio.isTampered ? '#ef4444' : '#22c55e', blink: bio.isTampered },
-                            { k: 'Điện áp Pin',    v: dev.status.batteryVoltage != null ? `${dev.status.batteryVoltage.toFixed(2)}V` : '—' },
-                            { k: 'Số vệ tinh',     v: `${dev.status.satelliteCount} vệ tinh` },
-                            { k: 'Trạng thái GPS', v: dev.status.gpsFix ? 'Đã định vị (Fix)' : 'Chưa định vị', c: dev.status.gpsFix ? '#22c55e' : '#f59e0b' },
-                          ].map((row) => (
-                            <Stack key={row.k} direction="row" justifyContent="space-between">
-                              <Typography variant="caption" color="text.secondary">{row.k}:</Typography>
-                              <Typography variant="caption" className={row.blink ? 'gs-blink' : ''} sx={{ fontWeight: 700, color: row.c }}>
-                                {row.v}
-                              </Typography>
-                            </Stack>
-                          ))}
-                        </Stack>
-                      </Box>
-                    );
-                  })()}
-
-                <Typography variant="caption" display="block" sx={{ mt: 0.75 }}>
-                  IMEI: {dev.uniqueId}
-                </Typography>
-                <Typography variant="caption" display="block" sx={{ fontSize: '0.68rem' }}>
-                  {dev.coords[0].toFixed(6)}, {dev.coords[1].toFixed(6)}
-                </Typography>
-                <Typography variant="caption" display="block">
-                  Pin: {dev.status.battery}% · GPS ±{dev.status.gpsAccuracy}m
-                </Typography>
-                <Typography
-                  variant="caption"
-                  display="block"
-                  sx={{ color: deviceViolations[dev.id] ? '#ef4444' : '#22c55e', fontWeight: 700, mt: 0.5 }}
-                >
-                  {deviceViolations[dev.id] ? '⚠ VI PHẠM VÙNG CẤM' : '✓ Trong vùng giám sát'}
-                </Typography>
-              </Box>
-            </Popup>
-          </Marker>
+            dev={dev}
+            selected={dev.id === selectedDeviceId}
+            violating={!!deviceViolations[dev.id]}
+            isDark={isDark}
+            onSelect={handleSelectDevice}
+          />
         ))}
       </MapContainer>
     </Box>

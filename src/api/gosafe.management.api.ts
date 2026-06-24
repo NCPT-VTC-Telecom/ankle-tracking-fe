@@ -343,6 +343,17 @@ export const regionsApi = {
     axiosGosafe({ url: '/v1/region_management/delete', method: 'POST', params: { id } })
 };
 
+// ─── AUDIT LOG (Nhật ký hệ thống) ────────────────────────────────────────────
+
+export const logSystemApi = {
+  /** Nhật ký hành vi toàn hệ thống (actionType, entity, user, request/response…). */
+  list: (params?: ListParams): AxiosPromise<GosafePaginated<any>> =>
+    axiosGosafe({ url: '/v1/log_system/data_system', method: 'GET', params }),
+  /** Danh sách category (action type) để lọc/phân loại. */
+  categories: (): AxiosPromise<GosafeSingle<string[]>> =>
+    axiosGosafe({ url: '/v1/log_system/categories', method: 'GET' })
+};
+
 // ─── COMPLIANCE RULES (Lịch trình bắt buộc) ──────────────────────────────────
 
 export const complianceApi = {

@@ -18,10 +18,14 @@ import {
 import { Add, Edit, Trash, DocumentText, Gps, Clock, Flash, Lock1, BatteryFull, Activity } from 'iconsax-react';
 import { getBatteryColor, timeAgo, getMockBiometrics, translateCrime } from '../utils';
 import type { TrackingStore } from '../useTracking';
+import PaginationBar, { usePagination } from '../../components/PaginationBar';
+import { useEffect } from 'react';
 
 interface Props {
   store: TrackingStore;
 }
+
+const DEVICE_PAGE_SIZE = 8;
 
 export default function DeviceList({ store }: Props) {
   const {
@@ -46,6 +50,15 @@ export default function DeviceList({ store }: Props) {
   const fontFamily = '"Inter", sans-serif';
   // Loading khi: chưa tải xong API lần đầu HOẶC SSE đang kết nối.
   const connecting = !devicesLoaded || sseStatus === 'idle' || sseStatus === 'connecting';
+
+  // Phân trang để gọn khi nhiều thiết bị (scale 100+). Chọn thiết bị → tự nhảy tới trang chứa nó.
+  const { page, setPage, total, totalPages, paged } = usePagination(filteredDevices, DEVICE_PAGE_SIZE);
+  useEffect(() => {
+    const idx = filteredDevices.findIndex((d) => d.id === selectedDeviceId);
+    if (idx >= 0) setPage(Math.floor(idx / DEVICE_PAGE_SIZE) + 1);
+    // chỉ phản ứng khi đổi thiết bị chọn (không reset trang mỗi gói SSE)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDeviceId]);
 
   return (
     <Stack spacing={2}>
@@ -87,7 +100,7 @@ export default function DeviceList({ store }: Props) {
         </Typography>
       </Stack>
 
-      {filteredDevices.map((dev) => {
+      {paged.map((dev) => {
         const isViolating = deviceViolations[dev.id];
         const isSelected = dev.id === selectedDeviceId;
 
@@ -608,6 +621,8 @@ export default function DeviceList({ store }: Props) {
           </Typography>
         )
       )}
+
+      <PaginationBar page={page} totalPages={totalPages} total={total} shownCount={paged.length} onChange={setPage} label="thiết bị" />
     </Stack>
   );
 }

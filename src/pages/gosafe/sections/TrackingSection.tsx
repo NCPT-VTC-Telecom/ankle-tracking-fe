@@ -29,7 +29,8 @@ import {
   SecuritySafe,
   Buildings2,
   Calendar,
-  Refresh
+  Refresh,
+  DocumentText
 } from 'iconsax-react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -55,6 +56,7 @@ import PrisonerManagementTable from './components/PrisonerManagementTable';
 import AlertsManagement from './components/AlertsManagement';
 import UserManagement from './components/UserManagement';
 import RegionManagement from './components/RegionManagement';
+import AuditLogManagement from './components/AuditLogManagement';
 import ComplianceManagement from './components/ComplianceManagement';
 
 interface TrackingSectionProps {
@@ -64,7 +66,7 @@ interface TrackingSectionProps {
 }
 
 // Các view chỉ dành cho superadmin (quản trị hệ thống: thiết bị, SIM/NCC, địa bàn, người dùng).
-const SUPER_ONLY_VIEWS = ['devices', 'regions', 'users'] as const;
+const SUPER_ONLY_VIEWS = ['devices', 'regions', 'users', 'audit'] as const;
 
 type DashboardView =
   | 'overview'
@@ -74,7 +76,8 @@ type DashboardView =
   | 'alerts'
   | 'users'
   | 'regions'
-  | 'compliance';
+  | 'compliance'
+  | 'audit';
 const VALID_VIEWS: DashboardView[] = [
   'overview',
   'tracking',
@@ -83,7 +86,8 @@ const VALID_VIEWS: DashboardView[] = [
   'alerts',
   'users',
   'regions',
-  'compliance'
+  'compliance',
+  'audit'
 ];
 
 export default function TrackingSection({
@@ -195,7 +199,8 @@ export default function TrackingSection({
     alerts: { crumb: 'Quản lý cảnh báo', title: 'Trung tâm cảnh báo' },
     compliance: { crumb: 'Lịch trình bắt buộc', title: 'Quy tắc tuân thủ & lịch bắt buộc' },
     regions: { crumb: 'Quản lý địa bàn', title: 'Quản lý địa bàn' },
-    users: { crumb: 'Người dùng & phân quyền', title: 'Người dùng & phân quyền' }
+    users: { crumb: 'Người dùng & phân quyền', title: 'Người dùng & phân quyền' },
+    audit: { crumb: 'Nhật ký hệ thống', title: 'Nhật ký hành vi (Audit Log)' }
   };
   const viewMeta = VIEW_META[dashboardView] ?? VIEW_META.overview;
 
@@ -452,6 +457,17 @@ export default function TrackingSection({
                     id: 'users' as const,
                     label: 'Người dùng & quyền',
                     icon: <SecuritySafe size={19} variant="Bold" />,
+                    superOnly: true
+                  }
+                ]
+              },
+              {
+                title: 'Hệ thống',
+                items: [
+                  {
+                    id: 'audit' as const,
+                    label: 'Nhật ký hệ thống',
+                    icon: <DocumentText size={19} variant="Bold" />,
                     superOnly: true
                   }
                 ]
@@ -1361,6 +1377,11 @@ export default function TrackingSection({
                 {/* ═══ VIEW 9: USERS & RBAC (super-only) ══════════════════════ */}
                 {dashboardView === 'users' && isSuperAdmin && (
                   <UserManagement isDark={isDark} refreshKey={refreshKey} />
+                )}
+
+                {/* ═══ VIEW 10: AUDIT LOG (super-only) ════════════════════════ */}
+                {dashboardView === 'audit' && isSuperAdmin && (
+                  <AuditLogManagement isDark={isDark} refreshKey={refreshKey} />
                 )}
               </Box>
             )}
