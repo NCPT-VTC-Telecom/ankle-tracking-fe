@@ -8,6 +8,7 @@ import { alertsApi, alertTypesApi, extractList } from 'api/gosafe.management.api
 import SideDrawer from '../../components/SideDrawer';
 import GlassKpiCard from './GlassKpiCard';
 import { useFeedback } from '../../components/FeedbackProvider';
+import PaginationBar, { usePagination } from '../../components/PaginationBar';
 
 interface Props {
   isDark: boolean;
@@ -104,6 +105,8 @@ export default function AlertsManagement({ isDark, scopeRegionId, refreshKey }: 
     return rows.filter((r) => r.title.toLowerCase().includes(q) || r.offender.toLowerCase().includes(q));
   }, [rows, search]);
 
+  const { page, setPage, total, totalPages, paged } = usePagination(filtered, 12);
+
   const kpis = useMemo(() => {
     const p1 = rows.filter((r) => levelMeta(r.level).label === 'P1').length;
     const processing = rows.filter((r) => statusMeta(r.status).label === 'Đang xử lý').length;
@@ -181,7 +184,7 @@ export default function AlertsManagement({ isDark, scopeRegionId, refreshKey }: 
               </TableRow>
             </TableHead>
             <TableBody>
-              {filtered.map((r) => {
+              {paged.map((r) => {
                 const lm = levelMeta(r.level);
                 const sm = statusMeta(r.status);
                 const closed = sm.label === 'Đã đóng';
@@ -230,6 +233,8 @@ export default function AlertsManagement({ isDark, scopeRegionId, refreshKey }: 
           </Table>
         )}
       </Box>
+
+      <PaginationBar page={page} totalPages={totalPages} total={total} shownCount={paged.length} onChange={setPage} label="cảnh báo" />
 
       <AlertTypesDialog open={typesOpen} onClose={() => setTypesOpen(false)} isDark={isDark} />
     </Box>

@@ -618,6 +618,7 @@ export function mapApiMgmtDeviceToDevice(raw: any, live: Device | undefined, fal
       speed: num(gp('speed')),
       altitude: num(gp('altitude')),
       gpsFix: Boolean(gp('gpsFixed', 'gps_fixed', 'gpsFix')) || (hasGps && (lat !== 0 || lng !== 0)),
+      isCharging: Boolean(gp('isCharging', 'is_charging') ?? gps?.deviceStatusFlags?.charging),
       eventName: String(gp('eventName', 'event_name') ?? 'Normal'),
       firmwareVersion: fw,
       deviceModel: model

@@ -7,6 +7,7 @@ import { Add, Edit, Trash, Calendar, Refresh, Clock, Health, Location } from 'ic
 import { complianceApi, offendersApi, regionsApi, extractList } from 'api/gosafe.management.api';
 import SideDrawer from '../../components/SideDrawer';
 import { useFeedback } from '../../components/FeedbackProvider';
+import PaginationBar, { usePagination } from '../../components/PaginationBar';
 
 interface Props {
   isDark: boolean;
@@ -41,6 +42,7 @@ interface RuleRow {
 
 export default function ComplianceManagement({ isDark, isSuperAdmin = false, refreshKey }: Props) {
   const [rows, setRows] = useState<RuleRow[]>([]);
+  const { page, setPage, total, totalPages, paged } = usePagination(rows, 12);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dialog, setDialog] = useState<{ mode: 'add' | 'edit'; row?: RuleRow } | null>(null);
@@ -131,7 +133,7 @@ export default function ComplianceManagement({ isDark, isSuperAdmin = false, ref
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((r) => {
+              {paged.map((r) => {
                 const em = eventMeta(r.eventType);
                 return (
                   <TableRow key={r.id} hover sx={{ '& td': { borderColor: cardBorder, fontSize: '0.95rem', py: 2, px: 2.5 } }}>
@@ -166,6 +168,8 @@ export default function ComplianceManagement({ isDark, isSuperAdmin = false, ref
           </Table>
         )}
       </Box>
+
+      <PaginationBar page={page} totalPages={totalPages} total={total} shownCount={paged.length} onChange={setPage} label="quy tắc" />
 
       {dialog && <RuleDialog isDark={isDark} mode={dialog.mode} row={dialog.row} onClose={() => setDialog(null)} onSaved={load} />}
     </Box>

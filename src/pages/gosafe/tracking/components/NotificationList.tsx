@@ -106,8 +106,8 @@ export default function NotificationList({ store }: Props) {
   // ── Cảnh báo dẫn xuất cục bộ (luôn hoạt động) ──
   const localItems: FeedItem[] = [];
   devices.forEach((d) => {
-    if (d.status.battery < 20)
-      localItems.push({ id: `bat-${d.id}`, severity: 'critical', icon: <BatteryFull size={20} color="#ef4444" variant="Bold" />, title: `${d.name}: Pin yếu`, desc: `Pin còn ${d.status.battery}% — cần sạc gấp.` });
+    if (d.status.battery > 0 && d.status.battery < 20)
+      localItems.push({ id: `bat-${d.id}`, severity: 'critical', icon: <BatteryFull size={20} color="#f59e0b" variant="Bold" />, title: `${d.name}: Pin yếu (${d.status.battery}%)`, desc: `Pin còn ${d.status.battery}% — cần sạc gấp.` });
     if (d.status.connectionStatus === 'offline')
       localItems.push({ id: `off-${d.id}`, severity: 'critical', icon: <Wifi size={20} color="#ef4444" variant="Bold" />, title: `${d.name}: Mất kết nối`, desc: 'Thiết bị không phản hồi máy chủ.' });
     if ((syncMinutesMap[d.id] ?? 0) > 30)

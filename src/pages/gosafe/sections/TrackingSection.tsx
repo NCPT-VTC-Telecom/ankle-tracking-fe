@@ -66,8 +66,25 @@ interface TrackingSectionProps {
 // Các view chỉ dành cho superadmin (quản trị hệ thống: thiết bị, SIM/NCC, địa bàn, người dùng).
 const SUPER_ONLY_VIEWS = ['devices', 'regions', 'users'] as const;
 
-type DashboardView = 'overview' | 'tracking' | 'devices' | 'prisoners' | 'alerts' | 'users' | 'regions' | 'compliance';
-const VALID_VIEWS: DashboardView[] = ['overview', 'tracking', 'devices', 'prisoners', 'alerts', 'users', 'regions', 'compliance'];
+type DashboardView =
+  | 'overview'
+  | 'tracking'
+  | 'devices'
+  | 'prisoners'
+  | 'alerts'
+  | 'users'
+  | 'regions'
+  | 'compliance';
+const VALID_VIEWS: DashboardView[] = [
+  'overview',
+  'tracking',
+  'devices',
+  'prisoners',
+  'alerts',
+  'users',
+  'regions',
+  'compliance'
+];
 
 export default function TrackingSection({
   isDark,
@@ -105,10 +122,7 @@ export default function TrackingSection({
   const dashboardView: DashboardView = (VALID_VIEWS as string[]).includes(view ?? '')
     ? (view as DashboardView)
     : 'overview';
-  const setDashboardView = useCallback(
-    (v: DashboardView) => navigate(`/gosafe/${v}`),
-    [navigate]
-  );
+  const setDashboardView = useCallback((v: DashboardView) => navigate(`/gosafe/${v}`), [navigate]);
   // Phạm vi địa bàn lấy từ store (lọc map/list "cấp cơ sở đổ xuống").
   const { scopeRegionId, setScopeRegionId, scopeRegions } = store;
 
@@ -166,6 +180,12 @@ export default function TrackingSection({
     () => Object.values(deviceViolations).filter(Boolean).length,
     [deviceViolations]
   );
+  // Thiết bị pin yếu (< 20%). Loại pin 0 (thiết bị chưa đồng bộ — placeholder) để tránh
+  // báo nhầm khi đang tải.
+  const lowBatteryCount = useMemo(
+    () => devices.filter((d) => d.status.battery > 0 && d.status.battery < 20).length,
+    [devices]
+  );
 
   // Breadcrumb + tiêu đề theo view
   const VIEW_META: Record<string, { crumb: string; title: string }> = {
@@ -197,7 +217,13 @@ export default function TrackingSection({
           <Box sx={{ pointerEvents: 'auto' }}>
             <IconButton
               onClick={handleBellOpen}
-              className={totalViolating > 0 ? 'gs-fab-violation' : undefined}
+              className={
+                totalViolating > 0
+                  ? 'gs-fab-violation'
+                  : lowBatteryCount > 0
+                  ? 'gs-fab-lowbat'
+                  : undefined
+              }
               sx={{
                 position: 'fixed',
                 top: 20,
@@ -205,7 +231,14 @@ export default function TrackingSection({
                 width: 52,
                 height: 52,
                 bgcolor: isDark ? '#1e293b' : '#ffffff',
-                color: totalViolating > 0 ? '#ef4444' : (isDark ? '#f8fafc' : '#475569'),
+                color:
+                  totalViolating > 0
+                    ? '#ef4444'
+                    : lowBatteryCount > 0
+                    ? '#f59e0b'
+                    : isDark
+                    ? '#f8fafc'
+                    : '#475569',
                 boxShadow: isDark
                   ? '0 8px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08)'
                   : '0 8px 30px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04)',
@@ -1218,7 +1251,12 @@ export default function TrackingSection({
               /* ═══ OTHER VIEWS: OVERVIEW, DEVICES, PRISONERS, SIMS ═══ */
               <Box sx={{ px: { xs: 2, md: 3.5 }, py: 3, flexGrow: 1 }}>
                 {/* Breadcrumbs Header */}
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  sx={{ mb: 1.5 }}
+                >
                   <Box>
                     <Typography
                       variant="caption"
@@ -1247,12 +1285,17 @@ export default function TrackingSection({
                     <IconButton
                       onClick={handleRefresh}
                       sx={{
-                        width: 40, height: 40, borderRadius: '12px',
+                        width: 40,
+                        height: 40,
+                        borderRadius: '12px',
                         border: '1px solid',
                         borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
                         bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#fff',
                         color: 'text.secondary',
-                        '& svg': { transition: 'transform 0.6s', transform: refreshing ? 'rotate(360deg)' : 'none' },
+                        '& svg': {
+                          transition: 'transform 0.6s',
+                          transform: refreshing ? 'rotate(360deg)' : 'none'
+                        },
                         '&:hover': { color: primaryColor, borderColor: primaryColor }
                       }}
                     >
@@ -1294,12 +1337,20 @@ export default function TrackingSection({
 
                 {/* ═══ VIEW 6: ALERTS MANAGEMENT ═══════════════════════════════ */}
                 {dashboardView === 'alerts' && (
-                  <AlertsManagement isDark={isDark} scopeRegionId={scopeRegionId} refreshKey={refreshKey} />
+                  <AlertsManagement
+                    isDark={isDark}
+                    scopeRegionId={scopeRegionId}
+                    refreshKey={refreshKey}
+                  />
                 )}
 
                 {/* ═══ VIEW 7: COMPLIANCE (lịch trình bắt buộc) ════════════════ */}
                 {dashboardView === 'compliance' && (
-                  <ComplianceManagement isDark={isDark} isSuperAdmin={isSuperAdmin} refreshKey={refreshKey} />
+                  <ComplianceManagement
+                    isDark={isDark}
+                    isSuperAdmin={isSuperAdmin}
+                    refreshKey={refreshKey}
+                  />
                 )}
 
                 {/* ═══ VIEW 8: REGION MANAGEMENT (super-only) ═════════════════ */}
@@ -1308,7 +1359,9 @@ export default function TrackingSection({
                 )}
 
                 {/* ═══ VIEW 9: USERS & RBAC (super-only) ══════════════════════ */}
-                {dashboardView === 'users' && isSuperAdmin && <UserManagement isDark={isDark} refreshKey={refreshKey} />}
+                {dashboardView === 'users' && isSuperAdmin && (
+                  <UserManagement isDark={isDark} refreshKey={refreshKey} />
+                )}
               </Box>
             )}
           </Box>

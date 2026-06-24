@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { Box, Typography, Stack, Divider, Grid, Button, Switch, FormControlLabel } from '@mui/material';
-import { MapContainer, TileLayer, Polygon, Polyline, Marker, Popup, Tooltip, Circle, ScaleControl, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Polygon, Polyline, Marker, Popup, Tooltip, Circle, ScaleControl, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Map, Eye, Location } from 'iconsax-react';
 import { createDeviceIcon, createVertexIcon, createCenterMoveIcon, createHistoryMarkerIcon, createMidpointIcon } from '../mapIcons';
@@ -130,6 +130,20 @@ function MapRefCapture({ mapRef }: { mapRef: React.MutableRefObject<L.Map | null
   return null;
 }
 
+/** Tải thiết bị trong khung nhìn qua device_management/map mỗi khi pan/zoom. */
+function MapBoundsLoader({ onBounds }: { onBounds: (swLat: number, swLng: number, neLat: number, neLng: number) => void }) {
+  const fire = (m: L.Map) => {
+    const b = m.getBounds();
+    onBounds(b.getSouth(), b.getWest(), b.getNorth(), b.getEast());
+  };
+  const map = useMapEvents({
+    moveend: () => fire(map),
+    zoomend: () => fire(map)
+  });
+  useEffect(() => { fire(map); /* nạp lần đầu */ }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 interface Props {
@@ -161,7 +175,9 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
     setSelectedDeviceId,
     setActiveTab,
     finishEditingGeofence,
-    cancelEditingGeofence
+    cancelEditingGeofence,
+    fetchDevicesInBounds,
+    mapTruncated
   } = store;
 
   const [mapLayer, setMapLayer] = useState<MapLayer>(isDark ? 'dark' : 'light');
@@ -546,9 +562,19 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
         </Box>
       )}
 
+      {/* Cảnh báo khi device_management/map cắt còn 500 thiết bị trong khung */}
+      {mapTruncated && (
+        <Box sx={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 1200, px: 1.75, py: 0.6, borderRadius: '999px', bgcolor: 'rgba(245,158,11,0.95)', color: '#fff', fontSize: '0.72rem', fontWeight: 700, boxShadow: '0 4px 14px rgba(0,0,0,0.25)', pointerEvents: 'none' }}>
+          Đang hiển thị tối đa 500 thiết bị — phóng to để xem chi tiết
+        </Box>
+      )}
+
       {/* ═══ MAP ═══ */}
       <MapContainer center={mapCenter} zoom={mapZoom} attributionControl={false} zoomControl={false} style={{ width: '100%', height: '100%' }}>
         <MapRefCapture mapRef={mapRef} />
+        {fetchDevicesInBounds && (
+          <MapBoundsLoader onBounds={(s, w, n, e) => fetchDevicesInBounds(s, w, n, e)} />
+        )}
         <ScaleControl position="bottomright" metric imperial={false} />
 
         {/* Base tile layer — hybrid shares key with satellite so no remount on switch */}

@@ -14,6 +14,7 @@ export interface SubjectInfo {
 
 export interface DeviceStatus {
   battery: number;              // ước tính % (0–100) từ điện áp
+  isCharging: boolean;          // đang sạc (isCharging từ thiết bị)
   batteryVoltage: number | null; // điện áp pin (V), null nếu dùng nguồn ngoài
   externalVoltage: number | null; // điện áp nguồn ngoài (V)
   signalStrength: number;       // 0–4 thanh (map từ gsm_signal 1–5)

@@ -12,6 +12,7 @@ import { TrackingStore } from '../../tracking/useTracking';
 import { devicesApi, extractList, mapApiMgmtDeviceToDevice } from 'api/gosafe.management.api';
 import { DEVICE_PALETTE } from '../../tracking/constants';
 import GlassKpiCard from './GlassKpiCard';
+import PaginationBar, { usePagination } from '../../components/PaginationBar';
 
 interface DeviceManagementTableProps {
   isDark: boolean;
@@ -156,6 +157,8 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView,
     else if (assignmentFilter === 'unassigned') matchAssign = d.subject === null;
     return matchSearch && matchConn && matchAssign;
   }), [devices, deviceSearch, connectionFilter, assignmentFilter, deviceViolations]);
+
+  const { page, setPage, total, totalPages, paged } = usePagination(filteredDeviceTable, 12);
 
   const menuDevice = menuAnchor ? devices.find((d) => d.id === menuAnchor.devId) : null;
 
@@ -348,7 +351,7 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView,
               </tr>
             </thead>
             <tbody>
-              {filteredDeviceTable.map((dev, rowIdx) => {
+              {paged.map((dev, rowIdx) => {
                 const isViolating  = deviceViolations[dev.id];
                 const conn         = dev.status.connectionStatus;
                 const carrier      = getCarrierInfo(dev.phoneNumber);
@@ -533,6 +536,8 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView,
           </table>
         </Box>
       </Box>
+
+      <PaginationBar page={page} totalPages={totalPages} total={total} shownCount={paged.length} onChange={setPage} label="thiết bị" />
 
       {/* ── Actions popup menu ── */}
       <Menu

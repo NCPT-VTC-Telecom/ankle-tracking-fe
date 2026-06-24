@@ -12,6 +12,7 @@ import {
 import { TrackingStore } from '../../tracking/useTracking';
 import { offendersApi, devicesApi, zonesApi, extractList } from 'api/gosafe.management.api';
 import { useFeedback } from '../../components/FeedbackProvider';
+import PaginationBar, { usePagination } from '../../components/PaginationBar';
 import {
   timeAgo, translateCrime, translateSentence, translateOffenderStatus, formatDateVN,
   validateSentence, SUBJECT_TYPE_OPTIONS, SENTENCE_TYPE_OPTIONS
@@ -155,6 +156,8 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
       r.imei.includes(q)
     );
   }, [rows, prisonerSearch]);
+
+  const { page, setPage, total, totalPages, paged } = usePagination(filteredRows, viewMode === 'cards' ? 9 : 12);
 
   // Thiết bị device_management chưa gán phạm nhân (offenderId null) — để gán mới.
   const freeMgmtDevices = useMemo(
@@ -310,7 +313,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
       {/* ── Card view ── */}
       {viewMode === 'cards' && (
         <Grid container spacing={2.5}>
-          {filteredRows.map((row) => {
+          {paged.map((row) => {
             const color = row.device?.color ?? primaryColor;
             const alertColor = statusColorOf(row);
             return (
@@ -402,7 +405,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
               </tr>
             </thead>
             <tbody>
-              {filteredRows.map((row, idx) => {
+              {paged.map((row, idx) => {
                 const color = row.device?.color ?? primaryColor;
                 const alertColor = statusColorOf(row);
                 const rowBg = idx % 2 === 0 ? (isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.008)') : 'transparent';
@@ -451,6 +454,8 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
           </table>
         </Box>
       )}
+
+      <PaginationBar page={page} totalPages={totalPages} total={total} shownCount={paged.length} onChange={setPage} label="phạm nhân" />
 
       {/* ══ Add/Edit drawer ══ */}
       <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}

@@ -10,6 +10,7 @@ import {
 import { usersApi, rolesApi, permissionsApi, regionsApi, extractList } from 'api/gosafe.management.api';
 import SideDrawer from '../../components/SideDrawer';
 import { useFeedback } from '../../components/FeedbackProvider';
+import PaginationBar, { usePagination } from '../../components/PaginationBar';
 
 interface Props {
   isDark: boolean;
@@ -153,6 +154,7 @@ function UsersTab({ isDark, refreshKey }: { isDark: boolean; refreshKey?: number
   };
 
   const filtered = rows.filter((r) => !search || r.fullname.toLowerCase().includes(search.toLowerCase()) || r.username.toLowerCase().includes(search.toLowerCase()));
+  const { page, setPage, total, totalPages, paged } = usePagination(filtered, 12);
 
   return (
     <Box>
@@ -205,7 +207,7 @@ function UsersTab({ isDark, refreshKey }: { isDark: boolean; refreshKey?: number
               </TableRow>
             </TableHead>
             <TableBody>
-              {filtered.map((r) => (
+              {paged.map((r) => (
                 <TableRow key={r.id} hover sx={{ '& td': { borderColor: cardBorder, fontSize: '0.8rem' } }}>
                   <TableCell>
                     <Stack direction="row" spacing={1.5} alignItems="center">
@@ -255,6 +257,8 @@ function UsersTab({ isDark, refreshKey }: { isDark: boolean; refreshKey?: number
           </Table>
         )}
       </Box>
+
+      <PaginationBar page={page} totalPages={totalPages} total={total} shownCount={paged.length} onChange={setPage} label="người dùng" />
 
       {formDialog && <UserFormDialog isDark={isDark} mode={formDialog.mode} row={formDialog.row} onClose={() => setFormDialog(null)} onSaved={load} />}
       {assignDialog && <AssignDialog isDark={isDark} kind={assignDialog.kind} row={assignDialog.row} roles={roles} onClose={() => setAssignDialog(null)} />}
@@ -602,6 +606,7 @@ function AssignDialog({ isDark, kind, row, roles, onClose }: { isDark: boolean; 
 // ════════════════════════════ ROLES TAB ════════════════════════════
 function RolesTab({ isDark, refreshKey }: { isDark: boolean; refreshKey?: number }) {
   const [rows, setRows] = useState<RoleRow[]>([]);
+  const { page, setPage, total, totalPages, paged } = usePagination(rows, 12);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formDialog, setFormDialog] = useState<{ mode: 'add' | 'edit'; row?: RoleRow } | null>(null);
@@ -676,7 +681,7 @@ function RolesTab({ isDark, refreshKey }: { isDark: boolean; refreshKey?: number
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((r) => (
+              {paged.map((r) => (
                 <TableRow key={r.id} hover sx={{ '& td': { borderColor: cardBorder, fontSize: '0.8rem' } }}>
                   <TableCell sx={{ fontWeight: 700 }}>
                     <Stack direction="row" spacing={0.75} alignItems="center">
@@ -721,6 +726,7 @@ function RolesTab({ isDark, refreshKey }: { isDark: boolean; refreshKey?: number
           </Table>
         )}
       </Box>
+      <PaginationBar page={page} totalPages={totalPages} total={total} shownCount={paged.length} onChange={setPage} label="vai trò" />
       {formDialog && <RoleFormDialog isDark={isDark} mode={formDialog.mode} row={formDialog.row} onClose={() => setFormDialog(null)} onSaved={load} />}
       {permRow && <PermMatrixDialog isDark={isDark} role={permRow} onClose={() => setPermRow(null)} />}
 

@@ -294,6 +294,7 @@ export const isApiDevice = (d: { id: string }) => d.id.startsWith('api-');
 export function placeholderStatus(deviceModel = ''): DeviceStatus {
   return {
     battery: 0,
+    isCharging: false,
     batteryVoltage: null,
     externalVoltage: null,
     signalStrength: 0,
@@ -427,10 +428,14 @@ export function mapApiDeviceToDevice(
   // API có field % pin riêng (battery_percent) → ưu tiên dùng trực tiếp;
   // chỉ ước tính từ điện áp khi BE không trả % pin.
   const rawBatPct = pick('battery_percent', 'batteryPercent');
+  // Có % pin thật → dùng. Không có % → GIỮ giá trị cũ (do /latest cập nhật), chỉ ước
+  // tính từ điện áp khi hoàn toàn chưa biết — tránh nhảy số mỗi gói SSE thiếu %.
   const battery =
     rawBatPct != null
       ? Math.max(0, Math.min(100, Math.round(num(rawBatPct))))
-      : voltageToPercent(voltage, existing?.status.battery ?? 50);
+      : existing?.status.battery != null
+        ? existing.status.battery
+        : voltageToPercent(voltage, 50);
 
   const lat = num(pick('latitude', 'lat'), existing?.coords[0] ?? 0);
   const lng = num(pick('longitude', 'lng', 'lon'), existing?.coords[1] ?? 0);
@@ -442,9 +447,18 @@ export function mapApiDeviceToDevice(
   const deviceModel = String(pick('device_model', 'deviceModel', 'model') ?? '');
   const id = pick('id', '_id', 'deviceId') ?? imei;
 
+  // isCharging: ưu tiên field trực tiếp, rồi cờ trong deviceStatusFlags, cuối cùng giữ
+  // giá trị cũ (gói SSE đôi khi không kèm field này) → tránh nhấp nháy.
+  const flags = (a as any).deviceStatusFlags ?? (a as any).device_status_flags;
+  const rawCharging = pick('isCharging', 'is_charging', 'charging');
+  const isCharging =
+    rawCharging != null ? Boolean(rawCharging)
+      : flags?.charging != null ? Boolean(flags.charging)
+      : existing?.status.isCharging ?? false;
+
   return {
     id: existing?.id ?? `api-${id}`,
-    name: existing?.name || imei || `Thiết bị ${id}`,
+    name: existing?.name || String(pick('name', 'deviceName', 'device_name') ?? '') || imei || `Thiết bị ${id}`,
     type: existing?.type ?? 'Person',
     deviceType: deviceModel,
     uniqueId: existing?.uniqueId || imei,
@@ -453,6 +467,7 @@ export function mapApiDeviceToDevice(
     subject: existing?.subject ?? null,
     status: {
       battery,
+      isCharging,
       batteryVoltage,
       externalVoltage,
       signalStrength: Math.min(4, Math.max(0, num(pick('gsm_signal', 'gsmSignal')) - 1)),

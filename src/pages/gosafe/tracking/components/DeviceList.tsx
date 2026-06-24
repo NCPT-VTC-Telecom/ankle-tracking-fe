@@ -12,7 +12,8 @@ import {
   Button,
   Switch,
   FormControlLabel,
-  Grid
+  Grid,
+  CircularProgress
 } from '@mui/material';
 import { Add, Edit, Trash, DocumentText, Gps, Clock, Flash, Lock1, BatteryFull, Activity } from 'iconsax-react';
 import { getBatteryColor, timeAgo, getMockBiometrics, translateCrime } from '../utils';
@@ -37,10 +38,14 @@ export default function DeviceList({ store }: Props) {
     openEditDevice,
     setRemoveConfirmId,
     setSubjectDetailId,
-    setAddDeviceOpen
+    setAddDeviceOpen,
+    sseStatus,
+    devicesLoaded
   } = store;
 
   const fontFamily = '"Inter", sans-serif';
+  // Loading khi: chưa tải xong API lần đầu HOẶC SSE đang kết nối.
+  const connecting = !devicesLoaded || sseStatus === 'idle' || sseStatus === 'connecting';
 
   return (
     <Stack spacing={2}>
@@ -69,6 +74,18 @@ export default function DeviceList({ store }: Props) {
       >
         Thêm thiết bị mới
       </Button>
+
+      {/* Chỉ báo kết nối thời gian thực — luôn hiển thị để người dùng biết app đang chạy */}
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 0.5 }}>
+        {connecting ? (
+          <CircularProgress size={12} thickness={6} />
+        ) : (
+          <Box className={sseStatus === 'connected' ? 'gs-live-dot' : undefined} sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: sseStatus === 'connected' ? '#22c55e' : '#94a3b8' }} />
+        )}
+        <Typography sx={{ fontFamily, fontSize: '0.72rem', fontWeight: 700, color: connecting ? '#3b82f6' : sseStatus === 'connected' ? '#22c55e' : 'text.secondary' }}>
+          {connecting ? 'Đang kết nối máy chủ…' : sseStatus === 'connected' ? 'Trực tuyến · cập nhật thời gian thực' : 'Ngoại tuyến · đang thử lại'}
+        </Typography>
+      </Stack>
 
       {filteredDevices.map((dev) => {
         const isViolating = deviceViolations[dev.id];
@@ -287,6 +304,9 @@ export default function DeviceList({ store }: Props) {
                 <Box sx={{ mt: 1.5 }}>
                   {(() => {
                     const bio = getMockBiometrics(dev.id);
+                    // Chưa từng đồng bộ (lastServerSync null) = đang chờ dữ liệu live → hiển thị
+                    // trạng thái "Đang đồng bộ" (loading) thay vì báo lỗi "Trễ đồng bộ".
+                    const notSynced = dev.status.lastServerSync == null;
                     const syncLate = (syncMinutesMap[dev.id] ?? 0) > 30;
                     const voltageLabel = dev.status.batteryVoltage != null
                       ? `${dev.status.batteryVoltage.toFixed(2)}V`
@@ -357,11 +377,12 @@ export default function DeviceList({ store }: Props) {
                           {/* Pin — nổi bật full-width */}
                           <Grid item xs={12}>
                             <Box
+                              className={dev.status.isCharging ? 'gs-charging' : undefined}
                               sx={{
                                 p: 1.75,
                                 borderRadius: '16px',
                                 border: '1px solid',
-                                borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#cbd5e1',
+                                borderColor: dev.status.isCharging ? 'rgba(34,197,94,0.45)' : isDark ? 'rgba(255,255,255,0.08)' : '#cbd5e1',
                                 bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -369,18 +390,22 @@ export default function DeviceList({ store }: Props) {
                               }}
                             >
                               <Stack direction="row" alignItems="center" spacing={1}>
-                                <BatteryFull size={24} color={getBatteryColor(dev.status.battery)} variant="Bold" />
+                                {dev.status.isCharging ? (
+                                  <Flash size={24} color="#22c55e" variant="Bold" className="gs-charging-bolt" />
+                                ) : (
+                                  <BatteryFull size={24} color={getBatteryColor(dev.status.battery)} variant="Bold" />
+                                )}
                                 <Typography
                                   sx={{
                                     fontFamily,
                                     fontSize: '12px',
                                     fontWeight: 700,
-                                    color: isDark ? '#cbd5e1' : '#475569',
+                                    color: dev.status.isCharging ? '#22c55e' : isDark ? '#cbd5e1' : '#475569',
                                     textTransform: 'uppercase',
                                     letterSpacing: 0.4
                                   }}
                                 >
-                                  Pin thiết bị
+                                  {dev.status.isCharging ? '⚡ Đang sạc' : 'Pin thiết bị'}
                                 </Typography>
                               </Stack>
                               <Stack direction="row" alignItems="center" spacing={1} sx={{ flexGrow: 1, ml: 2 }}>
@@ -412,10 +437,10 @@ export default function DeviceList({ store }: Props) {
                           {([
                             {
                               label: 'Đồng bộ',
-                              icon: <Clock size={22} color={syncLate ? '#f59e0b' : '#22c55e'} variant="Bold" />,
-                              value: timeAgo(dev.status.lastServerSync),
-                              sub: syncLate ? 'Trễ đồng bộ' : 'Bình thường',
-                              color: syncLate ? '#f59e0b' : (isDark ? '#f8fafc' : '#0f172a')
+                              icon: <Clock size={22} color={notSynced ? '#3b82f6' : syncLate ? '#f59e0b' : '#22c55e'} variant="Bold" />,
+                              value: notSynced ? 'Đang đồng bộ…' : timeAgo(dev.status.lastServerSync),
+                              sub: notSynced ? 'Đang chờ dữ liệu' : syncLate ? 'Trễ đồng bộ' : 'Bình thường',
+                              color: notSynced ? '#3b82f6' : syncLate ? '#f59e0b' : (isDark ? '#f8fafc' : '#0f172a')
                             },
                             {
                               label: 'Điện áp',
@@ -570,14 +595,18 @@ export default function DeviceList({ store }: Props) {
       })}
 
       {filteredDevices.length === 0 && (
-        <Typography
-          align="center"
-          color="text.secondary"
-          variant="body2"
-          sx={{ fontFamily, mt: 4, fontSize: '0.9rem' }}
-        >
-          Không tìm thấy thiết bị nào.
-        </Typography>
+        connecting ? (
+          <Stack alignItems="center" spacing={1.25} sx={{ mt: 4 }}>
+            <CircularProgress size={26} />
+            <Typography align="center" color="text.secondary" variant="body2" sx={{ fontFamily, fontSize: '0.9rem' }}>
+              Đang kết nối & tải thiết bị…
+            </Typography>
+          </Stack>
+        ) : (
+          <Typography align="center" color="text.secondary" variant="body2" sx={{ fontFamily, mt: 4, fontSize: '0.9rem' }}>
+            Không tìm thấy thiết bị nào.
+          </Typography>
+        )
       )}
     </Stack>
   );

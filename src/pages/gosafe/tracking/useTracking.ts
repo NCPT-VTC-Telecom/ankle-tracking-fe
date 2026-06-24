@@ -32,8 +32,6 @@ import {
   SubjectInfo
 } from './types';
 import {
-  INITIAL_DEVICES,
-  INITIAL_GEOFENCES,
   EMPTY_DEVICE_FORM,
   EMPTY_GF_FORM,
   DEFAULT_HISTORY_FILTERS,
@@ -52,11 +50,6 @@ import {
   isFiberCut,
   isTestDevice,
   isApiDevice,
-  SS,
-  ssGet,
-  ssSet,
-  deviceToSS,
-  deviceFromSS,
   mapApiDeviceToDevice
 } from './utils';
 
@@ -89,19 +82,13 @@ const INITIAL_LOGS: EventLog[] = [
 // ─── HOOK ─────────────────────────────────────────────────────────────────────
 
 export function useTracking(isDark: boolean, primaryColor: string, secondaryColor: string) {
-  // ── CORE — khởi tạo từ sessionStorage nếu có ──
-  const [devices, setDevices] = useState<Device[]>(() => {
-    const saved = ssGet<ReturnType<typeof deviceToSS>[]>(SS.DEVICES, []);
-    return saved.length > 0 ? saved.map(deviceFromSS) : INITIAL_DEVICES;
-  });
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>(() =>
-    ssGet(SS.SELECTED, 'dev-001')
-  );
-  const [geofences, setGeofences] = useState<Geofence[]>(() =>
-    ssGet(SS.GEOFENCES, INITIAL_GEOFENCES)
-  );
+  // ── CORE — KHÔNG dùng cache localStorage. Mọi dữ liệu lấy từ API (REST/SSE). ──
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [devicesLoaded, setDevicesLoaded] = useState(false); // true sau lần tải API đầu tiên
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
+  const [geofences, setGeofences] = useState<Geofence[]>([]);
   const [editingGeofenceId, setEditingGeofenceId] = useState<string | null>(null);
-  const [logs, setLogs] = useState<EventLog[]>(() => ssGet(SS.LOGS, INITIAL_LOGS));
+  const [logs, setLogs] = useState<EventLog[]>(INITIAL_LOGS);
 
   // ── UI ──
   const [activeTab, setActiveTab] = useState(0);
@@ -111,13 +98,16 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
   const [scopeRegions, setScopeRegions] = useState<{ id: string; name: string; path: string; level: number }[]>([]);
   const [regionPathById, setRegionPathById] = useState<Record<string, string>>({});
   const [deviceRegionByImei, setDeviceRegionByImei] = useState<Record<string, string>>({});
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => ssGet(SS.SOUND, true));
-  const [followDevice, setFollowDevice] = useState<boolean>(() => ssGet(SS.FOLLOW, true));
+  // device_management/map: cờ "đã giới hạn 500 thiết bị trong khung nhìn".
+  const [mapTruncated, setMapTruncated] = useState(false);
+  const boundsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [followDevice, setFollowDevice] = useState<boolean>(true);
   const [showAlertOverlay, setShowAlertOverlay] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>(BASE_CENTER);
   const [mapZoom, setMapZoom] = useState(16);
   const [tick, setTick] = useState(0);
-  const [syncInterval, setSyncInterval] = useState<number>(() => ssGet(SS.INTERVAL, 30));
+  const [syncInterval, setSyncInterval] = useState<number>(30);
   const [sseStatus, setSseStatus] = useState<SSEStatus>('idle');
   const [criticalAlerts, setCriticalAlerts] = useState<CriticalAlert[]>([]);
   // Dedup cho SOS/fiber lấy từ API events: id sự kiện đã xử lý + cờ lần poll đầu.
@@ -125,19 +115,9 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
   const criticalPollInitedRef = useRef(false);
   // % pin thật từ BE (GET /v1/gps_tracking/latest) theo IMEI — ưu tiên hơn ước tính
   // từ điện áp (feed /devices & SSE chỉ có điện áp → quy đổi OCV dễ lệch thấp).
-  const latestBatteryRef = useRef<Record<string, number>>({});
 
-  // Initialized from localStorage so page-reload doesn't re-fire existing events
-  const prevEventNamesRef = useRef<Record<string, string>>(
-    (() => {
-      const saved = ssGet<ReturnType<typeof deviceToSS>[]>(SS.DEVICES, []);
-      const init: Record<string, string> = {};
-      saved.forEach((d) => {
-        init[d.uniqueId] = d.status.eventName ?? 'Normal';
-      });
-      return init;
-    })()
-  );
+  // Không cache: bắt đầu rỗng, điền dần khi nhận gói API/SSE đầu tiên.
+  const prevEventNamesRef = useRef<Record<string, string>>({});
 
   // ── HISTORY ──
   const [historyState, setHistoryState] = useState<Record<string, DeviceHistoryState>>({});
@@ -160,8 +140,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
   // ── REFS ──
   const centerDragStartRef = useRef<{ startLat: number; startLng: number } | null>(null);
   const prevViolationsRef = useRef<Record<string, boolean>>({});
-  const deviceColorIdxRef = useRef(INITIAL_DEVICES.length);
-  const deviceSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const deviceColorIdxRef = useRef(0);
 
   // Tick for time-ago labels
   useEffect(() => {
@@ -233,34 +212,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     };
   }, [lookupSubject]);
 
-  // ── SESSION STORAGE SAVE ──────────────────────────────────────────────────────
-
-  // Devices: debounce 2 s — SSE/API updates nhiều, không cần save mỗi packet
-  useEffect(() => {
-    if (deviceSaveTimer.current) clearTimeout(deviceSaveTimer.current);
-    deviceSaveTimer.current = setTimeout(() => {
-      ssSet(SS.DEVICES, devices.map(deviceToSS));
-    }, 2000);
-  }, [devices]);
-
-  useEffect(() => {
-    ssSet(SS.GEOFENCES, geofences);
-  }, [geofences]);
-  useEffect(() => {
-    ssSet(SS.LOGS, logs.slice(0, 200));
-  }, [logs]);
-  useEffect(() => {
-    ssSet(SS.SOUND, soundEnabled);
-  }, [soundEnabled]);
-  useEffect(() => {
-    ssSet(SS.FOLLOW, followDevice);
-  }, [followDevice]);
-  useEffect(() => {
-    ssSet(SS.SELECTED, selectedDeviceId);
-  }, [selectedDeviceId]);
-  useEffect(() => {
-    ssSet(SS.INTERVAL, syncInterval);
-  }, [syncInterval]);
+  // ── KHÔNG lưu cache (localStorage) — mọi state chỉ tồn tại trong phiên, lấy từ API. ──
 
   // ── DERIVED ──────────────────────────────────────────────────────────────────
 
@@ -374,7 +326,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
   const statusAlertCount = useMemo(() => {
     let n = 0;
     devices.forEach((d) => {
-      if (d.status.battery < 20) n++;
+      if (d.status.battery > 0 && d.status.battery < 20) n++;
       if (d.status.connectionStatus === 'offline') n++;
       if ((syncMinutesMap[d.id] ?? 0) > 30) n++;
     });
@@ -580,6 +532,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
           : null,
       status: {
         battery: 100,
+        isCharging: false,
         batteryVoltage: null,
         externalVoltage: null,
         signalStrength: 4,
@@ -913,7 +866,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
    * thiết bị API cũ + mock cache không còn trên server. SSE (partial) thì giữ nguyên.
    */
   const applyApiDevices = useCallback(
-    (apiData: ApiDevice[], opts?: { fullSnapshot?: boolean }) => {
+    (apiData: ApiDevice[], opts?: { fullSnapshot?: boolean; addOnly?: boolean }) => {
       // API trả camelCase (deviceImei/eventName) hoặc snake_case → đọc cả hai.
       const imeiOf = (api: any) =>
         String(api?.deviceImei ?? api?.device_imei ?? api?.imei ?? '').trim();
@@ -982,15 +935,15 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
           // Ưu tiên khớp theo IMEI thật; nếu rỗng → khớp theo id ổn định của server.
           const existing = (imei ? byImei.get(imei) : undefined) ?? byId.get(`api-${api.id}`);
           if (existing) matchedIds.add(existing.id);
+          // addOnly (device_management/map — payload nhẹ): thiết bị đã có (live) thì GIỮ
+          // NGUYÊN, không remap để tránh ghi đè telemetry (điện áp/đồng bộ) bằng dữ liệu nhẹ.
+          if (existing && opts?.addOnly) return existing;
           const mapped = mapApiDeviceToDevice(api, existing, DEVICE_PALETTE[idx % DEVICE_PALETTE.length]);
-          // Ưu tiên % pin thật từ BE (/latest) nếu có → tránh bị ghi đè bởi ước tính
-          // điện áp mỗi khi có gói SSE (feed /devices & SSE chỉ kèm điện áp).
-          const bePct = imei ? latestBatteryRef.current[imei] : undefined;
-          const withBat = bePct != null ? { ...mapped, status: { ...mapped.status, battery: bePct } } : mapped;
-          // GPS API không có tên phạm nhân → ưu tiên gán từ offender_management
-          // (nguồn sự thật). Ghi đè cả subject cũ đã cache để tránh tên lệch.
-          const subject = lookupSubject(withBat) ?? withBat.subject;
-          return subject ? { ...withBat, subject } : withBat;
+          // % pin: feed có % thì dùng; không có % thì mapApiDeviceToDevice đã GIỮ giá trị
+          // cũ (do pollLatestBattery cập nhật) → không cần ref cache (đã gây ghim số cũ).
+          // GPS API không có tên phạm nhân → ưu tiên gán từ offender_management.
+          const subject = lookupSubject(mapped) ?? mapped.subject;
+          return subject ? { ...mapped, subject } : mapped;
         });
         // Giữ lại các thiết bị chưa khớp: device thêm tay + device API không có trong
         // lần push này (vd SSE chỉ đẩy 1 thiết bị mỗi packet).
@@ -1003,6 +956,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
         });
         return [...apiDevices, ...untouched];
       });
+      setDevicesLoaded(true); // có dữ liệu từ SSE/REST → tắt loading
     },
     [addLog, playSOSAlarm, playFiberAlarm, lookupSubject]
   );
@@ -1016,8 +970,35 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
       applyApiDevices(apiData.data, { fullSnapshot: true });
     } catch {
       // silently ignore — SSE hoặc lần poll sau sẽ bù lại
+    } finally {
+      setDevicesLoaded(true); // đã thử tải API → tắt loading (kể cả khi rỗng/lỗi)
     }
   }, [applyApiDevices]);
+
+  /**
+   * Tải thiết bị trong khung nhìn bản đồ qua GET /v1/device_management/map (bbox).
+   * Chỉ trả thiết bị đã định vị trong khung (marker nhẹ, cap 500). Merge theo IMEI vào
+   * danh sách hiện có (partial) để bổ sung thiết bị server có nhưng feed live chưa đẩy.
+   * Debounce để tránh gọi dồn khi pan/zoom liên tục.
+   */
+  const fetchDevicesInBounds = useCallback(
+    (swLat: number, swLng: number, neLat: number, neLng: number) => {
+      if (boundsTimerRef.current) clearTimeout(boundsTimerRef.current);
+      boundsTimerRef.current = setTimeout(async () => {
+        try {
+          const res = await devicesApi.map({ swLat, swLng, neLat, neLng });
+          const data = res.data as any;
+          const items = extractList(data);
+          // addOnly: chỉ bổ sung thiết bị mới trong khung, KHÔNG ghi đè thiết bị live.
+          if (items.length) applyApiDevices(items, { fullSnapshot: false, addOnly: true });
+          setMapTruncated(!!(data?.meta?.truncated ?? data?.truncated));
+        } catch {
+          // bỏ qua — feed SSE vẫn hiển thị thiết bị live
+        }
+      }, 450);
+    },
+    [applyApiDevices]
+  );
 
   /**
    * Poll % pin THẬT từ BE (GET /v1/gps_tracking/latest → batteryPercent), lưu theo IMEI.
@@ -1033,21 +1014,27 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
         list = [raw.data];
       }
       const map: Record<string, number> = {};
+      const charge: Record<string, boolean> = {};
       list.forEach((it: any) => {
         const imei = String(it?.imei ?? it?.deviceImei ?? it?.device_imei ?? '').trim();
+        if (!imei) return;
         const bpRaw = it?.batteryPercent ?? it?.battery_percent;
-        if (imei && bpRaw != null && Number.isFinite(Number(bpRaw))) {
+        if (bpRaw != null && Number.isFinite(Number(bpRaw))) {
           map[imei] = Math.max(0, Math.min(100, Math.round(Number(bpRaw))));
         }
+        const ch = it?.isCharging ?? it?.is_charging ?? it?.deviceStatusFlags?.charging;
+        if (ch != null) charge[imei] = Boolean(ch);
       });
-      if (Object.keys(map).length === 0) return;
-      latestBatteryRef.current = { ...latestBatteryRef.current, ...map };
-      // Cập nhật ngay state để UI đổi số pin mà không chờ gói SSE kế tiếp.
+      if (Object.keys(map).length === 0 && Object.keys(charge).length === 0) return;
+      // Cập nhật ngay state để UI đổi pin + trạng thái sạc mà không chờ gói SSE kế tiếp.
       setDevices((prev) =>
         prev.map((d) => {
           const bp = map[d.uniqueId];
-          return bp != null && bp !== d.status.battery
-            ? { ...d, status: { ...d.status, battery: bp } }
+          const ch = charge[d.uniqueId];
+          const newBat = bp != null ? bp : d.status.battery;
+          const newCh = ch != null ? ch : d.status.isCharging;
+          return newBat !== d.status.battery || newCh !== d.status.isCharging
+            ? { ...d, status: { ...d.status, battery: newBat, isCharging: newCh } }
             : d;
         })
       );
@@ -1206,6 +1193,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     secondaryColor,
     // Core state
     devices,
+    devicesLoaded,
     geofences,
     selectedDeviceId,
     setSelectedDeviceId,
@@ -1224,6 +1212,9 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     setScopeRegionId,
     scopeRegions,
     scopedDevices,
+    // device_management/map — tải thiết bị theo khung nhìn bản đồ
+    fetchDevicesInBounds,
+    mapTruncated,
     soundEnabled,
     setSoundEnabled,
     followDevice,
