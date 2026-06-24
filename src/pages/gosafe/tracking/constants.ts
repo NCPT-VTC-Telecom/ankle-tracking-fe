@@ -1,4 +1,68 @@
-import type { Device, Geofence, DeviceFormState, GfFormState, HistoryFilters } from './types';
+import type { Device, Geofence, DeviceFormState, GfFormState, HistoryFilters, ZoneType, ZoneSchedule } from './types';
+
+// Lịch mặc định khi người dùng bật giới hạn giờ: giờ hành chính T2–T6.
+export const DEFAULT_ZONE_SCHEDULE: ZoneSchedule = {
+  daysOfWeek: [1, 2, 3, 4, 5],
+  startTime: '08:00',
+  endTime: '17:00'
+};
+
+export const WEEKDAY_LABELS: Record<number, string> = {
+  1: 'T2',
+  2: 'T3',
+  3: 'T4',
+  4: 'T5',
+  5: 'T6',
+  6: 'T7',
+  7: 'CN'
+};
+
+// ─── ZONE PRESETS (khớp zoneType/category của API zone_management) ───────────────
+
+export interface ZonePreset {
+  zoneType: ZoneType;
+  /** category gửi lên API */
+  category: string;
+  /** Tên hiển thị ngắn cho preset */
+  label: string;
+  /** Mô tả quy tắc cảnh báo */
+  description: string;
+  /** Màu mặc định của preset */
+  color: string;
+  /** Cảnh báo khi RA (exit) hay VÀO (enter) vùng */
+  alert: 'exit' | 'enter';
+}
+
+export const ZONE_PRESETS: ZonePreset[] = [
+  {
+    zoneType: 'allowed',
+    category: 'ALLOWED',
+    label: 'Vùng an toàn',
+    description: 'Đối tượng phải ở trong vùng. Cảnh báo khi RA khỏi vùng.',
+    color: '#22c55e',
+    alert: 'exit'
+  },
+  {
+    zoneType: 'restricted',
+    category: 'FORBIDDEN',
+    label: 'Vùng cấm',
+    description: 'Đối tượng không được vào. Cảnh báo khi VÀO vùng.',
+    color: '#ef4444',
+    alert: 'enter'
+  },
+  {
+    zoneType: 'warning',
+    category: 'WARNING',
+    label: 'Vùng cảnh báo',
+    description: 'Khu vực nhạy cảm. Cảnh báo mức thấp khi VÀO vùng.',
+    color: '#f59e0b',
+    alert: 'enter'
+  }
+];
+
+export const ZONE_PRESET_MAP = Object.fromEntries(
+  ZONE_PRESETS.map((p) => [p.zoneType, p])
+) as Record<ZoneType, ZonePreset>;
 
 // ─── MAP ──────────────────────────────────────────────────────────────────────
 
@@ -22,6 +86,8 @@ export const INITIAL_GEOFENCES: Geofence[] = [
     name: 'Khu vực 614 ĐBP',
     address: '614 Điện Biên Phủ, Phường Vườn Lài, Q.Phú Nhuận, TP.HCM',
     color: '#22c55e',
+    zoneType: 'allowed',
+    schedule: null,
     coordinates: [
       [10.771685, 106.675672],
       [10.771685, 106.677672],
@@ -34,7 +100,9 @@ export const INITIAL_GEOFENCES: Geofence[] = [
     id: 'zone-b',
     name: 'Khu vực lân cận',
     address: 'Phường Vườn Lài, Q.Phú Nhuận, TP.HCM',
-    color: '#3b82f6',
+    color: '#f59e0b',
+    zoneType: 'warning',
+    schedule: null,
     coordinates: [
       [10.772185, 106.678172],
       [10.772185, 106.679172],
@@ -45,42 +113,11 @@ export const INITIAL_GEOFENCES: Geofence[] = [
   }
 ];
 
-export const INITIAL_DEVICES: Device[] = [
-  {
-    id: 'dev-001',
-    name: 'VTC-G001',
-    type: 'Person',
-    deviceType: 'Gosafe G737P',
-    uniqueId: '869487063154339',
-    phoneNumber: '+84900000001',
-    color: DEVICE_PALETTE[0],
-    // Tên phạm nhân lấy từ offender_management API (gán trong useTracking),
-    // không hardcode để tránh hiển thị sai so với dữ liệu thật.
-    subject: null,
-    status: {
-      battery: 88,
-      batteryVoltage: null,
-      externalVoltage: 3.86,
-      signalStrength: 3,
-      connectionStatus: 'online',
-      lastGpsUpdate: new Date(),
-      lastServerSync: new Date(),
-      gpsAccuracy: 5,
-      gpsFix: false,
-      satelliteCount: 3,
-      speed: 0,
-      altitude: 23,
-      eventId: 0,
-      eventName: 'Normal',
-      deviceModel: 'G737-4G',
-      firmwareVersion: 'V1.18d0609'
-    },
-    coords: [10.770685, 106.676672],
-    angle: 0,
-    pathHistory: [],
-    assignedGeofenceId: 'dbp-614'
-  }
-];
+/**
+ * Không seed thiết bị mock — danh sách rỗng cho đến khi snapshot từ API trả về.
+ * Tránh hiển thị thiết bị/telemetry giả khi mới vào.
+ */
+export const INITIAL_DEVICES: Device[] = [];
 
 // ─── EMPTY FORMS ──────────────────────────────────────────────────────────────
 
@@ -91,6 +128,8 @@ export const EMPTY_DEVICE_FORM: DeviceFormState = {
   uniqueId: '',
   phoneNumber: '',
   color: DEVICE_PALETTE[2],
+  assignedGeofenceId: null,
+  regionId: null,
   subjectFullName: '',
   subjectIdNumber: '',
   subjectCrime: '',
@@ -100,7 +139,14 @@ export const EMPTY_DEVICE_FORM: DeviceFormState = {
   subjectNotes: ''
 };
 
-export const EMPTY_GF_FORM: GfFormState = { name: '', address: '', color: '#3b82f6' };
+export const EMPTY_GF_FORM: GfFormState = {
+  name: '',
+  address: '',
+  color: ZONE_PRESET_MAP.restricted.color,
+  zoneType: 'restricted',
+  schedule: null,
+  coordinates: []
+};
 
 export const DEFAULT_HISTORY_FILTERS: HistoryFilters = {
   from: new Date(Date.now() - 7 * 86400_000).toISOString().slice(0, 10),

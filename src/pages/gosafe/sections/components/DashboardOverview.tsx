@@ -21,6 +21,7 @@ interface DashboardOverviewProps {
   store: TrackingStore;
   setDashboardView: (view: 'overview' | 'tracking' | 'devices' | 'prisoners' | 'alerts' | 'users' | 'regions' | 'compliance') => void;
   scopeRegionId?: string | null;
+  refreshKey?: number;
 }
 
 interface AlertItem {
@@ -42,7 +43,7 @@ function levelOf(raw: number | string | null | undefined): 'P1' | 'P2' | 'P3' {
 }
 const LEVEL_COLOR: Record<string, string> = { P1: '#dc2626', P2: '#ea580c', P3: '#ca8a04' };
 
-export default function DashboardOverview({ isDark, store, setDashboardView, scopeRegionId }: DashboardOverviewProps) {
+export default function DashboardOverview({ isDark, store, setDashboardView, scopeRegionId, refreshKey }: DashboardOverviewProps) {
   const { devices, geofences, deviceViolations, setSelectedDeviceId } = store;
 
   const [serverAlerts, setServerAlerts] = useState<AlertItem[] | null>(null);
@@ -69,7 +70,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
       })
       .catch(() => { if (!cancelled) setServerAlerts(null); });
     return () => { cancelled = true; };
-  }, [scopeRegionId]);
+  }, [scopeRegionId, refreshKey]);
 
   // ── Derived counts ──
   const subjects = useMemo(() => devices.filter((d) => d.subject !== null), [devices]);
@@ -126,7 +127,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
   const donutStroke = isDark ? '#0f172a' : '#ffffff';
 
   const panel = (accentColor = '#1e6fd9') => ({
-    borderRadius: '14px',
+    borderRadius: '16px',
     border: `1px solid ${panelBorder}`,
     background: isDark
       ? `linear-gradient(135deg, rgba(15,23,42,0.75) 0%, rgba(20,30,55,0.75) 100%)`
@@ -150,7 +151,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
   });
 
   const cardStyle = (accentColor: string) => ({
-    borderRadius: '14px',
+    borderRadius: '16px',
     border: `1px solid ${panelBorder}`,
     background: isDark
       ? `linear-gradient(135deg, rgba(15,23,42,0.7) 0%, rgba(30,41,59,0.7) 100%)`
@@ -187,7 +188,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
   const PanelTitle = ({ label, hint, right }: { label: string; hint?: string; right?: React.ReactNode }) => (
     <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
       <Box sx={{ width: 4, height: 20, borderRadius: 1, bgcolor: '#1e6fd9' }} />
-      <Typography sx={{ fontWeight: 700, fontSize: '1.15rem', color: txtPrimary, fontFamily: 'system-ui, sans-serif' }}>{label}</Typography>
+      <Typography sx={{ fontWeight: 700, fontSize: '1.15rem', color: txtPrimary }}>{label}</Typography>
       {hint && <Hint text={hint} />}
       <Box sx={{ flexGrow: 1 }} />
       {right}
@@ -241,7 +242,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
             <Box sx={cardStyle(k.color)}>
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1 }}>
                 <Stack direction="row" spacing={0.6} alignItems="center" sx={{ pr: 0.5 }}>
-                  <Typography sx={{ fontSize: '13px', fontWeight: 600, color: txtSecondary, lineHeight: 1.3, fontFamily: 'system-ui, sans-serif' }}>{k.label}</Typography>
+                  <Typography sx={{ fontSize: '13px', fontWeight: 600, color: txtSecondary, lineHeight: 1.3 }}>{k.label}</Typography>
                   <Hint text={k.hint} />
                 </Stack>
                 <Box sx={{ width: 36, height: 36, borderRadius: '10px', flexShrink: 0, display: 'grid', placeItems: 'center', bgcolor: `${k.color}14`, color: k.color }}>
@@ -249,17 +250,17 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
                 </Box>
               </Stack>
               <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ mt: 0.5 }}>
-                <Typography sx={{ fontSize: '34px', fontWeight: 700, color: txtPrimary, lineHeight: 1, fontFamily: 'system-ui, sans-serif' }}>{k.value}</Typography>
-                {k.unit && <Typography sx={{ fontSize: '13px', fontWeight: 500, color: txtSecondary, fontFamily: 'system-ui, sans-serif' }}>{k.unit}</Typography>}
+                <Typography sx={{ fontSize: '34px', fontWeight: 700, color: k.color, lineHeight: 1 }}>{k.value}</Typography>
+                {k.unit && <Typography sx={{ fontSize: '13px', fontWeight: 500, color: txtSecondary }}>{k.unit}</Typography>}
               </Stack>
-              <Typography sx={{ fontSize: '12.5px', color: txtSecondary, mt: 0.75, fontFamily: 'system-ui, sans-serif', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.sub}</Typography>
+              <Typography sx={{ fontSize: '12.5px', color: txtSecondary, mt: 0.75, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.sub}</Typography>
 
               {/* Custom visual element based on card index */}
               {i === 0 && (
                 <Box sx={{ width: '100%', mt: 0.5 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography variant="caption" sx={{ color: txtSecondary, fontSize: '11.5px', fontFamily: 'system-ui, sans-serif', fontWeight: 500 }}>Tỷ lệ hoạt động</Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 500, color: '#1e6fd9', fontSize: '11.5px', fontFamily: 'system-ui, sans-serif' }}>
+                    <Typography variant="caption" sx={{ color: txtSecondary, fontSize: '11.5px', fontWeight: 500 }}>Tỷ lệ hoạt động</Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 500, color: '#1e6fd9', fontSize: '11.5px' }}>
                       {subjects.length ? Math.round((onlineSubjectsCount / subjects.length) * 100) : 0}%
                     </Typography>
                   </Box>
@@ -272,8 +273,8 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
               {i === 1 && (
                 <Box sx={{ width: '100%', mt: 0.5 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography variant="caption" sx={{ color: txtSecondary, fontSize: '11.5px', fontFamily: 'system-ui, sans-serif', fontWeight: 500 }}>Kết nối máy chủ</Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 500, color: '#16a34a', fontSize: '11.5px', fontFamily: 'system-ui, sans-serif' }}>{onlinePct}%
+                    <Typography variant="caption" sx={{ color: txtSecondary, fontSize: '11.5px', fontWeight: 500 }}>Kết nối máy chủ</Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 500, color: '#16a34a', fontSize: '11.5px' }}>{onlinePct}%
                     </Typography>
                   </Box>
                   <Box sx={{ width: '100%', height: 4, bgcolor: isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0', borderRadius: 2, overflow: 'hidden' }}>
@@ -289,29 +290,29 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
                     size="small"
                     color={p1 > 0 ? 'error' : 'success'}
                     variant="outlined"
-                    sx={{ height: 22, fontSize: '11px', fontWeight: 500, borderRadius: '4px', fontFamily: 'system-ui, sans-serif' }}
+                    sx={{ height: 22, fontSize: '11px', fontWeight: 500, borderRadius: '4px' }}
                   />
                 </Box>
               )}
 
               {i === 3 && (
                 <Box sx={{ width: '100%', mt: 0.5, display: 'flex', gap: 0.5 }}>
-                  <Chip label={`P2: ${p2}`} size="small" variant="outlined" sx={{ height: 22, fontSize: '11px', fontWeight: 500, color: '#ea580c', borderColor: '#ea580c40', px: 0.5, borderRadius: '4px', fontFamily: 'system-ui, sans-serif' }} />
-                  <Chip label={`P3: ${p3}`} size="small" variant="outlined" sx={{ height: 22, fontSize: '11px', fontWeight: 500, color: '#ca8a04', borderColor: '#ca8a0440', px: 0.5, borderRadius: '4px', fontFamily: 'system-ui, sans-serif' }} />
+                  <Chip label={`P2: ${p2}`} size="small" variant="outlined" sx={{ height: 22, fontSize: '11px', fontWeight: 500, color: '#ea580c', borderColor: '#ea580c40', px: 0.5, borderRadius: '4px' }} />
+                  <Chip label={`P3: ${p3}`} size="small" variant="outlined" sx={{ height: 22, fontSize: '11px', fontWeight: 500, color: '#ca8a04', borderColor: '#ca8a0440', px: 0.5, borderRadius: '4px' }} />
                 </Box>
               )}
 
               {i === 4 && (
                 <Box sx={{ width: '100%', mt: 0.5 }}>
-                  <Chip label="Bản đồ hoạt động" size="small" sx={{ height: 22, fontSize: '11px', fontWeight: 500, bgcolor: '#0891b212', color: '#0891b2', borderRadius: '4px', fontFamily: 'system-ui, sans-serif' }} />
+                  <Chip label="Bản đồ hoạt động" size="small" sx={{ height: 22, fontSize: '11px', fontWeight: 500, bgcolor: '#0891b212', color: '#0891b2', borderRadius: '4px' }} />
                 </Box>
               )}
 
               {i === 5 && (
                 <Box sx={{ width: '100%', mt: 0.5 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography variant="caption" sx={{ color: txtSecondary, fontSize: '11.5px', fontFamily: 'system-ui, sans-serif', fontWeight: 500 }}>Tỷ lệ an toàn vùng</Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 500, color: totalViolating > 0 ? '#dc2626' : '#16a34a', fontSize: '11.5px', fontFamily: 'system-ui, sans-serif' }}>
+                    <Typography variant="caption" sx={{ color: txtSecondary, fontSize: '11.5px', fontWeight: 500 }}>Tỷ lệ an toàn vùng</Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 500, color: totalViolating > 0 ? '#dc2626' : '#16a34a', fontSize: '11.5px' }}>
                       {subjects.length ? Math.round(((subjects.length - totalViolating) / subjects.length) * 100) : 100}%
                     </Typography>
                   </Box>
@@ -332,7 +333,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
             <PanelTitle
               label="Cảnh báo theo giờ · 24h qua"
               hint="Số cảnh báo phát sinh theo từng giờ trong ngày, dựng từ thời điểm (createdAt) của cảnh báo. Nguồn: alert_management."
-              right={<Typography sx={{ fontSize: '13.5px', fontWeight: 600, color: txtSecondary, fontFamily: 'system-ui, sans-serif' }}>Tổng: {alerts.length} ca</Typography>}
+              right={<Typography sx={{ fontSize: '13.5px', fontWeight: 600, color: txtSecondary }}>Tổng: {alerts.length} ca</Typography>}
             />
             <Box sx={{ height: 230, position: 'relative' }}>
               <ReactApexChart options={hourlyBarOptions} series={[{ name: 'Cảnh báo', data: hourly }]} type="bar" height="100%" />
@@ -363,9 +364,9 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
                     <Stack key={i} direction="row" alignItems="center" justifyContent="space-between">
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: s.color }} />
-                        <Typography sx={{ fontSize: '13.5px', color: txtSecondary, fontWeight: 500, fontFamily: 'system-ui, sans-serif' }}>{s.label}</Typography>
+                        <Typography sx={{ fontSize: '13.5px', color: txtSecondary, fontWeight: 500 }}>{s.label}</Typography>
                       </Stack>
-                      <Typography sx={{ fontSize: '16px', fontWeight: 700, color: txtPrimary, fontFamily: 'system-ui, sans-serif' }}>{s.value}</Typography>
+                      <Typography sx={{ fontSize: '16px', fontWeight: 700, color: txtPrimary }}>{s.value}</Typography>
                     </Stack>
                   ))}
                 </Stack>
@@ -384,7 +385,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
               label="Cảnh báo gần nhất"
               hint="Danh sách cảnh báo mới nhất theo phạm vi đang chọn. Bấm vào một cảnh báo để định vị đối tượng trên bản đồ. Nguồn: alert_management."
               right={
-                <Typography onClick={() => setDashboardView('tracking')} sx={{ fontSize: '13.5px', fontWeight: 600, color: '#1e6fd9', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 0.25, fontFamily: 'system-ui, sans-serif' }}>
+                <Typography onClick={() => setDashboardView('tracking')} sx={{ fontSize: '13.5px', fontWeight: 600, color: '#1e6fd9', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 0.25 }}>
                   Xem bản đồ <ArrowRight2 size={15} />
                 </Typography>
               }
@@ -404,7 +405,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
                     onClick={() => { if (dev) { setSelectedDeviceId(dev.id); setDashboardView('tracking'); } }}
                     sx={{
                       display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 0.75, alignItems: 'center',
-                      p: 1.1, borderRadius: '10px',
+                      p: 1.1, borderRadius: '12px',
                       border: '1px solid',
                       borderColor: a.level === 'P1' ? `${color}40` : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
                       background: a.level === 'P1'
@@ -424,14 +425,14 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
                       } : {}
                     }}
                   >
-                    <Box sx={{ width: 40, height: 40, borderRadius: '10px', display: 'grid', placeItems: 'center', bgcolor: `${color}18`, color }}>
+                    <Box sx={{ width: 40, height: 40, borderRadius: '12px', display: 'grid', placeItems: 'center', bgcolor: `${color}18`, color }}>
                       <Danger size={20} variant="Bold" />
                     </Box>
                     <Box sx={{ minWidth: 0 }}>
-                      <Typography sx={{ fontSize: '15px', fontWeight: 600, color: txtPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'system-ui, sans-serif' }}>{a.title}</Typography>
-                      <Typography sx={{ fontSize: '13px', fontWeight: 500, color: txtSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'system-ui, sans-serif' }}>{a.desc}{a.time ? ` · ${a.time}` : ''}</Typography>
+                      <Typography sx={{ fontSize: '15px', fontWeight: 600, color: txtPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.title}</Typography>
+                      <Typography sx={{ fontSize: '13px', fontWeight: 500, color: txtSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.desc}{a.time ? ` · ${a.time}` : ''}</Typography>
                     </Box>
-                    <Chip label={a.level} size="small" sx={{ height: 24, fontWeight: 700, fontSize: '11.5px', color, bgcolor: `${color}1a`, borderRadius: '6px', fontFamily: 'system-ui, sans-serif' }} />
+                    <Chip label={a.level} size="small" sx={{ height: 24, fontWeight: 700, fontSize: '11.5px', color, bgcolor: `${color}1a`, borderRadius: '12px' }} />
                   </Box>
                 );
               })}
@@ -458,7 +459,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
                       animation: 'pulse 2s infinite'
                     }}
                   />
-                  <Typography sx={{ fontSize: '13.5px', fontWeight: 600, color: '#16a34a', fontFamily: 'system-ui, sans-serif' }}>
+                  <Typography sx={{ fontSize: '13.5px', fontWeight: 600, color: '#16a34a' }}>
                     {onlineSubjectsCount} người
                   </Typography>
                 </Stack>
@@ -480,7 +481,7 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
                     onClick={() => { setSelectedDeviceId(dev.id); setDashboardView('tracking'); }}
                     sx={{
                       display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 0.75, alignItems: 'center',
-                      p: 1.1, borderRadius: '10px',
+                      p: 1.1, borderRadius: '12px',
                       border: '1px solid',
                       borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
                       background: isDark ? 'rgba(255,255,255,0.02)' : '#ffffff',
@@ -496,18 +497,18 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
                       }
                     }}
                   >
-                    <Avatar sx={{ width: 40, height: 40, bgcolor: dev.color, fontWeight: 600, fontSize: '15px', fontFamily: 'system-ui, sans-serif' }}>
+                    <Avatar sx={{ width: 40, height: 40, bgcolor: dev.color, fontWeight: 600, fontSize: '15px' }}>
                       {sub?.fullName?.split(' ').slice(-1)[0]?.charAt(0) ?? '?'}
                     </Avatar>
                     <Box sx={{ minWidth: 0 }}>
-                      <Typography sx={{ fontSize: '15px', fontWeight: 600, color: txtPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'system-ui, sans-serif' }}>
+                      <Typography sx={{ fontSize: '15px', fontWeight: 600, color: txtPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {sub?.fullName ?? dev.name}
                       </Typography>
                       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 0.4 }}>
-                        <Typography sx={{ fontSize: '13px', fontWeight: 500, color: txtSecondary, display: 'flex', alignItems: 'center', gap: 0.5, fontFamily: 'system-ui, sans-serif' }}>
+                        <Typography sx={{ fontSize: '13px', fontWeight: 500, color: txtSecondary, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           <BatteryFull size={17} variant="Bold" color={dev.status.battery < 20 ? '#dc2626' : '#16a34a'} /> {dev.status.battery}%
                         </Typography>
-                        <Typography sx={{ fontSize: '13px', fontWeight: 500, color: txtSecondary, display: 'flex', alignItems: 'center', gap: 0.5, fontFamily: 'system-ui, sans-serif' }}>
+                        <Typography sx={{ fontSize: '13px', fontWeight: 500, color: txtSecondary, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           <Gps size={17} variant="Bold" color="#1e6fd9" /> {dev.status.satelliteCount || 0}
                         </Typography>
                       </Stack>
@@ -522,8 +523,8 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
                         color: statusColor,
                         bgcolor: `${statusColor}14`,
                         border: `1px solid ${statusColor}30`,
-                        borderRadius: '6px',
-                        fontFamily: 'system-ui, sans-serif'
+                        borderRadius: '12px',
+                        
                       }}
                     />
                   </Box>

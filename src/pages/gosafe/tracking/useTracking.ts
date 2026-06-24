@@ -3,12 +3,16 @@ import L from 'leaflet';
 import {
   gosafeTrackingApi,
   normaliseHistoryResponse,
+  mapApiEvent,
+  GPS_EVENT_ID,
   type ApiDevice
 } from 'api/gosafe.tracking.api';
 import {
   zonesApi,
   devicesApi,
   offendersApi,
+  alertsApi,
+  regionsApi,
   mapApiZoneToGeofence,
   mapApiOffenderToSubject,
   offenderDeviceKeys,
@@ -28,8 +32,6 @@ import {
   SubjectInfo
 } from './types';
 import {
-  INITIAL_DEVICES,
-  INITIAL_GEOFENCES,
   EMPTY_DEVICE_FORM,
   EMPTY_GF_FORM,
   DEFAULT_HISTORY_FILTERS,
@@ -38,6 +40,7 @@ import {
 } from './constants';
 import {
   isPointInPolygon,
+  getDistance,
   getPolygonArea,
   getPolygonPerimeter,
   fmtArea,
@@ -46,11 +49,7 @@ import {
   isSOS,
   isFiberCut,
   isTestDevice,
-  SS,
-  ssGet,
-  ssSet,
-  deviceToSS,
-  deviceFromSS,
+  isApiDevice,
   mapApiDeviceToDevice
 } from './utils';
 
@@ -83,44 +82,42 @@ const INITIAL_LOGS: EventLog[] = [
 // ─── HOOK ─────────────────────────────────────────────────────────────────────
 
 export function useTracking(isDark: boolean, primaryColor: string, secondaryColor: string) {
-  // ── CORE — khởi tạo từ sessionStorage nếu có ──
-  const [devices, setDevices] = useState<Device[]>(() => {
-    const saved = ssGet<ReturnType<typeof deviceToSS>[]>(SS.DEVICES, []);
-    return saved.length > 0 ? saved.map(deviceFromSS) : INITIAL_DEVICES;
-  });
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>(() =>
-    ssGet(SS.SELECTED, 'dev-001')
-  );
-  const [geofences, setGeofences] = useState<Geofence[]>(() =>
-    ssGet(SS.GEOFENCES, INITIAL_GEOFENCES)
-  );
+  // ── CORE — KHÔNG dùng cache localStorage. Mọi dữ liệu lấy từ API (REST/SSE). ──
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [devicesLoaded, setDevicesLoaded] = useState(false); // true sau lần tải API đầu tiên
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
+  const [geofences, setGeofences] = useState<Geofence[]>([]);
   const [editingGeofenceId, setEditingGeofenceId] = useState<string | null>(null);
-  const [logs, setLogs] = useState<EventLog[]>(() => ssGet(SS.LOGS, INITIAL_LOGS));
+  const [logs, setLogs] = useState<EventLog[]>(INITIAL_LOGS);
 
   // ── UI ──
   const [activeTab, setActiveTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => ssGet(SS.SOUND, true));
-  const [followDevice, setFollowDevice] = useState<boolean>(() => ssGet(SS.FOLLOW, true));
+  // ── Phạm vi địa bàn (region scope) — map/list chỉ hiện "cấp cơ sở đổ xuống" ──
+  const [scopeRegionId, setScopeRegionId] = useState<string | null>(null);
+  const [scopeRegions, setScopeRegions] = useState<{ id: string; name: string; path: string; level: number }[]>([]);
+  const [regionPathById, setRegionPathById] = useState<Record<string, string>>({});
+  const [deviceRegionByImei, setDeviceRegionByImei] = useState<Record<string, string>>({});
+  // device_management/map: cờ "đã giới hạn 500 thiết bị trong khung nhìn".
+  const [mapTruncated, setMapTruncated] = useState(false);
+  const boundsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [followDevice, setFollowDevice] = useState<boolean>(true);
   const [showAlertOverlay, setShowAlertOverlay] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>(BASE_CENTER);
   const [mapZoom, setMapZoom] = useState(16);
   const [tick, setTick] = useState(0);
-  const [syncInterval, setSyncInterval] = useState<number>(() => ssGet(SS.INTERVAL, 30));
+  const [syncInterval, setSyncInterval] = useState<number>(30);
   const [sseStatus, setSseStatus] = useState<SSEStatus>('idle');
   const [criticalAlerts, setCriticalAlerts] = useState<CriticalAlert[]>([]);
+  // Dedup cho SOS/fiber lấy từ API events: id sự kiện đã xử lý + cờ lần poll đầu.
+  const seenCriticalEventsRef = useRef<Set<string>>(new Set());
+  const criticalPollInitedRef = useRef(false);
+  // % pin thật từ BE (GET /v1/gps_tracking/latest) theo IMEI — ưu tiên hơn ước tính
+  // từ điện áp (feed /devices & SSE chỉ có điện áp → quy đổi OCV dễ lệch thấp).
 
-  // Initialized from localStorage so page-reload doesn't re-fire existing events
-  const prevEventNamesRef = useRef<Record<string, string>>(
-    (() => {
-      const saved = ssGet<ReturnType<typeof deviceToSS>[]>(SS.DEVICES, []);
-      const init: Record<string, string> = {};
-      saved.forEach((d) => {
-        init[d.uniqueId] = d.status.eventName ?? 'Normal';
-      });
-      return init;
-    })()
-  );
+  // Không cache: bắt đầu rỗng, điền dần khi nhận gói API/SSE đầu tiên.
+  const prevEventNamesRef = useRef<Record<string, string>>({});
 
   // ── HISTORY ──
   const [historyState, setHistoryState] = useState<Record<string, DeviceHistoryState>>({});
@@ -143,8 +140,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
   // ── REFS ──
   const centerDragStartRef = useRef<{ startLat: number; startLng: number } | null>(null);
   const prevViolationsRef = useRef<Record<string, boolean>>({});
-  const deviceColorIdxRef = useRef(INITIAL_DEVICES.length);
-  const deviceSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const deviceColorIdxRef = useRef(0);
 
   // Tick for time-ago labels
   useEffect(() => {
@@ -216,34 +212,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     };
   }, [lookupSubject]);
 
-  // ── SESSION STORAGE SAVE ──────────────────────────────────────────────────────
-
-  // Devices: debounce 2 s — SSE/API updates nhiều, không cần save mỗi packet
-  useEffect(() => {
-    if (deviceSaveTimer.current) clearTimeout(deviceSaveTimer.current);
-    deviceSaveTimer.current = setTimeout(() => {
-      ssSet(SS.DEVICES, devices.map(deviceToSS));
-    }, 2000);
-  }, [devices]);
-
-  useEffect(() => {
-    ssSet(SS.GEOFENCES, geofences);
-  }, [geofences]);
-  useEffect(() => {
-    ssSet(SS.LOGS, logs.slice(0, 200));
-  }, [logs]);
-  useEffect(() => {
-    ssSet(SS.SOUND, soundEnabled);
-  }, [soundEnabled]);
-  useEffect(() => {
-    ssSet(SS.FOLLOW, followDevice);
-  }, [followDevice]);
-  useEffect(() => {
-    ssSet(SS.SELECTED, selectedDeviceId);
-  }, [selectedDeviceId]);
-  useEffect(() => {
-    ssSet(SS.INTERVAL, syncInterval);
-  }, [syncInterval]);
+  // ── KHÔNG lưu cache (localStorage) — mọi state chỉ tồn tại trong phiên, lấy từ API. ──
 
   // ── DERIVED ──────────────────────────────────────────────────────────────────
 
@@ -251,6 +220,15 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     () => devices.find((d) => d.id === selectedDeviceId) ?? devices[0],
     [devices, selectedDeviceId]
   );
+
+  // Sau snapshot, nếu thiết bị đang chọn không còn tồn tại (vd mock dev-001 bị dọn) →
+  // tự chọn lại thiết bị thật đầu danh sách.
+  useEffect(() => {
+    if (devices.length === 0) return;
+    if (!devices.some((d) => d.id === selectedDeviceId)) {
+      setSelectedDeviceId(devices[0].id);
+    }
+  }, [devices, selectedDeviceId]);
 
   const deviceViolations = useMemo(() => {
     const out: Record<string, boolean> = {};
@@ -260,7 +238,13 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
         return;
       }
       const gf = geofences.find((g) => g.id === dev.assignedGeofenceId && g.active);
-      out[dev.id] = gf ? !isPointInPolygon(dev.coords[0], dev.coords[1], gf.coordinates) : false;
+      if (!gf) {
+        out[dev.id] = false;
+        return;
+      }
+      const inside = isPointInPolygon(dev.coords[0], dev.coords[1], gf.coordinates);
+      // Vùng an toàn (allowed): vi phạm khi RA. Vùng cấm/cảnh báo: vi phạm khi VÀO.
+      out[dev.id] = gf.zoneType === 'allowed' ? !inside : inside;
     });
     return out;
   }, [devices, geofences]);
@@ -282,16 +266,51 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     return map;
   }, [devices, geofences]);
 
+  // Nạp cây địa bàn (path) + map IMEI→regionId (device_management) cho bộ lọc phạm vi.
+  useEffect(() => {
+    let cancelled = false;
+    regionsApi.list({ pageSize: 500 }).then((r) => {
+      if (cancelled) return;
+      const list = extractList(r.data);
+      const pmap: Record<string, string> = {};
+      list.forEach((x: any) => { pmap[String(x.id)] = String(x.path ?? ''); });
+      setRegionPathById(pmap);
+      setScopeRegions(list.map((x: any) => ({ id: String(x.id), name: x.name ?? x.code ?? x.id, path: String(x.path ?? ''), level: Number(x.level ?? 1) })));
+    }).catch(() => {});
+    devicesApi.list({ pageSize: 500 }).then((r) => {
+      if (cancelled) return;
+      const dmap: Record<string, string> = {};
+      extractList(r.data).forEach((d: any) => {
+        const imei = String(d.imei ?? '').trim();
+        if (imei && d.regionId) dmap[imei] = String(d.regionId);
+      });
+      setDeviceRegionByImei(dmap);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  // "Cấp cơ sở đổ xuống": chỉ giữ thiết bị thuộc cây con của địa bàn scope (theo path).
+  const scopedDevices = useMemo(() => {
+    if (!scopeRegionId) return devices;
+    const scopePath = regionPathById[scopeRegionId];
+    if (!scopePath) return devices; // chưa biết path → không lọc (tránh ẩn nhầm)
+    return devices.filter((d) => {
+      const rid = deviceRegionByImei[d.uniqueId];
+      const rpath = rid ? regionPathById[rid] : undefined;
+      return rpath ? rpath === scopePath || rpath.startsWith(scopePath + '.') : false;
+    });
+  }, [devices, scopeRegionId, regionPathById, deviceRegionByImei]);
+
   const filteredDevices = useMemo(() => {
-    if (!searchQuery) return devices;
+    if (!searchQuery) return scopedDevices;
     const q = searchQuery.toLowerCase();
-    return devices.filter(
+    return scopedDevices.filter(
       (d) =>
         d.name.toLowerCase().includes(q) ||
         d.uniqueId.includes(q) ||
         (d.subject?.fullName.toLowerCase().includes(q) ?? false)
     );
-  }, [devices, searchQuery]);
+  }, [scopedDevices, searchQuery]);
 
   const syncMinutesMap = useMemo(() => {
     const m: Record<string, number> = {};
@@ -307,7 +326,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
   const statusAlertCount = useMemo(() => {
     let n = 0;
     devices.forEach((d) => {
-      if (d.status.battery < 20) n++;
+      if (d.status.battery > 0 && d.status.battery < 20) n++;
       if (d.status.connectionStatus === 'offline') n++;
       if ((syncMinutesMap[d.id] ?? 0) > 30) n++;
     });
@@ -513,6 +532,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
           : null,
       status: {
         battery: 100,
+        isCharging: false,
         batteryVoltage: null,
         externalVoltage: null,
         signalStrength: 4,
@@ -532,7 +552,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
       coords: [...BASE_CENTER] as [number, number],
       angle: 0,
       pathHistory: [],
-      assignedGeofenceId: null
+      assignedGeofenceId: f.assignedGeofenceId
     };
     setDevices((prev) => [...prev, newDev]);
     setSelectedDeviceId(newId);
@@ -548,7 +568,8 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
         deviceCode: f.name,
         imei: f.uniqueId,
         deviceType: f.deviceType,
-        phoneNumber: f.phoneNumber
+        phoneNumber: f.phoneNumber,
+        ...(f.regionId ? { regionId: f.regionId } : {})
       })
       .catch(() =>
         addLog(`Không tạo được thiết bị "${f.name}" trên máy chủ (lưu cục bộ).`, 'warning')
@@ -637,6 +658,8 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
       uniqueId: dev.uniqueId,
       phoneNumber: dev.phoneNumber,
       color: dev.color,
+      assignedGeofenceId: dev.assignedGeofenceId,
+      regionId: null,
       subjectFullName: dev.subject?.fullName ?? '',
       subjectIdNumber: dev.subject?.idNumber ?? '',
       subjectCrime: dev.subject?.crime ?? '',
@@ -660,6 +683,60 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     setCriticalAlerts([]);
   }, []);
 
+  /**
+   * Tiếp nhận cảnh báo nghiêm trọng → ẩn khỏi overlay + chuyển trạng thái trên server
+   * (alert_management/acknowledge: PENDING → PROCESSING).
+   * CriticalAlert lấy từ nhật ký GPS không có sẵn alertId, nên dò bản ghi PENDING khớp
+   * theo loại + thời gian (±5 phút) + vị trí gần nhất.
+   */
+  const acknowledgeCriticalAlert = useCallback(
+    async (alert: CriticalAlert) => {
+      setCriticalAlerts((prev) => prev.filter((a) => a.id !== alert.id));
+      try {
+        let alertId = alert.alertId;
+        if (!alertId) {
+          const res = await alertsApi.list({
+            status: 'PENDING',
+            pageSize: 50,
+            ...(alert.type === 'sos' ? { alertTypeCode: 'SOS' } : {})
+          });
+          const t = alert.timestamp.getTime();
+          let best: any = null;
+          let bestScore = Infinity;
+          extractList(res.data).forEach((a: any) => {
+            const created = a.createdDate ?? a.createdAt ?? a.created_at;
+            const dt = created ? Math.abs(new Date(created).getTime() - t) : Infinity;
+            if (dt > 5 * 60 * 1000) return; // ngoài cửa sổ ±5 phút → bỏ
+            const lat = Number(a.locationLat ?? a.location_lat);
+            const lng = Number(a.locationLng ?? a.location_lng);
+            const distM =
+              Number.isFinite(lat) && Number.isFinite(lng)
+                ? getDistance(alert.coords[0], alert.coords[1], lat, lng)
+                : 0;
+            const score = dt / 1000 + distM; // ưu tiên gần thời gian + gần vị trí
+            if (score < bestScore) {
+              bestScore = score;
+              best = a;
+            }
+          });
+          alertId = best ? String(best.id) : undefined;
+        }
+        if (alertId) {
+          await alertsApi.acknowledge({ alertId });
+          addLog(
+            `Đã tiếp nhận cảnh báo ${alert.type === 'sos' ? 'SOS' : 'đứt cáp'} — thiết bị ${alert.imei}.`,
+            'success'
+          );
+        } else {
+          addLog(`Đã ẩn cảnh báo thiết bị ${alert.imei} (chưa tìm thấy bản ghi trên máy chủ để tiếp nhận).`, 'info');
+        }
+      } catch {
+        addLog(`Không tiếp nhận được cảnh báo trên máy chủ (đã ẩn cục bộ).`, 'warning');
+      }
+    },
+    [addLog]
+  );
+
   const handleSaveGfInfo = () => {
     if (!editGfId) return;
     const id = editGfId;
@@ -682,7 +759,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     }
   };
 
-  const handleAddGeofence = () => {
+  const handleAddGeofence = (coords?: [number, number][]) => {
     if (!addGfForm.name) return;
     const tempId = `gf-${Date.now()}`;
     const newGf: Geofence = {
@@ -690,7 +767,9 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
       name: addGfForm.name,
       address: addGfForm.address,
       color: addGfForm.color || '#3b82f6',
-      coordinates: [
+      zoneType: addGfForm.zoneType,
+      schedule: addGfForm.schedule,
+      coordinates: coords || [
         [BASE_CENTER[0] + 0.002, BASE_CENTER[1] - 0.002],
         [BASE_CENTER[0] + 0.002, BASE_CENTER[1] + 0.002],
         [BASE_CENTER[0] - 0.002, BASE_CENTER[1] + 0.002],
@@ -734,6 +813,20 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
       .catch(() => addLog(`Không xoá được vùng trên máy chủ (đã xoá cục bộ).`, 'warning'));
   };
 
+  const originalGfCoordsRef = useRef<[number, number][] | null>(null);
+
+  // Backup original coordinates when editing starts
+  useEffect(() => {
+    if (editingGeofenceId) {
+      const gf = geofences.find((g) => g.id === editingGeofenceId);
+      if (gf) {
+        originalGfCoordsRef.current = [...gf.coordinates];
+      }
+    } else {
+      originalGfCoordsRef.current = null;
+    }
+  }, [editingGeofenceId, geofences]);
+
   /** Kết thúc chỉnh ranh giới — lưu toạ độ mới lên server. */
   const finishEditingGeofence = () => {
     const id = editingGeofenceId;
@@ -749,15 +842,31 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     }
   };
 
+  /** Hủy chỉnh sửa ranh giới — khôi phục toạ độ cũ. */
+  const cancelEditingGeofence = () => {
+    const id = editingGeofenceId;
+    setEditingGeofenceId(null);
+    if (!id) return;
+    if (originalGfCoordsRef.current) {
+      const coords = originalGfCoordsRef.current;
+      setGeofences((prev) =>
+        prev.map((g) => (g.id === id ? { ...g, coordinates: coords } : g))
+      );
+    }
+  };
+
   // ── LIVE DEVICE FETCH ─────────────────────────────────────────────────────────
 
   /**
    * Merge ApiDevice[] vào state devices — dùng chung cho cả SSE lẫn polling.
    * Giữ lại manual devices (device thêm tay, không có trên API).
    * Phát hiện SOS và Fiber Cut từ event_name để kích hoạt critical alerts.
+   *
+   * opts.fullSnapshot=true (REST getDevices): coi đây là danh sách đầy đủ — loại bỏ
+   * thiết bị API cũ + mock cache không còn trên server. SSE (partial) thì giữ nguyên.
    */
   const applyApiDevices = useCallback(
-    (apiData: ApiDevice[]) => {
+    (apiData: ApiDevice[], opts?: { fullSnapshot?: boolean; addOnly?: boolean }) => {
       // API trả camelCase (deviceImei/eventName) hoặc snake_case → đọc cả hai.
       const imeiOf = (api: any) =>
         String(api?.deviceImei ?? api?.device_imei ?? api?.imei ?? '').trim();
@@ -826,17 +935,28 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
           // Ưu tiên khớp theo IMEI thật; nếu rỗng → khớp theo id ổn định của server.
           const existing = (imei ? byImei.get(imei) : undefined) ?? byId.get(`api-${api.id}`);
           if (existing) matchedIds.add(existing.id);
+          // addOnly (device_management/map — payload nhẹ): thiết bị đã có (live) thì GIỮ
+          // NGUYÊN, không remap để tránh ghi đè telemetry (điện áp/đồng bộ) bằng dữ liệu nhẹ.
+          if (existing && opts?.addOnly) return existing;
           const mapped = mapApiDeviceToDevice(api, existing, DEVICE_PALETTE[idx % DEVICE_PALETTE.length]);
-          // GPS API không có tên phạm nhân → ưu tiên gán từ offender_management
-          // (nguồn sự thật). Ghi đè cả subject cũ đã cache để tránh tên lệch.
+          // % pin: feed có % thì dùng; không có % thì mapApiDeviceToDevice đã GIỮ giá trị
+          // cũ (do pollLatestBattery cập nhật) → không cần ref cache (đã gây ghim số cũ).
+          // GPS API không có tên phạm nhân → ưu tiên gán từ offender_management.
           const subject = lookupSubject(mapped) ?? mapped.subject;
           return subject ? { ...mapped, subject } : mapped;
         });
         // Giữ lại các thiết bị chưa khớp: device thêm tay + device API không có trong
         // lần push này (vd SSE chỉ đẩy 1 thiết bị mỗi packet).
-        const untouched = prev.filter((d) => !matchedIds.has(d.id) && !isTestDevice(d.uniqueId));
+        // Full snapshot (REST): loại thêm thiết bị API cũ + mock 'dev-001' mồ côi
+        // (không còn trên server) → chỉ giữ device thêm tay (dev-<timestamp>).
+        const untouched = prev.filter((d) => {
+          if (matchedIds.has(d.id) || isTestDevice(d.uniqueId)) return false;
+          if (opts?.fullSnapshot && (isApiDevice(d) || d.id === 'dev-001')) return false;
+          return true;
+        });
         return [...apiDevices, ...untouched];
       });
+      setDevicesLoaded(true); // có dữ liệu từ SSE/REST → tắt loading
     },
     [addLog, playSOSAlarm, playFiberAlarm, lookupSubject]
   );
@@ -847,11 +967,141 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
       const res = await gosafeTrackingApi.getDevices();
       const apiData = res.data;
       if (apiData?.code !== 0 || !Array.isArray(apiData?.data)) return;
-      applyApiDevices(apiData.data);
+      applyApiDevices(apiData.data, { fullSnapshot: true });
     } catch {
       // silently ignore — SSE hoặc lần poll sau sẽ bù lại
+    } finally {
+      setDevicesLoaded(true); // đã thử tải API → tắt loading (kể cả khi rỗng/lỗi)
     }
   }, [applyApiDevices]);
+
+  /**
+   * Tải thiết bị trong khung nhìn bản đồ qua GET /v1/device_management/map (bbox).
+   * Chỉ trả thiết bị đã định vị trong khung (marker nhẹ, cap 500). Merge theo IMEI vào
+   * danh sách hiện có (partial) để bổ sung thiết bị server có nhưng feed live chưa đẩy.
+   * Debounce để tránh gọi dồn khi pan/zoom liên tục.
+   */
+  const fetchDevicesInBounds = useCallback(
+    (swLat: number, swLng: number, neLat: number, neLng: number) => {
+      if (boundsTimerRef.current) clearTimeout(boundsTimerRef.current);
+      boundsTimerRef.current = setTimeout(async () => {
+        try {
+          const res = await devicesApi.map({ swLat, swLng, neLat, neLng });
+          const data = res.data as any;
+          const items = extractList(data);
+          // addOnly: chỉ bổ sung thiết bị mới trong khung, KHÔNG ghi đè thiết bị live.
+          if (items.length) applyApiDevices(items, { fullSnapshot: false, addOnly: true });
+          setMapTruncated(!!(data?.meta?.truncated ?? data?.truncated));
+        } catch {
+          // bỏ qua — feed SSE vẫn hiển thị thiết bị live
+        }
+      }, 450);
+    },
+    [applyApiDevices]
+  );
+
+  /**
+   * Poll % pin THẬT từ BE (GET /v1/gps_tracking/latest → batteryPercent), lưu theo IMEI.
+   * Feed /devices & SSE chỉ kèm điện áp nên battery bị ước tính (OCV) dễ lệch; số này
+   * ghi đè để hiển thị đúng và để applyApiDevices giữ nguyên ở các gói sau.
+   */
+  const pollLatestBattery = useCallback(async () => {
+    try {
+      const raw: any = (await gosafeTrackingApi.getLatest()).data;
+      // /latest có thể trả mảng (data | data.items) hoặc 1 object đơn.
+      let list = extractList(raw);
+      if (list.length === 0 && raw?.data && typeof raw.data === 'object' && !Array.isArray(raw.data)) {
+        list = [raw.data];
+      }
+      const map: Record<string, number> = {};
+      const charge: Record<string, boolean> = {};
+      list.forEach((it: any) => {
+        const imei = String(it?.imei ?? it?.deviceImei ?? it?.device_imei ?? '').trim();
+        if (!imei) return;
+        const bpRaw = it?.batteryPercent ?? it?.battery_percent;
+        if (bpRaw != null && Number.isFinite(Number(bpRaw))) {
+          map[imei] = Math.max(0, Math.min(100, Math.round(Number(bpRaw))));
+        }
+        const ch = it?.isCharging ?? it?.is_charging ?? it?.deviceStatusFlags?.charging;
+        if (ch != null) charge[imei] = Boolean(ch);
+      });
+      if (Object.keys(map).length === 0 && Object.keys(charge).length === 0) return;
+      // Cập nhật ngay state để UI đổi pin + trạng thái sạc mà không chờ gói SSE kế tiếp.
+      setDevices((prev) =>
+        prev.map((d) => {
+          const bp = map[d.uniqueId];
+          const ch = charge[d.uniqueId];
+          const newBat = bp != null ? bp : d.status.battery;
+          const newCh = ch != null ? ch : d.status.isCharging;
+          return newBat !== d.status.battery || newCh !== d.status.isCharging
+            ? { ...d, status: { ...d.status, battery: newBat, isCharging: newCh } }
+            : d;
+        })
+      );
+    } catch {
+      // bỏ qua — vẫn còn ước tính từ điện áp làm dự phòng
+    }
+  }, []);
+
+  /**
+   * Poll cảnh báo nghiêm trọng (SOS / đứt cáp) trực tiếp từ nhật ký sự kiện máy chủ
+   * (GET /v1/gps_tracking/events). Đây là nguồn xác thực cho "SOS đã kích hoạt" —
+   * vẫn hiện được kể cả khi stream thiết bị không bắt được lúc chuyển trạng thái.
+   * Lần poll đầu chỉ hiện sự kiện trong 5 phút gần nhất để không phát lại lịch sử cũ.
+   */
+  const RECENT_SOS_WINDOW_MS = 5 * 60 * 1000;
+  const pollCriticalEvents = useCallback(async () => {
+    try {
+      const [sosRes, fiberRes] = await Promise.all([
+        gosafeTrackingApi.getEvents({ eventId: GPS_EVENT_ID.SOS, limit: 30 }),
+        gosafeTrackingApi.getEvents({ eventId: GPS_EVENT_ID.FIBER_CUT, limit: 30 })
+      ]);
+      const events = [...extractList(sosRes.data), ...extractList(fiberRes.data)]
+        .map(mapApiEvent)
+        .filter((e) => e.imei && !isTestDevice(e.imei));
+
+      const firstRun = !criticalPollInitedRef.current;
+      const now = Date.now();
+      const newAlerts: CriticalAlert[] = [];
+
+      events.forEach((ev) => {
+        if (seenCriticalEventsRef.current.has(ev.id)) return;
+        seenCriticalEventsRef.current.add(ev.id);
+        // Lần đầu: bỏ qua sự kiện cũ hơn cửa sổ gần đây (chỉ hiện SOS vừa bấm).
+        if (firstRun && now - ev.timestamp.getTime() > RECENT_SOS_WINDOW_MS) return;
+        const type = ev.eventId === GPS_EVENT_ID.SOS ? 'sos' : 'fiber_cut';
+        newAlerts.push({ id: `evt-${ev.id}`, type, imei: ev.imei, coords: ev.coords, timestamp: ev.timestamp });
+        addLog(
+          type === 'sos'
+            ? `🚨 SOS KHẨN CẤP: Thiết bị ${ev.imei} đã kích hoạt SOS!`
+            : `⚠️ CẢNH BÁO: Thiết bị ${ev.imei} phát hiện tháo dây cáp quang!`,
+          'warning'
+        );
+      });
+      criticalPollInitedRef.current = true;
+
+      if (newAlerts.length > 0) {
+        // Tránh trùng với cảnh báo từ stream: gộp theo type+imei+phút.
+        const keyOf = (a: CriticalAlert) => `${a.type}-${a.imei}-${Math.floor(a.timestamp.getTime() / 60000)}`;
+        setCriticalAlerts((prev) => {
+          const seen = new Set(prev.map(keyOf));
+          const fresh = newAlerts.filter((a) => !seen.has(keyOf(a)));
+          return fresh.length ? [...prev, ...fresh] : prev;
+        });
+        if (newAlerts.some((a) => a.type === 'sos')) playSOSAlarm();
+        else playFiberAlarm();
+      }
+    } catch {
+      // bỏ qua — lần poll sau bù lại
+    }
+  }, [addLog, playSOSAlarm, playFiberAlarm]);
+
+  // Poll định kỳ nhật ký sự kiện (độc lập với SSE — events là log riêng).
+  useEffect(() => {
+    pollCriticalEvents();
+    const id = setInterval(pollCriticalEvents, Math.max(syncInterval, 15) * 1000);
+    return () => clearInterval(id);
+  }, [pollCriticalEvents, syncInterval]);
 
   // ── SSE — primary real-time source ───────────────────────────────────────────
 
@@ -875,6 +1125,23 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     const id = setInterval(fetchLiveDevices, syncInterval * 1000);
     return () => clearInterval(id);
   }, [fetchLiveDevices, syncInterval, sseStatusValue]);
+
+  // ── Snapshot xác thực 1 lần khi mount (không phụ thuộc SSE) ──────────────────
+  // Bảo đảm full snapshot luôn chạy để dọn thiết bị API/mock mồ côi từ cache,
+  // kể cả khi SSE connect ngay (khiến effect polling phía trên bỏ qua fetch).
+  const didInitSnapshotRef = useRef(false);
+  useEffect(() => {
+    if (didInitSnapshotRef.current) return;
+    didInitSnapshotRef.current = true;
+    fetchLiveDevices();
+  }, [fetchLiveDevices]);
+
+  // ── Poll % pin thật từ BE (/latest) — độc lập với SSE ───────────────────────
+  useEffect(() => {
+    pollLatestBattery();
+    const id = setInterval(pollLatestBattery, Math.max(syncInterval, 15) * 1000);
+    return () => clearInterval(id);
+  }, [pollLatestBattery, syncInterval]);
 
   // ── GPS HISTORY ───────────────────────────────────────────────────────────────
 
@@ -926,6 +1193,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     secondaryColor,
     // Core state
     devices,
+    devicesLoaded,
     geofences,
     selectedDeviceId,
     setSelectedDeviceId,
@@ -939,6 +1207,14 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     setActiveTab,
     searchQuery,
     setSearchQuery,
+    // Region scope (lọc map/list theo cấp cơ sở đổ xuống)
+    scopeRegionId,
+    setScopeRegionId,
+    scopeRegions,
+    scopedDevices,
+    // device_management/map — tải thiết bị theo khung nhìn bản đồ
+    fetchDevicesInBounds,
+    mapTruncated,
     soundEnabled,
     setSoundEnabled,
     followDevice,
@@ -955,6 +1231,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     criticalAlerts,
     dismissCriticalAlert,
     dismissAllCriticalAlerts,
+    acknowledgeCriticalAlert,
     // History
     historyState,
     historyVisible,
@@ -1011,7 +1288,8 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     handleSaveGfInfo,
     handleAddGeofence,
     handleDeleteGeofence,
-    finishEditingGeofence
+    finishEditingGeofence,
+    cancelEditingGeofence
   };
 }
 

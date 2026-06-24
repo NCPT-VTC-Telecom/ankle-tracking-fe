@@ -1,4 +1,4 @@
-import type { Device } from './types';
+import type { Device, DeviceStatus } from './types';
 import type { ApiDevice } from 'api/gosafe.tracking.api';
 
 // ─── GEOGRAPHIC ───────────────────────────────────────────────────────────────
@@ -112,6 +112,74 @@ export function timeAgo(date: Date | null): string {
   return `${Math.floor(m / 60)} giờ trước`;
 }
 
+// ─── ENUM DICTIONARIES (khớp api-docs offender_management) ──────────────────────
+
+/** subjectType — phân loại đối tượng (CreateOffenderDto.subjectType). */
+export const OFFENDER_SUBJECT_TYPE_VI: Record<string, string> = {
+  DRUG_ADDICT: 'Nghiện ma túy',
+  POST_REHAB: 'Sau cai nghiện',
+  COMMUNITY_SENTENCE: 'Án phạt cộng đồng'
+};
+
+/** sentenceType — hình thức án (CreateOffenderDto.sentenceType). */
+export const SENTENCE_TYPE_VI: Record<string, string> = {
+  suspended: 'Án treo',
+  conditional: 'Án có điều kiện',
+  community_service: 'Lao động công ích'
+};
+
+/** status — trạng thái đối tượng (UpdateOffenderDto.status). */
+export const OFFENDER_STATUS_VI: Record<string, string> = {
+  MONITORING: 'Đang giám sát',
+  VIOLATING: 'Vi phạm',
+  SUSPENDED: 'Tạm đình chỉ',
+  COMPLETED: 'Hoàn thành'
+};
+
+/** Danh sách key gợi ý cho ô chọn (Autocomplete) — nhãn hiển thị dùng translate*. */
+export const SUBJECT_TYPE_OPTIONS = Object.keys(OFFENDER_SUBJECT_TYPE_VI);
+export const SENTENCE_TYPE_OPTIONS = Object.keys(SENTENCE_TYPE_VI);
+
+/** Key dạng enum (SNAKE_CASE / snake_case) → chữ thường có dấu cách, viết hoa đầu. */
+function prettifyEnum(key: string): string {
+  const s = key.replace(/_/g, ' ').trim().toLowerCase();
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : key;
+}
+
+/** Tội danh: dịch subjectType nếu khớp; còn lại là chuỗi tự do → giữ nguyên. */
+export function translateCrime(value?: string | null): string {
+  if (!value) return '—';
+  return OFFENDER_SUBJECT_TYPE_VI[value] ?? value;
+}
+
+/** Hình phạt: có thể là "community_service" hoặc "community_service · 36 tháng". */
+export function translateSentence(value?: string | null): string {
+  if (!value) return '—';
+  return value
+    .split(' · ')
+    .map((seg) => {
+      const k = seg.trim();
+      return SENTENCE_TYPE_VI[k] ?? (/^[a-z][a-z_]+$/.test(k) ? prettifyEnum(k) : k);
+    })
+    .join(' · ');
+}
+
+/** Trạng thái đối tượng: dịch enum status; fallback prettify. */
+export function translateOffenderStatus(value?: string | null): string {
+  if (!value) return '—';
+  return OFFENDER_STATUS_VI[value] ?? prettifyEnum(value);
+}
+
+/** ISO/Date string → dd/mm/yyyy. Không phải ngày hợp lệ → trả nguyên; rỗng → '—'. */
+export function formatDateVN(value?: string | null): string {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}
+
 export function getBatteryColor(level: number) {
   if (level > 50) return '#22c55e';
   if (level > 20) return '#f59e0b';
@@ -157,6 +225,38 @@ export function isTestDevice(imei: string | null | undefined): boolean {
   return /^test/i.test((imei ?? '').trim());
 }
 
+/**
+ * Validate thời hạn án theo BLHS 2015 (Thông tư 65/2019 dẫn chiếu).
+ * Trả về message lỗi (chặn lưu) hoặc null nếu hợp lệ.
+ *  - suspended (Án treo): 1–5 năm (Điều 65)
+ *  - conditional (Cải tạo không giam giữ): 6 tháng–3 năm (Điều 36)
+ *  - community_service (Lao động phục vụ cộng đồng): 6 tháng–3 năm (Điều 36 k.4)
+ */
+const SENTENCE_RULES: Record<string, { minYears: number; maxYears: number; label: string; cite: string }> = {
+  suspended: { minYears: 1, maxYears: 5, label: 'Án treo: thời gian thử thách', cite: 'BLHS Điều 65' },
+  conditional: { minYears: 0.5, maxYears: 3, label: 'Cải tạo không giam giữ: thời hạn', cite: 'BLHS Điều 36' },
+  community_service: { minYears: 0.5, maxYears: 3, label: 'Lao động phục vụ cộng đồng: thời hạn', cite: 'BLHS Điều 36' }
+};
+
+export function validateSentence(
+  sentenceType: string | null | undefined,
+  start: string | null | undefined,
+  end: string | null | undefined
+): string | null {
+  if (start && end && new Date(start).getTime() >= new Date(end).getTime()) {
+    return 'Ngày mãn hạn phải sau ngày bắt đầu thi hành án.';
+  }
+  const rule = sentenceType ? SENTENCE_RULES[sentenceType] : undefined;
+  if (!rule) return null; // loại án không ràng buộc thời hạn
+  if (!start || !end) return 'Vui lòng nhập ngày bắt đầu và mãn hạn để kiểm tra theo luật.';
+  const years = (new Date(end).getTime() - new Date(start).getTime()) / (365.25 * 86400000);
+  if (years < rule.minYears || years > rule.maxYears) {
+    const fmt = (y: number) => (y < 1 ? `${Math.round(y * 12)} tháng` : `${y} năm`);
+    return `${rule.label} phải từ ${fmt(rule.minYears)} đến ${fmt(rule.maxYears)} (${rule.cite}).`;
+  }
+  return null;
+}
+
 // ─── SESSION STORAGE ──────────────────────────────────────────────────────────
 
 export const SS = {
@@ -184,6 +284,35 @@ export function ssSet(key: string, value: unknown): void {
   } catch {}
 }
 
+/** Thiết bị có nguồn từ API (id 'api-<serverId>') — để phân biệt với thiết bị thủ công. */
+export const isApiDevice = (d: { id: string }) => d.id.startsWith('api-');
+
+/**
+ * Trạng thái telemetry trung tính (placeholder) — dùng khi hydrate từ cache để KHÔNG
+ * hiển thị số liệu cũ như thể đang hiện hành. Giữ lại deviceModel để có nhãn thiết bị.
+ */
+export function placeholderStatus(deviceModel = ''): DeviceStatus {
+  return {
+    battery: 0,
+    isCharging: false,
+    batteryVoltage: null,
+    externalVoltage: null,
+    signalStrength: 0,
+    connectionStatus: 'offline',
+    lastGpsUpdate: null,
+    lastServerSync: null,
+    gpsAccuracy: 0,
+    gpsFix: false,
+    satelliteCount: 0,
+    speed: 0,
+    altitude: 0,
+    eventId: 0,
+    eventName: 'Normal',
+    deviceModel,
+    firmwareVersion: ''
+  };
+}
+
 /** Serialize Device → JSON-safe (Date fields → ISO strings) */
 export function deviceToSS(d: Device) {
   return {
@@ -196,7 +325,11 @@ export function deviceToSS(d: Device) {
   };
 }
 
-/** Deserialize: restore Date fields after JSON.parse + ép coords về number */
+/**
+ * Deserialize từ cache: chỉ khôi phục ĐỊNH DANH/CONFIG + toạ độ + gán geofence.
+ * Telemetry biến động (pin/sự kiện/kết nối/sync…) KHÔNG khôi phục — dùng placeholder
+ * để tránh hiển thị dữ liệu cũ; chờ snapshot/SSE đầu tiên cập nhật giá trị thật.
+ */
 export function deviceFromSS(raw: ReturnType<typeof deviceToSS>): Device {
   const toNum = (v: unknown) => {
     const n = Number(v);
@@ -205,14 +338,9 @@ export function deviceFromSS(raw: ReturnType<typeof deviceToSS>): Device {
   return {
     ...raw,
     coords: [toNum(raw.coords?.[0]), toNum(raw.coords?.[1])] as [number, number],
-    pathHistory: Array.isArray(raw.pathHistory)
-      ? raw.pathHistory.map((p: any) => [toNum(p?.[0]), toNum(p?.[1])] as [number, number])
-      : [],
-    status: {
-      ...raw.status,
-      lastGpsUpdate: raw.status.lastGpsUpdate ? new Date(raw.status.lastGpsUpdate) : null,
-      lastServerSync: raw.status.lastServerSync ? new Date(raw.status.lastServerSync) : null
-    }
+    pathHistory: [],
+    angle: 0,
+    status: placeholderStatus(raw.status?.deviceModel ?? '')
   };
 }
 
@@ -300,10 +428,14 @@ export function mapApiDeviceToDevice(
   // API có field % pin riêng (battery_percent) → ưu tiên dùng trực tiếp;
   // chỉ ước tính từ điện áp khi BE không trả % pin.
   const rawBatPct = pick('battery_percent', 'batteryPercent');
+  // Có % pin thật → dùng. Không có % → GIỮ giá trị cũ (do /latest cập nhật), chỉ ước
+  // tính từ điện áp khi hoàn toàn chưa biết — tránh nhảy số mỗi gói SSE thiếu %.
   const battery =
     rawBatPct != null
       ? Math.max(0, Math.min(100, Math.round(num(rawBatPct))))
-      : voltageToPercent(voltage, existing?.status.battery ?? 50);
+      : existing?.status.battery != null
+        ? existing.status.battery
+        : voltageToPercent(voltage, 50);
 
   const lat = num(pick('latitude', 'lat'), existing?.coords[0] ?? 0);
   const lng = num(pick('longitude', 'lng', 'lon'), existing?.coords[1] ?? 0);
@@ -315,9 +447,18 @@ export function mapApiDeviceToDevice(
   const deviceModel = String(pick('device_model', 'deviceModel', 'model') ?? '');
   const id = pick('id', '_id', 'deviceId') ?? imei;
 
+  // isCharging: ưu tiên field trực tiếp, rồi cờ trong deviceStatusFlags, cuối cùng giữ
+  // giá trị cũ (gói SSE đôi khi không kèm field này) → tránh nhấp nháy.
+  const flags = (a as any).deviceStatusFlags ?? (a as any).device_status_flags;
+  const rawCharging = pick('isCharging', 'is_charging', 'charging');
+  const isCharging =
+    rawCharging != null ? Boolean(rawCharging)
+      : flags?.charging != null ? Boolean(flags.charging)
+      : existing?.status.isCharging ?? false;
+
   return {
     id: existing?.id ?? `api-${id}`,
-    name: existing?.name || imei || `Thiết bị ${id}`,
+    name: existing?.name || String(pick('name', 'deviceName', 'device_name') ?? '') || imei || `Thiết bị ${id}`,
     type: existing?.type ?? 'Person',
     deviceType: deviceModel,
     uniqueId: existing?.uniqueId || imei,
@@ -326,6 +467,7 @@ export function mapApiDeviceToDevice(
     subject: existing?.subject ?? null,
     status: {
       battery,
+      isCharging,
       batteryVoltage,
       externalVoltage,
       signalStrength: Math.min(4, Math.max(0, num(pick('gsm_signal', 'gsmSignal')) - 1)),

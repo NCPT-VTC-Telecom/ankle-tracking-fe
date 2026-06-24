@@ -188,12 +188,108 @@ function normalisePoint(raw: any): GpsTrackingPoint {
 
 // ─── API METHODS ─────────────────────────────────────────────────────────────
 
+/** Mã sự kiện G737 (GET /v1/gps_tracking/events?eventId=). */
+export const GPS_EVENT_NAMES: Record<number, string> = {
+  1: 'Di chuyển',
+  2: 'Phá sóng GSM',
+  3: 'Hàng rào địa lý',
+  4: 'Đứt cáp quang',
+  5: 'SOS',
+  6: 'Định vị lần đầu',
+  7: 'Pin beacon yếu',
+  8: 'Điện áp thấp',
+  9: 'Sụt áp',
+  10: 'Vào vùng',
+  11: 'Rời vùng',
+  13: 'Số dư SIM'
+};
+
+/** Mã sự kiện quan trọng cần cảnh báo nổi (overlay). */
+export const GPS_EVENT_ID = {
+  FIBER_CUT: 4,
+  SOS: 5,
+  ZONE_ENTER: 10,
+  ZONE_LEAVE: 11
+} as const;
+
+/** Sự kiện GPS đã chuẩn hoá (từ GET /v1/gps_tracking/events). */
+export interface GpsEvent {
+  id: string;
+  imei: string;
+  eventId: number;
+  eventName: string;
+  coords: [number, number];
+  timestamp: Date;
+}
+
+/**
+ * Chuẩn hoá 1 bản ghi sự kiện từ server → GpsEvent.
+ * Schema response không có trong api-docs nên đọc phòng thủ cả camelCase/snake_case
+ * (cùng quy ước với normalisePoint).
+ */
+export function mapApiEvent(raw: any): GpsEvent {
+  const imei = String(raw.device_imei ?? raw.deviceImei ?? raw.imei ?? '').trim();
+  const ts =
+    raw.server_time ?? raw.serverTime ?? raw.device_time ?? raw.deviceTime ??
+    raw.created_at ?? raw.createdAt ?? raw.timestamp ?? raw.time;
+  return {
+    id: String(raw.id ?? raw.eventId ?? `${imei}-${ts ?? ''}`),
+    imei,
+    eventId: Number(raw.event_id ?? raw.eventId ?? 0),
+    eventName: String(raw.event_name ?? raw.eventName ?? ''),
+    coords: [Number(raw.latitude ?? raw.lat) || 0, Number(raw.longitude ?? raw.lng) || 0],
+    timestamp: ts ? new Date(ts) : new Date()
+  };
+}
+
+/** GET /v1/gps_tracking/events — bộ lọc danh sách sự kiện. */
+export interface GpsEventParams {
+  imei?: string;
+  eventId?: number;
+  page?: number;
+  limit?: number;
+  from?: string;
+  to?: string;
+}
+
+/** POST /v1/gps_tracking/command — lệnh xuống thiết bị (TCP, fallback UDP). */
+export interface GpsCommandBody {
+  imei: string;
+  /** VD: 'INTERVAL' (kèm value '30'), 'RESET' */
+  command: string;
+  value?: string;
+}
+
 export const gosafeTrackingApi = {
   /** GET /v1/gps_tracking/devices — Danh sách thiết bị + vị trí hiện tại */
   getDevices: (): AxiosPromise<ApiDevicesResponse> =>
     axiosGosafe({ url: '/v1/gps_tracking/devices', method: 'GET' }),
 
+  /** GET /v1/gps_tracking/device/{imei} — Chi tiết 1 thiết bị + telemetry */
+  getDevice: (imei: string): AxiosPromise<any> =>
+    axiosGosafe({ url: `/v1/gps_tracking/device/${imei}`, method: 'GET' }),
+
+  /** GET /v1/gps_tracking/latest — Vị trí mới nhất (bỏ trống imei = tất cả) */
+  getLatest: (imei?: string): AxiosPromise<any> =>
+    axiosGosafe({ url: '/v1/gps_tracking/latest', method: 'GET', params: imei ? { imei } : undefined }),
+
   /** GET /v1/gps_tracking/history — Lịch sử di chuyển theo IMEI */
   getHistory: (params: GpsHistoryParams): AxiosPromise<any> =>
     axiosGosafe({ url: '/v1/gps_tracking/history', method: 'GET', params }),
+
+  /** GET /v1/gps_tracking/events — Sự kiện (SOS / mất điện / hàng rào…) */
+  getEvents: (params?: GpsEventParams): AxiosPromise<any> =>
+    axiosGosafe({ url: '/v1/gps_tracking/events', method: 'GET', params }),
+
+  /** GET /v1/gps_tracking/stats — Thống kê dashboard (tổng/SOS/đang kết nối…) */
+  getStats: (): AxiosPromise<any> =>
+    axiosGosafe({ url: '/v1/gps_tracking/stats', method: 'GET' }),
+
+  /** GET /v1/gps_tracking/connected — Thiết bị đang kết nối trực tiếp (in-memory) */
+  getConnected: (): AxiosPromise<any> =>
+    axiosGosafe({ url: '/v1/gps_tracking/connected', method: 'GET' }),
+
+  /** POST /v1/gps_tracking/command — Gửi lệnh xuống thiết bị (INTERVAL/RESET) */
+  sendCommand: (body: GpsCommandBody): AxiosPromise<any> =>
+    axiosGosafe({ url: '/v1/gps_tracking/command', method: 'POST', data: body }),
 };

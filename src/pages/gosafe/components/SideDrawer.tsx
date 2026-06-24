@@ -38,6 +38,8 @@ export default function SideDrawer({
       anchor="right"
       open={open}
       onClose={onClose}
+      transitionDuration={{ enter: 320, exit: 260 }}
+      SlideProps={{ easing: { enter: 'cubic-bezier(0.32, 0.72, 0, 1)', exit: 'cubic-bezier(0.32, 0.72, 0, 1)' } }}
       PaperProps={{
         sx: {
           width: { xs: '100%', sm: width },
@@ -63,7 +65,7 @@ export default function SideDrawer({
       >
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{ fontWeight: 900, fontSize: '1rem', color: isDark ? '#f1f5f9' : '#0f172a', lineHeight: 1.25 }}>
+            <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: isDark ? '#f1f5f9' : '#0f172a', lineHeight: 1.25 }}>
               {title}
             </Typography>
             {subtitle && (

@@ -12,15 +12,20 @@ import {
   Button,
   Switch,
   FormControlLabel,
-  Grid
+  Grid,
+  CircularProgress
 } from '@mui/material';
 import { Add, Edit, Trash, DocumentText, Gps, Clock, Flash, Lock1, BatteryFull, Activity } from 'iconsax-react';
-import { getBatteryColor, timeAgo, getMockBiometrics } from '../utils';
+import { getBatteryColor, timeAgo, getMockBiometrics, translateCrime } from '../utils';
 import type { TrackingStore } from '../useTracking';
+import PaginationBar, { usePagination } from '../../components/PaginationBar';
+import { useEffect } from 'react';
 
 interface Props {
   store: TrackingStore;
 }
+
+const DEVICE_PAGE_SIZE = 8;
 
 export default function DeviceList({ store }: Props) {
   const {
@@ -37,27 +42,45 @@ export default function DeviceList({ store }: Props) {
     openEditDevice,
     setRemoveConfirmId,
     setSubjectDetailId,
-    setAddDeviceOpen
+    setAddDeviceOpen,
+    sseStatus,
+    devicesLoaded
   } = store;
 
+  const fontFamily = '"Inter", sans-serif';
+  // Loading khi: chưa tải xong API lần đầu HOẶC SSE đang kết nối.
+  const connecting = !devicesLoaded || sseStatus === 'idle' || sseStatus === 'connecting';
+
+  // Phân trang để gọn khi nhiều thiết bị (scale 100+). Chọn thiết bị → tự nhảy tới trang chứa nó.
+  const { page, setPage, total, totalPages, paged } = usePagination(filteredDevices, DEVICE_PAGE_SIZE);
+  useEffect(() => {
+    const idx = filteredDevices.findIndex((d) => d.id === selectedDeviceId);
+    if (idx >= 0) setPage(Math.floor(idx / DEVICE_PAGE_SIZE) + 1);
+    // chỉ phản ứng khi đổi thiết bị chọn (không reset trang mỗi gói SSE)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDeviceId]);
+
   return (
-    <Stack spacing={1.25}>
+    <Stack spacing={2}>
       <Button
         fullWidth
         variant="outlined"
         startIcon={<Add size={18} />}
         onClick={() => setAddDeviceOpen(true)}
         sx={{
-          borderRadius: '10px',
+          borderRadius: '16px',
           fontWeight: 700,
-          fontSize: '12.5px',
-          py: 1.1,
+          fontFamily,
+          fontSize: '14px',
+          py: 1.5,
           borderStyle: 'dashed',
+          borderWidth: '1.5px',
           borderColor: isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1',
-          color: isDark ? '#ffffff' : '#111827',
+          color: isDark ? '#ffffff' : '#0f172a',
           bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'transparent',
           '&:hover': {
             borderColor: primaryColor,
+            borderWidth: '1.5px',
             bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'
           }
         }}
@@ -65,7 +88,19 @@ export default function DeviceList({ store }: Props) {
         Thêm thiết bị mới
       </Button>
 
-      {filteredDevices.map((dev) => {
+      {/* Chỉ báo kết nối thời gian thực — luôn hiển thị để người dùng biết app đang chạy */}
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 0.5 }}>
+        {connecting ? (
+          <CircularProgress size={12} thickness={6} />
+        ) : (
+          <Box className={sseStatus === 'connected' ? 'gs-live-dot' : undefined} sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: sseStatus === 'connected' ? '#22c55e' : '#94a3b8' }} />
+        )}
+        <Typography sx={{ fontFamily, fontSize: '0.72rem', fontWeight: 700, color: connecting ? '#3b82f6' : sseStatus === 'connected' ? '#22c55e' : 'text.secondary' }}>
+          {connecting ? 'Đang kết nối máy chủ…' : sseStatus === 'connected' ? 'Trực tuyến · cập nhật thời gian thực' : 'Ngoại tuyến · đang thử lại'}
+        </Typography>
+      </Stack>
+
+      {paged.map((dev) => {
         const isViolating = deviceViolations[dev.id];
         const isSelected = dev.id === selectedDeviceId;
 
@@ -74,48 +109,76 @@ export default function DeviceList({ store }: Props) {
             key={dev.id}
             onClick={() => setSelectedDeviceId(dev.id)}
             sx={{
-              borderRadius: '8px',
+              borderRadius: '20px',
               cursor: 'pointer',
-              transition: 'all 0.22s ease-in-out',
-              border: '1.5px solid',
-              borderColor: isSelected ? dev.color : isViolating ? '#ef4444' : (isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0'),
-              boxShadow: isSelected ? `0 4px 16px ${dev.color}18` : 'none',
+              transition: 'all 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
+              border: '2px solid',
+              borderColor: isSelected
+                ? dev.color
+                : isViolating
+                ? '#ef4444'
+                : isDark
+                ? 'rgba(255, 255, 255, 0.08)'
+                : '#cbd5e1',
+              boxShadow: isSelected
+                ? `0 12px 28px ${dev.color}15, 0 4px 12px ${dev.color}08`
+                : '0 2px 8px rgba(0, 0, 0, 0.02)',
               bgcolor: isViolating
                 ? isDark
-                  ? 'rgba(239,68,68,0.06)'
-                  : '#fef2f2'
+                  ? 'rgba(239,68,68,0.05)'
+                  : '#fff5f5'
                 : isSelected
                 ? isDark
-                  ? `${dev.color}15`
-                  : `${dev.color}05`
-                : (isDark ? 'rgba(15, 23, 42, 0.25)' : '#ffffff'),
+                  ? `${dev.color}12`
+                  : `rgba(45, 94, 175, 0.03)`
+                : isDark
+                ? 'rgba(15, 23, 42, 0.25)'
+                : '#ffffff',
               '&:hover': {
                 borderColor: dev.color,
-                transform: 'translateY(-1.5px)',
-                boxShadow: `0 6px 20px ${dev.color}25`
+                transform: 'translateY(-2px)',
+                boxShadow: `0 12px 24px ${dev.color}1e`
               }
             }}
           >
-            <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
               {/* Header */}
-              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={0.75}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.25}>
                 <Stack direction="row" spacing={1.2} alignItems="center">
                   <Box
                     className="gs-status-dot"
                     sx={{
-                      width: 9,
-                      height: 9,
+                      width: 10,
+                      height: 10,
                       borderRadius: '50%',
                       bgcolor: isViolating ? '#ef4444' : dev.status.connectionStatus === 'online' ? '#22c55e' : '#94a3b8',
-                      boxShadow: `0 0 6px ${isViolating ? '#ef4444' : dev.status.connectionStatus === 'online' ? '#22c55e' : '#94a3b8'}`
+                      boxShadow: `0 0 8px ${isViolating ? '#ef4444' : dev.status.connectionStatus === 'online' ? '#22c55e' : '#94a3b8'}`
                     }}
                   />
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: isDark ? '#ffffff' : '#111827', fontSize: '13.5px' }}>
+                  <Typography
+                    sx={{
+                      fontFamily,
+                      fontWeight: 700,
+                      color: isDark ? '#ffffff' : '#0f172a',
+                      fontSize: '0.975rem'
+                    }}
+                  >
                     {dev.name}
                   </Typography>
-                  <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: dev.color }} />
+                  <Box sx={{ width: 12, height: 12, borderRadius: '4px', bgcolor: dev.color }} />
                   {isViolating && (
-                    <Chip label="VI PHẠM" color="error" size="small" sx={{ height: 16, fontSize: '0.62rem', fontWeight: 800 }} />
+                    <Chip
+                      label="VI PHẠM"
+                      color="error"
+                      size="small"
+                      sx={{
+                        fontFamily,
+                        height: 20,
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        borderRadius: '6px'
+                      }}
+                    />
                   )}
                 </Stack>
                 <Stack direction="row" spacing={0.75}>
@@ -130,13 +193,13 @@ export default function DeviceList({ store }: Props) {
                         color: primaryColor,
                         p: 0.85,
                         border: '1px solid',
-                        borderColor: isDark ? 'rgba(255,255,255,0.16)' : '#e2e8f0',
-                        borderRadius: '9px',
+                        borderColor: isDark ? 'rgba(255,255,255,0.16)' : '#cbd5e1',
+                        borderRadius: '12px',
                         bgcolor: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc',
                         '&:hover': { borderColor: primaryColor, bgcolor: `${primaryColor}14` }
                       }}
                     >
-                      <Edit size="20" />
+                      <Edit size="18" />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Xoá thiết bị">
@@ -151,12 +214,12 @@ export default function DeviceList({ store }: Props) {
                         p: 0.85,
                         border: '1px solid',
                         borderColor: isDark ? 'rgba(239,68,68,0.3)' : '#fecaca',
-                        borderRadius: '9px',
+                        borderRadius: '12px',
                         bgcolor: isDark ? 'rgba(239,68,68,0.06)' : '#fef2f2',
                         '&:hover': { borderColor: '#ef4444', bgcolor: 'rgba(239,68,68,0.12)' }
                       }}
                     >
-                      <Trash size="20" />
+                      <Trash size="18" />
                     </IconButton>
                   </Tooltip>
                 </Stack>
@@ -166,36 +229,62 @@ export default function DeviceList({ store }: Props) {
               {dev.subject && (
                 <Box
                   sx={{
-                    bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
-                    borderRadius: '8px',
-                    border: '1.2px solid',
-                    borderColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#f1f5f9',
-                    p: 1,
-                    mb: 0.75
+                    bgcolor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(45, 94, 175, 0.02)',
+                    borderRadius: '16px',
+                    border: '1px solid',
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(45, 94, 175, 0.06)',
+                    p: 1.75,
+                    mb: 1.5
                   }}
                 >
-                  <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                  <Stack direction="row" spacing={1.5} alignItems="center">
                     <Avatar
                       sx={{
-                        width: 36,
-                        height: 36,
+                        width: 42,
+                        height: 42,
+                        borderRadius: '12px',
                         bgcolor: dev.color,
-                        fontSize: '0.85rem',
+                        fontSize: '1rem',
                         fontWeight: 700,
+                        fontFamily,
                         flexShrink: 0
                       }}
                     >
                       {dev.subject?.fullName?.split(' ').slice(-1)[0]?.charAt(0) ?? '?'}
                     </Avatar>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+                    <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+                      <Typography
+                        sx={{
+                          fontFamily,
+                          fontWeight: 700,
+                          fontSize: '0.975rem',
+                          color: isDark ? '#f8fafc' : '#0f172a',
+                          lineHeight: 1.3
+                        }}
+                      >
                         {dev.subject.fullName}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      <Typography
+                        sx={{
+                          fontFamily,
+                          fontSize: '0.8rem',
+                          color: isDark ? 'rgba(255,255,255,0.5)' : '#64748b',
+                          display: 'block',
+                          mt: 0.25
+                        }}
+                      >
                         CCCD: {dev.subject.idNumber || '—'}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: '#ef4444', fontWeight: 600 }}>
-                        {dev.subject.crime}
+                      <Typography
+                        sx={{
+                          fontFamily,
+                          fontSize: '0.8rem',
+                          color: '#ef4444',
+                          fontWeight: 700,
+                          mt: 0.25
+                        }}
+                      >
+                        {translateCrime(dev.subject.crime)}
                       </Typography>
                     </Box>
                     <Tooltip title="Xem hồ sơ chi tiết">
@@ -207,17 +296,16 @@ export default function DeviceList({ store }: Props) {
                         }}
                         sx={{
                           color: primaryColor,
-                          ml: 'auto',
                           flexShrink: 0,
                           p: 0.85,
                           border: '1px solid',
-                          borderColor: isDark ? 'rgba(255,255,255,0.16)' : '#e2e8f0',
-                          borderRadius: '9px',
+                          borderColor: isDark ? 'rgba(255,255,255,0.16)' : '#cbd5e1',
+                          borderRadius: '12px',
                           bgcolor: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff',
                           '&:hover': { borderColor: primaryColor, bgcolor: `${primaryColor}14` }
                         }}
                       >
-                        <DocumentText size="22" />
+                        <DocumentText size="20" />
                       </IconButton>
                     </Tooltip>
                   </Stack>
@@ -226,9 +314,12 @@ export default function DeviceList({ store }: Props) {
 
               {/* Expanded (selected) */}
               {isSelected ? (
-                <Box sx={{ mt: 1 }}>
+                <Box sx={{ mt: 1.5 }}>
                   {(() => {
                     const bio = getMockBiometrics(dev.id);
+                    // Chưa từng đồng bộ (lastServerSync null) = đang chờ dữ liệu live → hiển thị
+                    // trạng thái "Đang đồng bộ" (loading) thay vì báo lỗi "Trễ đồng bộ".
+                    const notSynced = dev.status.lastServerSync == null;
                     const syncLate = (syncMinutesMap[dev.id] ?? 0) > 30;
                     const voltageLabel = dev.status.batteryVoltage != null
                       ? `${dev.status.batteryVoltage.toFixed(2)}V`
@@ -239,32 +330,40 @@ export default function DeviceList({ store }: Props) {
                     return (
                       <>
                         {/* ── Row 1: Geofence + Lock status chips ── */}
-                        <Stack direction="row" spacing={0.75} sx={{ mb: 1, flexWrap: 'wrap', gap: 0.75 }}>
+                        <Stack direction="row" spacing={1} sx={{ mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
                           <Chip
-                            icon={<Gps size={12} />}
+                            icon={<Gps size={14} />}
                             label={isViolating ? 'Ngoài Vùng' : dev.assignedGeofenceId ? 'Trong Vùng' : 'Chưa gán vùng'}
                             size="small"
                             sx={{
-                              fontWeight: 700, fontSize: '0.68rem', height: 22,
-                              bgcolor: isViolating ? 'rgba(239,68,68,0.12)' : dev.assignedGeofenceId ? 'rgba(34,197,94,0.12)' : 'rgba(100,116,139,0.10)',
+                              fontFamily,
+                              fontWeight: 700,
+                              fontSize: '0.75rem',
+                              height: 28,
+                              borderRadius: '10px',
+                              bgcolor: isViolating ? 'rgba(239,68,68,0.1)' : dev.assignedGeofenceId ? 'rgba(34,197,94,0.1)' : 'rgba(100,116,139,0.08)',
                               color: isViolating ? '#ef4444' : dev.assignedGeofenceId ? '#22c55e' : '#64748b',
                               border: '1px solid',
-                              borderColor: isViolating ? 'rgba(239,68,68,0.3)' : dev.assignedGeofenceId ? 'rgba(34,197,94,0.3)' : 'rgba(100,116,139,0.2)',
+                              borderColor: isViolating ? 'rgba(239,68,68,0.2)' : dev.assignedGeofenceId ? 'rgba(34,197,94,0.2)' : 'rgba(100,116,139,0.15)',
                               '& .MuiChip-icon': { color: 'inherit', ml: 0.5 }
                             }}
                           />
                           {dev.subject && (
                             <Chip
-                              icon={<Lock1 size={12} />}
+                              icon={<Lock1 size={14} />}
                               label={bio.isTampered ? 'Phát hiện tháo' : 'Khóa ổn định'}
                               size="small"
                               className={bio.isTampered ? 'gs-blink' : ''}
                               sx={{
-                                fontWeight: 700, fontSize: '0.68rem', height: 22,
-                                bgcolor: bio.isTampered ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.10)',
+                                fontFamily,
+                                fontWeight: 700,
+                                fontSize: '0.75rem',
+                                height: 28,
+                                borderRadius: '10px',
+                                bgcolor: bio.isTampered ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
                                 color: bio.isTampered ? '#ef4444' : '#22c55e',
                                 border: '1px solid',
-                                borderColor: bio.isTampered ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)',
+                                borderColor: bio.isTampered ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)',
                                 '& .MuiChip-icon': { color: 'inherit', ml: 0.5 }
                               }}
                             />
@@ -272,24 +371,54 @@ export default function DeviceList({ store }: Props) {
                         </Stack>
 
                         {/* ── Section label ── */}
-                        <Typography sx={{ fontSize: '10.5px', fontWeight: 800, color: primaryColor, mb: 0.5, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+                        <Typography
+                          sx={{
+                            fontFamily,
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            color: primaryColor,
+                            mb: 1.25,
+                            textTransform: 'uppercase',
+                            letterSpacing: 0.8
+                          }}
+                        >
                           Tình trạng thiết bị
                         </Typography>
 
                         {/* ── Stat cards: Pin (full) · GPS · Sync · Điện áp · Sự kiện ── */}
-                        <Grid container spacing={1} sx={{ mb: 0.75 }}>
+                        <Grid container spacing={1.25} sx={{ mb: 1.5 }}>
                           {/* Pin — nổi bật full-width */}
                           <Grid item xs={12}>
-                            <Box sx={{
-                              p: 1, borderRadius: '8px', border: '1px solid',
-                              borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
-                              bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
-                              display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-                            }}>
+                            <Box
+                              className={dev.status.isCharging ? 'gs-charging' : undefined}
+                              sx={{
+                                p: 1.75,
+                                borderRadius: '16px',
+                                border: '1px solid',
+                                borderColor: dev.status.isCharging ? 'rgba(34,197,94,0.45)' : isDark ? 'rgba(255,255,255,0.08)' : '#cbd5e1',
+                                bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between'
+                              }}
+                            >
                               <Stack direction="row" alignItems="center" spacing={1}>
-                                <BatteryFull size={22} color={getBatteryColor(dev.status.battery)} variant="Bold" />
-                                <Typography sx={{ fontSize: '12px', fontWeight: 700, color: isDark ? '#cbd5e1' : '#475569', textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                                  Pin thiết bị
+                                {dev.status.isCharging ? (
+                                  <Flash size={24} color="#22c55e" variant="Bold" className="gs-charging-bolt" />
+                                ) : (
+                                  <BatteryFull size={24} color={getBatteryColor(dev.status.battery)} variant="Bold" />
+                                )}
+                                <Typography
+                                  sx={{
+                                    fontFamily,
+                                    fontSize: '12px',
+                                    fontWeight: 700,
+                                    color: dev.status.isCharging ? '#22c55e' : isDark ? '#cbd5e1' : '#475569',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: 0.4
+                                  }}
+                                >
+                                  {dev.status.isCharging ? '⚡ Đang sạc' : 'Pin thiết bị'}
                                 </Typography>
                               </Stack>
                               <Stack direction="row" alignItems="center" spacing={1} sx={{ flexGrow: 1, ml: 2 }}>
@@ -301,61 +430,100 @@ export default function DeviceList({ store }: Props) {
                                     <Box className="gs-battery__fill" style={{ width: `${dev.status.battery}%` }} />
                                   </Box>
                                 </Box>
-                                <Typography sx={{ fontSize: '17px', fontWeight: 800, color: getBatteryColor(dev.status.battery), minWidth: 44, textAlign: 'right' }}>
+                                <Typography
+                                  sx={{
+                                    fontFamily,
+                                    fontSize: '18px',
+                                    fontWeight: 800,
+                                    color: getBatteryColor(dev.status.battery),
+                                    minWidth: 44,
+                                    textAlign: 'right'
+                                  }}
+                                >
                                   {dev.status.battery}%
                                 </Typography>
                               </Stack>
                             </Box>
                           </Grid>
 
-                          {/* GPS · Sync · Điện áp · Sự kiện */}
+                          {/* Đồng bộ · Điện áp · Sự kiện */}
                           {([
                             {
-                              label: 'Định vị GPS',
-                              icon: <Gps size={20} color={dev.status.gpsFix ? '#22c55e' : '#f59e0b'} variant="Bold" />,
-                              value: dev.status.gpsFix ? 'Đã định vị' : 'Chưa định vị',
-                              sub: `${dev.status.satelliteCount} vệ tinh`,
-                              color: dev.status.gpsFix ? '#22c55e' : '#f59e0b'
-                            },
-                            {
                               label: 'Đồng bộ',
-                              icon: <Clock size={20} color={syncLate ? '#f59e0b' : '#22c55e'} variant="Bold" />,
-                              value: timeAgo(dev.status.lastServerSync),
-                              sub: syncLate ? 'Trễ đồng bộ' : 'Bình thường',
-                              color: syncLate ? '#f59e0b' : (isDark ? '#f8fafc' : '#0f172a')
+                              icon: <Clock size={22} color={notSynced ? '#3b82f6' : syncLate ? '#f59e0b' : '#22c55e'} variant="Bold" />,
+                              value: notSynced ? 'Đang đồng bộ…' : timeAgo(dev.status.lastServerSync),
+                              sub: notSynced ? 'Đang chờ dữ liệu' : syncLate ? 'Trễ đồng bộ' : 'Bình thường',
+                              color: notSynced ? '#3b82f6' : syncLate ? '#f59e0b' : (isDark ? '#f8fafc' : '#0f172a')
                             },
                             {
                               label: 'Điện áp',
-                              icon: <Flash size={20} color="#f59e0b" variant="Bold" />,
+                              icon: <Flash size={22} color="#f59e0b" variant="Bold" />,
                               value: voltageLabel,
                               sub: dev.status.batteryVoltage != null ? 'Nguồn pin' : dev.status.externalVoltage != null ? 'Nguồn ngoài' : '—',
                               color: '#f59e0b'
                             },
                             {
                               label: 'Sự kiện',
-                              icon: <Activity size={20} color="#10b981" variant="Bold" />,
+                              icon: <Activity size={22} color="#10b981" variant="Bold" />,
                               value: dev.status.eventName || 'Normal',
                               sub: 'Trạng thái',
                               color: '#10b981'
                             }
                           ] as Array<{ label: string; icon: React.ReactNode; value: string; sub: string; color: string }>).map((item, i) => (
-                            <Grid item xs={6} key={i}>
-                              <Box sx={{
-                                p: 0.85, borderRadius: '8px', border: '1px solid',
-                                borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
-                                bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
-                                height: '100%'
-                              }}>
-                                <Stack direction="row" alignItems="center" spacing={0.6} sx={{ mb: 0.25 }}>
-                                  {item.icon}
-                                  <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase', letterSpacing: 0.3 }}>
-                                    {item.label}
-                                  </Typography>
-                                </Stack>
-                                <Typography sx={{ fontSize: '14px', fontWeight: 800, color: item.color, lineHeight: 1.15 }}>
+                            <Grid item xs={4} key={i}>
+                              <Box
+                                sx={{
+                                  p: 1.5,
+                                  borderRadius: '14px',
+                                  border: '1px solid',
+                                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#cbd5e1',
+                                  bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
+                                  height: '100%',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  textAlign: 'center',
+                                  gap: 0.5
+                                }}
+                              >
+                                <Box sx={{ display: 'flex', '& svg': { width: 22, height: 22 } }}>{item.icon}</Box>
+                                <Typography
+                                  sx={{
+                                    fontFamily,
+                                    fontSize: '10.5px',
+                                    fontWeight: 700,
+                                    color: isDark ? '#94a3b8' : '#64748b',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: 0.3,
+                                    lineHeight: 1
+                                  }}
+                                >
+                                  {item.label}
+                                </Typography>
+                                <Typography
+                                  noWrap
+                                  sx={{
+                                    fontFamily,
+                                    fontSize: '13.5px',
+                                    fontWeight: 700,
+                                    color: item.color,
+                                    lineHeight: 1.2,
+                                    width: '100%',
+                                    mt: 0.25
+                                  }}
+                                >
                                   {item.value}
                                 </Typography>
-                                <Typography sx={{ fontSize: '10px', fontWeight: 500, color: isDark ? '#64748b' : '#94a3b8' }}>
+                                <Typography
+                                  noWrap
+                                  sx={{
+                                    fontFamily,
+                                    fontSize: '11px',
+                                    fontWeight: 500,
+                                    color: isDark ? '#64748b' : '#94a3b8',
+                                    width: '100%'
+                                  }}
+                                >
                                   {item.sub}
                                 </Typography>
                               </Box>
@@ -364,18 +532,43 @@ export default function DeviceList({ store }: Props) {
                         </Grid>
 
                         {/* ── Footer: Model / FW ── */}
-                        <Typography sx={{ fontSize: '10px', color: isDark ? '#475569' : '#94a3b8', textAlign: 'center', mb: 1.25 }}>
+                        <Typography
+                          sx={{
+                            fontFamily,
+                            fontSize: '11px',
+                            color: isDark ? '#475569' : '#94a3b8',
+                            textAlign: 'center',
+                            mb: 1.5
+                          }}
+                        >
                           {dev.status.deviceModel}{dev.status.firmwareVersion ? ` · ${dev.status.firmwareVersion}` : ''}
                         </Typography>
 
-                        <Divider sx={{ mb: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9' }} />
+                        <Divider sx={{ mb: 1.5, borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9' }} />
 
                         <FormControlLabel
-                          control={<Switch checked={followDevice} onChange={(e) => setFollowDevice(e.target.checked)} size="small" sx={{
-                            '& .MuiSwitch-switchBase.Mui-checked': { color: primaryColor },
-                            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: primaryColor }
-                          }} />}
-                          label={<Typography sx={{ fontSize: '12px', fontWeight: 600 }}>Bám theo thiết bị</Typography>}
+                          control={
+                            <Switch
+                              checked={followDevice}
+                              onChange={(e) => setFollowDevice(e.target.checked)}
+                              size="small"
+                              sx={{
+                                '& .MuiSwitch-switchBase.Mui-checked': { color: primaryColor },
+                                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: primaryColor }
+                              }}
+                            />
+                          }
+                          label={
+                            <Typography
+                              sx={{
+                                fontFamily,
+                                fontSize: '13px',
+                                fontWeight: 600
+                              }}
+                            >
+                              Bám theo thiết bị
+                            </Typography>
+                          }
                         />
                       </>
                     );
@@ -383,15 +576,27 @@ export default function DeviceList({ store }: Props) {
                 </Box>
               ) : (
                 /* Compact row */
-                <Stack direction="row" spacing={1.5} alignItems="center" mt={0.5}>
-                  <Typography variant="caption" color="text.secondary">
+                <Stack direction="row" spacing={1.5} alignItems="center" mt={0.75}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ fontFamily, fontSize: '0.8rem' }}
+                  >
                     {dev.status.connectionStatus === 'online' ? '● Trực tuyến' : '○ Offline'}
                   </Typography>
-                  <Typography variant="caption" color={getBatteryColor(dev.status.battery)} sx={{ fontWeight: 600 }}>
+                  <Typography
+                    variant="caption"
+                    color={getBatteryColor(dev.status.battery)}
+                    sx={{ fontFamily, fontWeight: 600, fontSize: '0.8rem' }}
+                  >
                     {dev.status.battery}%
                   </Typography>
                   {dev.assignedGeofenceId && (
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ fontFamily, fontSize: '0.8rem' }}
+                    >
                       → {geofences.find((g) => g.id === dev.assignedGeofenceId)?.name}
                     </Typography>
                   )}
@@ -403,10 +608,21 @@ export default function DeviceList({ store }: Props) {
       })}
 
       {filteredDevices.length === 0 && (
-        <Typography align="center" color="text.secondary" variant="body2" sx={{ mt: 4 }}>
-          Không tìm thấy thiết bị nào.
-        </Typography>
+        connecting ? (
+          <Stack alignItems="center" spacing={1.25} sx={{ mt: 4 }}>
+            <CircularProgress size={26} />
+            <Typography align="center" color="text.secondary" variant="body2" sx={{ fontFamily, fontSize: '0.9rem' }}>
+              Đang kết nối & tải thiết bị…
+            </Typography>
+          </Stack>
+        ) : (
+          <Typography align="center" color="text.secondary" variant="body2" sx={{ fontFamily, mt: 4, fontSize: '0.9rem' }}>
+            Không tìm thấy thiết bị nào.
+          </Typography>
+        )
       )}
+
+      <PaginationBar page={page} totalPages={totalPages} total={total} shownCount={paged.length} onChange={setPage} label="thiết bị" />
     </Stack>
   );
 }

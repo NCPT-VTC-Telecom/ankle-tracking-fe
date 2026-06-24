@@ -49,7 +49,9 @@ const MainRoutes = {
       element: <GosafeLanding viewType="landing" />
     },
     {
-      path: '/gosafe/tracking',
+      // :view = overview | tracking | prisoners | devices | alerts | compliance | regions | users
+      // URL đồng bộ với tab đang focus trong dashboard.
+      path: '/gosafe/:view',
       element: (
         <AuthGuard>
           <GosafeLanding viewType="tracking" />
