@@ -10,9 +10,9 @@ import {
   Gps, Clock, CloseCircle, Location, ShieldSecurity, Profile2User, Building4, Activity
 } from 'iconsax-react';
 import { TrackingStore } from '../../tracking/useTracking';
-import { offendersApi, devicesApi, zonesApi, extractList } from 'api/gosafe.management.api';
+import { offendersApi, devicesApi, zonesApi, extractList, extractTotal } from 'api/gosafe.management.api';
 import { useFeedback } from '../../components/FeedbackProvider';
-import PaginationBar, { usePagination } from '../../components/PaginationBar';
+import PaginationBar, { useServerPagination } from '../../components/PaginationBar';
 import {
   timeAgo, translateCrime, translateSentence, translateOffenderStatus, formatDateVN,
   validateSentence, SUBJECT_TYPE_OPTIONS, SENTENCE_TYPE_OPTIONS
@@ -83,10 +83,9 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
   const primaryColor = store.primaryColor;
   const { confirm, notify } = useFeedback();
 
-  const [offenders, setOffenders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   const [mgmtDevices, setMgmtDevices] = useState<any[]>([]); // device_management (imei→id, offenderId)
   const [prisonerSearch, setPrisonerSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [form, setForm] = useState<PrisonerForm>(EMPTY_FORM);
@@ -98,18 +97,27 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
   const glassBlur = 'blur(20px) saturate(1.8)';
   const setF = (patch: Partial<PrisonerForm>) => setForm((prev) => ({ ...prev, ...patch }));
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  // Debounce ô tìm kiếm để tìm kiếm server không bắn request mỗi lần gõ.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(prisonerSearch.trim()), 350);
+    return () => clearTimeout(t);
+  }, [prisonerSearch]);
+
+  // Server-side: chỉ tải đúng 1 trang phạm nhân theo tìm kiếm (không load hết 200 rồi cắt).
+  const fetcher = useCallback(async (page: number, pageSize: number) => {
     try {
-      const res = await offendersApi.list({ pageSize: 200 });
-      setOffenders(extractList(res.data));
+      const res = await offendersApi.list({ page, pageSize, filters: debouncedSearch || undefined });
+      return { items: extractList(res.data), total: extractTotal(res.data) };
     } catch {
-      setOffenders([]);
       notify('Không tải được danh sách phạm nhân từ máy chủ.', 'error');
-    } finally {
-      setLoading(false);
+      return { items: [] as any[], total: 0 };
     }
-  }, [notify]);
+  }, [debouncedSearch, notify]);
+
+  const pageSize = viewMode === 'cards' ? 9 : 12;
+  const resetKey = `${debouncedSearch}|${viewMode}|${refreshKey ?? 0}`;
+  const { items: offenders, page, setPage, total, totalPages, loading, reload } =
+    useServerPagination<any>(fetcher, pageSize, resetKey);
 
   const loadMgmt = useCallback(async () => {
     try {
@@ -118,10 +126,10 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
     } catch { /* không chặn — chỉ ảnh hưởng gán thiết bị */ }
   }, []);
 
-  useEffect(() => { load(); loadMgmt(); }, [load, loadMgmt, refreshKey]);
+  useEffect(() => { loadMgmt(); }, [loadMgmt, refreshKey]);
 
-  // offender → PrisonerRow, join live device theo IMEI.
-  const rows = useMemo<PrisonerRow[]>(() => {
+  // offender → PrisonerRow, join live device theo IMEI (trên trang hiện tại).
+  const paged = useMemo<PrisonerRow[]>(() => {
     const byImei = new Map(devices.filter((d) => d.uniqueId).map((d) => [d.uniqueId, d]));
     return offenders.map((o) => {
       const imei = String(o.device?.imei ?? o.device?.deviceImei ?? '').trim();
@@ -145,19 +153,6 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
       };
     });
   }, [offenders, devices, deviceViolations]);
-
-  const filteredRows = useMemo(() => {
-    if (!prisonerSearch.trim()) return rows;
-    const q = prisonerSearch.toLowerCase();
-    return rows.filter((r) =>
-      r.fullName.toLowerCase().includes(q) ||
-      r.idNumber.includes(q) ||
-      r.profileCode.toLowerCase().includes(q) ||
-      r.imei.includes(q)
-    );
-  }, [rows, prisonerSearch]);
-
-  const { page, setPage, total, totalPages, paged } = usePagination(filteredRows, viewMode === 'cards' ? 9 : 12);
 
   // Thiết bị device_management chưa gán phạm nhân (offenderId null) — để gán mới.
   const freeMgmtDevices = useMemo(
@@ -237,7 +232,8 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
       notify(form.id ? 'Đã cập nhật phạm nhân.' : 'Đã thêm phạm nhân.', 'success');
       setDrawerOpen(false);
       setForm(EMPTY_FORM);
-      await load();
+      reload();
+      loadMgmt();
       store.fetchLiveDevices?.();
     } catch {
       notify('Lưu phạm nhân thất bại trên máy chủ.', 'error');
@@ -255,7 +251,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
     if (!ok) return;
     try {
       await offendersApi.delete(row.id);
-      setOffenders((prev) => prev.filter((o) => String(o.id) !== row.id));
+      reload();
       notify('Đã xóa phạm nhân.', 'success');
     } catch {
       notify('Xóa phạm nhân thất bại.', 'error');
@@ -387,7 +383,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
               </Grid>
             );
           })}
-          {!loading && filteredRows.length === 0 && (
+          {!loading && paged.length === 0 && (
             <Grid item xs={12}><Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}><Typography variant="body2" sx={{ fontStyle: 'italic' }}>Không có phạm nhân nào.</Typography></Box></Grid>
           )}
         </Grid>
@@ -447,7 +443,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
                   </tr>
                 );
               })}
-              {!loading && filteredRows.length === 0 && (
+              {!loading && paged.length === 0 && (
                 <tr><td colSpan={10} style={{ textAlign: 'center', padding: '48px 16px' }}><Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>Không có phạm nhân nào.</Typography></td></tr>
               )}
             </tbody>

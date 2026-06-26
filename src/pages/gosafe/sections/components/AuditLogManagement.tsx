@@ -5,8 +5,8 @@ import {
   DialogContent, Divider, FormControl, InputLabel, Select, SelectChangeEvent
 } from '@mui/material';
 import { SearchNormal1, Refresh, Eye, CloseCircle, Activity } from 'iconsax-react';
-import { logSystemApi, extractList } from 'api/gosafe.management.api';
-import PaginationBar, { usePagination } from '../../components/PaginationBar';
+import { logSystemApi, extractList, extractTotal } from 'api/gosafe.management.api';
+import PaginationBar, { useServerPagination } from '../../components/PaginationBar';
 
 interface Props {
   isDark: boolean;
@@ -49,12 +49,25 @@ const pretty = (v: any): string => {
   try { return JSON.stringify(v, null, 2); } catch { return String(v); }
 };
 
+const mapLogRow = (r: any): LogRow => ({
+  id: String(r.id ?? Math.random()),
+  actionType: r.actionType ?? r.action ?? r.category ?? '—',
+  entityName: r.entityName ?? r.entity ?? r.resource ?? '',
+  entityId: r.entityId ?? r.entity_id ?? '',
+  userName: r.user?.fullname ?? r.user?.username ?? r.userName ?? r.userId ?? '—',
+  ip: r.ipAddress ?? r.ip ?? '',
+  createdDate: r.createdDate ?? r.created_at ?? r.timestamp ?? '',
+  requestContent: r.requestContent ?? r.request ?? '',
+  responseContent: r.responseContent ?? r.response ?? '',
+  oldValues: r.oldValues ?? r.old_values ?? null,
+  newValues: r.newValues ?? r.new_values ?? null
+});
+
 export default function AuditLogManagement({ isDark, refreshKey }: Props) {
-  const [rows, setRows] = useState<LogRow[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [category, setCategory] = useState('all');
   const [entity, setEntity] = useState('all');
   const [detail, setDetail] = useState<LogRow | null>(null);
@@ -62,33 +75,31 @@ export default function AuditLogManagement({ isDark, refreshKey }: Props) {
   const cardBorder = isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0';
   const panelBg = isDark ? 'rgba(9,13,31,0.5)' : 'rgba(255,255,255,0.7)';
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  // Debounce ô tìm kiếm để không bắn request mỗi lần gõ.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Server-side: chỉ tải đúng 1 trang theo bộ lọc (không load hết rồi cắt).
+  const fetcher = useCallback(async (page: number, pageSize: number) => {
     setError(null);
     try {
-      const res = await logSystemApi.list({ pageSize: 300 });
-      setRows(
-        extractList(res.data).map((r: any): LogRow => ({
-          id: String(r.id ?? Math.random()),
-          actionType: r.actionType ?? r.action ?? r.category ?? '—',
-          entityName: r.entityName ?? r.entity ?? r.resource ?? '',
-          entityId: r.entityId ?? r.entity_id ?? '',
-          userName: r.user?.fullname ?? r.user?.username ?? r.userName ?? r.userId ?? '—',
-          ip: r.ipAddress ?? r.ip ?? '',
-          createdDate: r.createdDate ?? r.created_at ?? r.timestamp ?? '',
-          requestContent: r.requestContent ?? r.request ?? '',
-          responseContent: r.responseContent ?? r.response ?? '',
-          oldValues: r.oldValues ?? r.old_values ?? null,
-          newValues: r.newValues ?? r.new_values ?? null
-        }))
-      );
+      const res = await logSystemApi.list({
+        page,
+        pageSize,
+        filters: debouncedSearch || undefined,
+        category: category !== 'all' ? category : undefined
+      });
+      return { items: extractList(res.data).map(mapLogRow), total: extractTotal(res.data) };
     } catch {
-      setRows([]);
       setError('Chưa tải được nhật ký hệ thống (cần đăng nhập tài khoản GoSafe thật).');
-    } finally {
-      setLoading(false);
+      return { items: [] as LogRow[], total: 0 };
     }
-  }, []);
+  }, [debouncedSearch, category]);
+
+  const resetKey = `${debouncedSearch}|${category}|${refreshKey ?? 0}`;
+  const { items: rows, page, setPage, total, totalPages, loading, reload } = useServerPagination<LogRow>(fetcher, 15, resetKey);
 
   const loadCategories = useCallback(async () => {
     try {
@@ -98,25 +109,18 @@ export default function AuditLogManagement({ isDark, refreshKey }: Props) {
     } catch { /* không chặn — vẫn lọc theo dữ liệu đã tải */ }
   }, []);
 
-  useEffect(() => { load(); loadCategories(); }, [load, loadCategories, refreshKey]);
+  useEffect(() => { loadCategories(); }, [loadCategories]);
 
-  // Danh sách entity (đối tượng) suy ra từ dữ liệu để lọc nhanh.
+  // Lọc "đối tượng" tinh chỉnh trong phạm vi trang hiện tại (phụ trợ cho tìm kiếm server).
   const entities = useMemo(
     () => Array.from(new Set(rows.map((r) => r.entityName).filter(Boolean))).sort(),
     [rows]
   );
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (category !== 'all' && r.actionType !== category) return false;
-      if (entity !== 'all' && r.entityName !== entity) return false;
-      if (q && !`${r.userName} ${r.actionType} ${r.entityName} ${r.entityId} ${r.ip}`.toLowerCase().includes(q)) return false;
-      return true;
-    });
-  }, [rows, search, category, entity]);
-
-  const { page, setPage, total, totalPages, paged } = usePagination(filtered, 15);
+  const paged = useMemo(
+    () => (entity === 'all' ? rows : rows.filter((r) => r.entityName === entity)),
+    [rows, entity]
+  );
 
   return (
     <Stack spacing={2.25}>
@@ -151,7 +155,7 @@ export default function AuditLogManagement({ isDark, refreshKey }: Props) {
             </Select>
           </FormControl>
           <Tooltip title="Tải lại">
-            <IconButton onClick={load} sx={{ border: '1px solid', borderColor: cardBorder, borderRadius: '12px', ml: 'auto' }}>
+            <IconButton onClick={reload} sx={{ border: '1px solid', borderColor: cardBorder, borderRadius: '12px', ml: 'auto' }}>
               <Refresh size={18} />
             </IconButton>
           </Tooltip>
@@ -207,7 +211,7 @@ export default function AuditLogManagement({ isDark, refreshKey }: Props) {
                   </TableRow>
                 );
               })}
-              {filtered.length === 0 && (
+              {paged.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} sx={{ textAlign: 'center', py: 5, color: isDark ? '#64748b' : '#94a3b8', borderColor: cardBorder }}>
                     {error ?? 'Không có nhật ký nào.'}

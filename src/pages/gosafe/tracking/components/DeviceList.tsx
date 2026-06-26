@@ -61,7 +61,7 @@ export default function DeviceList({ store }: Props) {
   }, [selectedDeviceId]);
 
   return (
-    <Stack spacing={2}>
+    <Stack spacing={1.25}>
       <Button
         fullWidth
         variant="outlined"
@@ -109,7 +109,7 @@ export default function DeviceList({ store }: Props) {
             key={dev.id}
             onClick={() => setSelectedDeviceId(dev.id)}
             sx={{
-              borderRadius: '20px',
+              borderRadius: '16px',
               cursor: 'pointer',
               transition: 'all 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
               border: '2px solid',
@@ -141,9 +141,9 @@ export default function DeviceList({ store }: Props) {
               }
             }}
           >
-            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+            <CardContent sx={{ p: isSelected ? 2 : 1.5, '&:last-child': { pb: isSelected ? 2 : 1.5 } }}>
               {/* Header */}
-              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.25}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={isSelected ? 1.5 : 0.5}>
                 <Stack direction="row" spacing={1.2} alignItems="center">
                   <Box
                     className="gs-status-dot"
@@ -191,7 +191,7 @@ export default function DeviceList({ store }: Props) {
                       }}
                       sx={{
                         color: primaryColor,
-                        p: 0.85,
+                        p: isSelected ? 0.85 : 0.6,
                         border: '1px solid',
                         borderColor: isDark ? 'rgba(255,255,255,0.16)' : '#cbd5e1',
                         borderRadius: '12px',
@@ -199,7 +199,7 @@ export default function DeviceList({ store }: Props) {
                         '&:hover': { borderColor: primaryColor, bgcolor: `${primaryColor}14` }
                       }}
                     >
-                      <Edit size="18" />
+                      <Edit size={isSelected ? "18" : "16"} />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Xoá thiết bị">
@@ -211,7 +211,7 @@ export default function DeviceList({ store }: Props) {
                       }}
                       sx={{
                         color: '#ef4444',
-                        p: 0.85,
+                        p: isSelected ? 0.85 : 0.6,
                         border: '1px solid',
                         borderColor: isDark ? 'rgba(239,68,68,0.3)' : '#fecaca',
                         borderRadius: '12px',
@@ -219,98 +219,11 @@ export default function DeviceList({ store }: Props) {
                         '&:hover': { borderColor: '#ef4444', bgcolor: 'rgba(239,68,68,0.12)' }
                       }}
                     >
-                      <Trash size="18" />
+                      <Trash size={isSelected ? "18" : "16"} />
                     </IconButton>
                   </Tooltip>
                 </Stack>
               </Stack>
-
-              {/* Subject banner */}
-              {dev.subject && (
-                <Box
-                  sx={{
-                    bgcolor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(45, 94, 175, 0.02)',
-                    borderRadius: '16px',
-                    border: '1px solid',
-                    borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(45, 94, 175, 0.06)',
-                    p: 1.75,
-                    mb: 1.5
-                  }}
-                >
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Avatar
-                      sx={{
-                        width: 42,
-                        height: 42,
-                        borderRadius: '12px',
-                        bgcolor: dev.color,
-                        fontSize: '1rem',
-                        fontWeight: 700,
-                        fontFamily,
-                        flexShrink: 0
-                      }}
-                    >
-                      {dev.subject?.fullName?.split(' ').slice(-1)[0]?.charAt(0) ?? '?'}
-                    </Avatar>
-                    <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-                      <Typography
-                        sx={{
-                          fontFamily,
-                          fontWeight: 700,
-                          fontSize: '0.975rem',
-                          color: isDark ? '#f8fafc' : '#0f172a',
-                          lineHeight: 1.3
-                        }}
-                      >
-                        {dev.subject.fullName}
-                      </Typography>
-                      <Typography
-                        sx={{
-                          fontFamily,
-                          fontSize: '0.8rem',
-                          color: isDark ? 'rgba(255,255,255,0.5)' : '#64748b',
-                          display: 'block',
-                          mt: 0.25
-                        }}
-                      >
-                        CCCD: {dev.subject.idNumber || '—'}
-                      </Typography>
-                      <Typography
-                        sx={{
-                          fontFamily,
-                          fontSize: '0.8rem',
-                          color: '#ef4444',
-                          fontWeight: 700,
-                          mt: 0.25
-                        }}
-                      >
-                        {translateCrime(dev.subject.crime)}
-                      </Typography>
-                    </Box>
-                    <Tooltip title="Xem hồ sơ chi tiết">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSubjectDetailId(dev.id);
-                        }}
-                        sx={{
-                          color: primaryColor,
-                          flexShrink: 0,
-                          p: 0.85,
-                          border: '1px solid',
-                          borderColor: isDark ? 'rgba(255,255,255,0.16)' : '#cbd5e1',
-                          borderRadius: '12px',
-                          bgcolor: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff',
-                          '&:hover': { borderColor: primaryColor, bgcolor: `${primaryColor}14` }
-                        }}
-                      >
-                        <DocumentText size="20" />
-                      </IconButton>
-                    </Tooltip>
-                  </Stack>
-                </Box>
-              )}
 
               {/* Expanded (selected) */}
               {isSelected ? (
@@ -329,6 +242,93 @@ export default function DeviceList({ store }: Props) {
 
                     return (
                       <>
+                        {/* Subject banner inside expanded view */}
+                        {dev.subject && (
+                          <Box
+                            sx={{
+                              bgcolor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(45, 94, 175, 0.02)',
+                              borderRadius: '16px',
+                              border: '1px solid',
+                              borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(45, 94, 175, 0.06)',
+                              p: 1.5,
+                              mb: 1.5
+                            }}
+                          >
+                            <Stack direction="row" spacing={1.5} alignItems="center">
+                              <Avatar
+                                sx={{
+                                  width: 40,
+                                  height: 40,
+                                  borderRadius: '12px',
+                                  bgcolor: dev.color,
+                                  fontSize: '0.95rem',
+                                  fontWeight: 700,
+                                  fontFamily,
+                                  flexShrink: 0
+                                }}
+                              >
+                                {dev.subject?.fullName?.split(' ').slice(-1)[0]?.charAt(0) ?? '?'}
+                              </Avatar>
+                              <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+                                <Typography
+                                  sx={{
+                                    fontFamily,
+                                    fontWeight: 700,
+                                    fontSize: '0.95rem',
+                                    color: isDark ? '#f8fafc' : '#0f172a',
+                                    lineHeight: 1.3
+                                  }}
+                                >
+                                  {dev.subject.fullName}
+                                </Typography>
+                                <Typography
+                                  sx={{
+                                    fontFamily,
+                                    fontSize: '0.78rem',
+                                    color: isDark ? 'rgba(255,255,255,0.5)' : '#64748b',
+                                    display: 'block',
+                                    mt: 0.2
+                                  }}
+                                >
+                                  CCCD: {dev.subject.idNumber || '—'}
+                                </Typography>
+                                <Typography
+                                  sx={{
+                                    fontFamily,
+                                    fontSize: '0.78rem',
+                                    color: '#ef4444',
+                                    fontWeight: 700,
+                                    mt: 0.2
+                                  }}
+                                >
+                                  {translateCrime(dev.subject.crime)}
+                                </Typography>
+                              </Box>
+                              <Tooltip title="Xem hồ sơ chi tiết">
+                                <IconButton
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSubjectDetailId(dev.id);
+                                  }}
+                                  sx={{
+                                    color: primaryColor,
+                                    flexShrink: 0,
+                                    p: 0.75,
+                                    border: '1px solid',
+                                    borderColor: isDark ? 'rgba(255,255,255,0.16)' : '#cbd5e1',
+                                    borderRadius: '10px',
+                                    bgcolor: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff',
+                                    '&:hover': { borderColor: primaryColor, bgcolor: `${primaryColor}14` }
+                                  }}
+                                >
+                                  <DocumentText size="18" />
+                                </IconButton>
+                              </Tooltip>
+                            </Stack>
+                          </Box>
+                        )}
+
                         {/* ── Row 1: Geofence + Lock status chips ── */}
                         <Stack direction="row" spacing={1} sx={{ mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
                           <Chip
@@ -576,18 +576,18 @@ export default function DeviceList({ store }: Props) {
                 </Box>
               ) : (
                 /* Compact row */
-                <Stack direction="row" spacing={1.5} alignItems="center" mt={0.75}>
+                <Stack direction="row" spacing={1.5} alignItems="center" mt={0.5} flexWrap="wrap">
                   <Typography
                     variant="caption"
-                    color="text.secondary"
-                    sx={{ fontFamily, fontSize: '0.8rem' }}
+                    color={dev.status.connectionStatus === 'online' ? '#22c55e' : 'text.secondary'}
+                    sx={{ fontFamily, fontSize: '0.78rem', fontWeight: 600 }}
                   >
-                    {dev.status.connectionStatus === 'online' ? '● Trực tuyến' : '○ Offline'}
+                    {dev.status.connectionStatus === 'online' ? '● Trực tuyến' : '○ Ngoại tuyến'}
                   </Typography>
                   <Typography
                     variant="caption"
                     color={getBatteryColor(dev.status.battery)}
-                    sx={{ fontFamily, fontWeight: 600, fontSize: '0.8rem' }}
+                    sx={{ fontFamily, fontWeight: 700, fontSize: '0.78rem' }}
                   >
                     {dev.status.battery}%
                   </Typography>
@@ -595,9 +595,18 @@ export default function DeviceList({ store }: Props) {
                     <Typography
                       variant="caption"
                       color="text.secondary"
-                      sx={{ fontFamily, fontSize: '0.8rem' }}
+                      sx={{ fontFamily, fontSize: '0.78rem' }}
                     >
-                      → {geofences.find((g) => g.id === dev.assignedGeofenceId)?.name}
+                      • {geofences.find((g) => g.id === dev.assignedGeofenceId)?.name}
+                    </Typography>
+                  )}
+                  {dev.subject?.crime && (
+                    <Typography
+                      variant="caption"
+                      color="#ef4444"
+                      sx={{ fontFamily, fontWeight: 700, fontSize: '0.78rem' }}
+                    >
+                      • {translateCrime(dev.subject.crime)}
                     </Typography>
                   )}
                 </Stack>

@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Box, Chip, Grid, Stack, Typography, Tooltip, Avatar } from '@mui/material';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { Box, Chip, Grid, Stack, Typography, Tooltip, Avatar, Button, CircularProgress } from '@mui/material';
 import ReactApexChart from 'react-apexcharts';
-import { Profile2User, Wifi, Danger, Warning2, Buildings2, Location, ArrowRight2, InfoCircle, BatteryFull, Gps } from 'iconsax-react';
+import { Profile2User, Wifi, Danger, Warning2, Buildings2, Location, ArrowRight2, InfoCircle, BatteryFull, Gps, Refresh } from 'iconsax-react';
 import { TrackingStore } from '../../tracking/useTracking';
 import { alertsApi, extractList } from 'api/gosafe.management.api';
 
@@ -47,30 +47,41 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
   const { devices, geofences, deviceViolations, setSelectedDeviceId } = store;
 
   const [serverAlerts, setServerAlerts] = useState<AlertItem[] | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
-  // ── Best-effort: tải cảnh báo thật để dựng feed + thống kê ──
-  useEffect(() => {
-    let cancelled = false;
-    alertsApi
-      .list({ pageSize: 100, regionId: scopeRegionId || undefined })
-      .then((res) => {
-        const items = extractList(res.data).map((a: any): AlertItem => {
-          const created = a.createdDate ?? a.createdAt ?? a.created_at ?? '';
-          const d = created ? new Date(created) : null;
-          return {
-            id: String(a.id),
-            level: levelOf(a.level ?? a.alertType?.level ?? a.severity ?? ''),
-            title: a.alertType?.name ?? a.alertTypeName ?? a.alertTypeCode ?? a.title ?? a.type ?? 'Cảnh báo',
-            desc: `${a.offender?.fullname ?? a.offenderName ?? a.offenderId ?? '—'}${a.address ? ' · ' + a.address : ''}`,
-            time: d ? d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '',
-            hour: d ? d.getHours() : -1
-          };
-        });
-        if (!cancelled) setServerAlerts(items);
-      })
-      .catch(() => { if (!cancelled) setServerAlerts(null); });
-    return () => { cancelled = true; };
-  }, [scopeRegionId, refreshKey]);
+  // ── Tải cảnh báo thật để dựng feed + thống kê ──
+  const loadAlerts = useCallback(async () => {
+    try {
+      const res = await alertsApi.list({ pageSize: 100, regionId: scopeRegionId || undefined });
+      const items = extractList(res.data).map((a: any): AlertItem => {
+        const created = a.createdDate ?? a.createdAt ?? a.created_at ?? '';
+        const d = created ? new Date(created) : null;
+        return {
+          id: String(a.id),
+          level: levelOf(a.level ?? a.alertType?.level ?? a.severity ?? ''),
+          title: a.alertType?.name ?? a.alertTypeName ?? a.alertTypeCode ?? a.title ?? a.type ?? 'Cảnh báo',
+          desc: `${a.offender?.fullname ?? a.offenderName ?? a.offenderId ?? '—'}${a.address ? ' · ' + a.address : ''}`,
+          time: d ? d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '',
+          hour: d ? d.getHours() : -1
+        };
+      });
+      setServerAlerts(items);
+    } catch {
+      setServerAlerts(null);
+    }
+  }, [scopeRegionId]);
+
+  useEffect(() => { loadAlerts(); }, [loadAlerts, refreshKey]);
+
+  // Đồng bộ thủ công: tải lại thiết bị (feed) + cảnh báo từ server, có loading.
+  const handleSync = useCallback(async () => {
+    setSyncing(true);
+    try {
+      await Promise.all([loadAlerts(), Promise.resolve(store.fetchLiveDevices?.())]);
+    } finally {
+      setTimeout(() => setSyncing(false), 600);
+    }
+  }, [loadAlerts, store]);
 
   // ── Derived counts ──
   const subjects = useMemo(() => devices.filter((d) => d.subject !== null), [devices]);
@@ -152,35 +163,33 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
 
   const cardStyle = (accentColor: string) => ({
     borderRadius: '16px',
-    border: `1px solid ${panelBorder}`,
+    border: `1px solid ${accentColor}33`,
     background: isDark
-      ? `linear-gradient(135deg, rgba(15,23,42,0.7) 0%, rgba(30,41,59,0.7) 100%)`
-      : `linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
+      ? `linear-gradient(135deg, ${accentColor}26 0%, ${accentColor}0a 60%), rgba(15,23,42,0.7)`
+      : `linear-gradient(135deg, ${accentColor}24 0%, ${accentColor}0a 60%), #ffffff`,
     backdropFilter: 'blur(16px)',
     WebkitBackdropFilter: 'blur(16px)',
     p: 2.25,
+    pl: 2.75,
     height: '100%',
-    boxShadow: isDark
-      ? '0 10px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 16px -6px rgba(0, 0, 0, 0.3)'
-      : '0 10px 25px -5px rgba(13, 27, 42, 0.06), 0 8px 16px -6px rgba(13, 27, 42, 0.04)',
+    boxShadow: `0 6px 22px ${accentColor}1f`,
     position: 'relative' as const,
     overflow: 'hidden' as const,
     transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
     '&:hover': {
       transform: 'translateY(-5px)',
-      boxShadow: isDark
-        ? `0 20px 35px -5px rgba(0, 0, 0, 0.5), 0 15px 20px -5px ${accentColor}35`
-        : `0 20px 35px -5px rgba(13, 27, 42, 0.1), 0 15px 20px -5px ${accentColor}25`,
+      boxShadow: `0 18px 34px -6px ${accentColor}3a`,
       borderColor: accentColor,
     },
+    // Dải màu nhấn bên trái — phân loại rõ ràng, có "tí màu".
     '&::before': {
       content: '""',
       position: 'absolute',
       top: 0,
-      right: 0,
-      width: '48px',
-      height: '48px',
-      background: `radial-gradient(circle, ${accentColor}12 0%, transparent 70%)`,
+      bottom: 0,
+      left: 0,
+      width: '4px',
+      background: `linear-gradient(180deg, ${accentColor}, ${accentColor}80)`,
       pointerEvents: 'none'
     }
   });
@@ -235,6 +244,26 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
 
   return (
     <Box sx={{ width: '100%' }}>
+      {/* ── Header: tiêu đề tổng quan + nút đồng bộ server ── */}
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Typography sx={{ fontWeight: 700, fontSize: '1.05rem', color: txtPrimary }}>Tổng quan thời gian thực</Typography>
+        <Button
+          onClick={handleSync}
+          disabled={syncing}
+          startIcon={syncing ? <CircularProgress size={15} color="inherit" /> : <Refresh size={17} />}
+          variant="contained"
+          sx={{
+            textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 2, py: 0.9, fontSize: '0.84rem',
+            background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+            boxShadow: '0 4px 14px rgba(37,99,235,0.35)',
+            '& svg': { transition: 'transform 0.6s', transform: syncing ? 'rotate(360deg)' : 'none' },
+            '&:hover': { background: 'linear-gradient(135deg, #1d4ed8, #1e40af)' }
+          }}
+        >
+          {syncing ? 'Đang đồng bộ…' : 'Đồng bộ dữ liệu'}
+        </Button>
+      </Stack>
+
       {/* ── ROW 1: KPI ── */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
         {kpis.map((k, i) => (

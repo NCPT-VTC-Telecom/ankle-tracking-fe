@@ -648,3 +648,20 @@ export function extractList(raw: any): any[] {
   if (Array.isArray(raw)) return raw;
   return [];
 }
+
+/** Tổng số bản ghi (server) cho phân trang — dò các vị trí meta thường gặp. */
+export function extractTotal(raw: any, fallback = 0): number {
+  const cands = [
+    raw?.total,
+    raw?.meta?.total,
+    raw?.data?.total,
+    raw?.data?.meta?.total,
+    raw?.totalItems,
+    raw?.totalCount
+  ];
+  for (const c of cands) {
+    const n = Number(c);
+    if (Number.isFinite(n) && n >= 0) return n;
+  }
+  return fallback;
+}

@@ -99,8 +99,6 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
   const [regionPathById, setRegionPathById] = useState<Record<string, string>>({});
   const [deviceRegionByImei, setDeviceRegionByImei] = useState<Record<string, string>>({});
   // device_management/map: cờ "đã giới hạn 500 thiết bị trong khung nhìn".
-  const [mapTruncated, setMapTruncated] = useState(false);
-  const boundsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [followDevice, setFollowDevice] = useState<boolean>(true);
   const [showAlertOverlay, setShowAlertOverlay] = useState(false);
@@ -266,10 +264,10 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     return map;
   }, [devices, geofences]);
 
-  // Nạp cây địa bàn (path) + map IMEI→regionId (device_management) cho bộ lọc phạm vi.
+  // Nạp cây địa bàn (path) cho dropdown phạm vi + culling. Nhẹ, nạp 1 lần lúc mount.
   useEffect(() => {
     let cancelled = false;
-    regionsApi.list({ pageSize: 500 }).then((r) => {
+    regionsApi.list({ pageSize: 200 }).then((r) => {
       if (cancelled) return;
       const list = extractList(r.data);
       const pmap: Record<string, string> = {};
@@ -277,6 +275,16 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
       setRegionPathById(pmap);
       setScopeRegions(list.map((x: any) => ({ id: String(x.id), name: x.name ?? x.code ?? x.id, path: String(x.path ?? ''), level: Number(x.level ?? 1) })));
     }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  // Map IMEI→regionId chỉ tải khi NGƯỜI DÙNG chọn phạm vi (lọc "cấp cơ sở đổ xuống").
+  // Mặc định không chọn scope → bỏ hẳn call device_management nặng lúc mở trang.
+  const deviceRegionLoadedRef = useRef(false);
+  useEffect(() => {
+    if (!scopeRegionId || deviceRegionLoadedRef.current) return;
+    deviceRegionLoadedRef.current = true;
+    let cancelled = false;
     devicesApi.list({ pageSize: 500 }).then((r) => {
       if (cancelled) return;
       const dmap: Record<string, string> = {};
@@ -285,9 +293,9 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
         if (imei && d.regionId) dmap[imei] = String(d.regionId);
       });
       setDeviceRegionByImei(dmap);
-    }).catch(() => {});
+    }).catch(() => { deviceRegionLoadedRef.current = false; });
     return () => { cancelled = true; };
-  }, []);
+  }, [scopeRegionId]);
 
   // "Cấp cơ sở đổ xuống": chỉ giữ thiết bị thuộc cây con của địa bàn scope (theo path).
   const scopedDevices = useMemo(() => {
@@ -350,7 +358,8 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
 
   const addLog = useCallback((message: string, type: EventLog['type']) => {
     const time = new Date().toTimeString().split(' ')[0];
-    setLogs((prev) => [{ id: Date.now().toString(), time, message, type }, ...prev]);
+    // Giới hạn 200 dòng — tránh mảng log phình vô hạn khi stream đẩy dồn dập.
+    setLogs((prev) => [{ id: `${Date.now()}-${prev.length}`, time, message, type }, ...prev].slice(0, 200));
   }, []);
 
   const playBeep = useCallback(() => {
@@ -909,7 +918,12 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
       });
 
       if (newAlerts.length > 0) {
-        setCriticalAlerts((prev) => [...prev, ...newAlerts]);
+        setCriticalAlerts((prev) => {
+          // Bỏ trùng theo imei+type (giữ cảnh báo cũ chưa tiếp nhận) + giới hạn 50.
+          const seen = new Set(prev.map((a) => `${a.imei}|${a.type}`));
+          const fresh = newAlerts.filter((a) => !seen.has(`${a.imei}|${a.type}`));
+          return fresh.length ? [...prev, ...fresh].slice(-50) : prev;
+        });
         if (newAlerts.some((a) => a.type === 'sos')) {
           playSOSAlarm();
         } else {
@@ -974,31 +988,6 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
       setDevicesLoaded(true); // đã thử tải API → tắt loading (kể cả khi rỗng/lỗi)
     }
   }, [applyApiDevices]);
-
-  /**
-   * Tải thiết bị trong khung nhìn bản đồ qua GET /v1/device_management/map (bbox).
-   * Chỉ trả thiết bị đã định vị trong khung (marker nhẹ, cap 500). Merge theo IMEI vào
-   * danh sách hiện có (partial) để bổ sung thiết bị server có nhưng feed live chưa đẩy.
-   * Debounce để tránh gọi dồn khi pan/zoom liên tục.
-   */
-  const fetchDevicesInBounds = useCallback(
-    (swLat: number, swLng: number, neLat: number, neLng: number) => {
-      if (boundsTimerRef.current) clearTimeout(boundsTimerRef.current);
-      boundsTimerRef.current = setTimeout(async () => {
-        try {
-          const res = await devicesApi.map({ swLat, swLng, neLat, neLng });
-          const data = res.data as any;
-          const items = extractList(data);
-          // addOnly: chỉ bổ sung thiết bị mới trong khung, KHÔNG ghi đè thiết bị live.
-          if (items.length) applyApiDevices(items, { fullSnapshot: false, addOnly: true });
-          setMapTruncated(!!(data?.meta?.truncated ?? data?.truncated));
-        } catch {
-          // bỏ qua — feed SSE vẫn hiển thị thiết bị live
-        }
-      }, 450);
-    },
-    [applyApiDevices]
-  );
 
   /**
    * Poll % pin THẬT từ BE (GET /v1/gps_tracking/latest → batteryPercent), lưu theo IMEI.
@@ -1096,17 +1085,42 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     }
   }, [addLog, playSOSAlarm, playFiberAlarm]);
 
-  // Poll định kỳ nhật ký sự kiện (độc lập với SSE — events là log riêng).
-  useEffect(() => {
-    pollCriticalEvents();
-    const id = setInterval(pollCriticalEvents, Math.max(syncInterval, 15) * 1000);
-    return () => clearInterval(id);
-  }, [pollCriticalEvents, syncInterval]);
-
   // ── SSE — primary real-time source ───────────────────────────────────────────
 
+  // Gộp (coalesce) các packet SSE: BE đôi khi "ngậm" rồi xả một loạt tin nhắn khi
+  // (re)connect → nếu setState mỗi packet sẽ có hàng trăm lần render liên tiếp gây
+  // đứng app. Gom theo IMEI (gói mới nhất thắng) và flush theo nhịp ~300ms → tối đa
+  // ~3 lần render/giây dù burst lớn cỡ nào.
+  const sseBufferRef = useRef<Map<string, ApiDevice>>(new Map());
+  const sseFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushSSEBuffer = useCallback(() => {
+    sseFlushTimerRef.current = null;
+    const batch = Array.from(sseBufferRef.current.values());
+    sseBufferRef.current.clear();
+    if (batch.length) applyApiDevices(batch, { fullSnapshot: false });
+  }, [applyApiDevices]);
+
+  const enqueueSSEDevices = useCallback((incoming: ApiDevice[]) => {
+    for (const d of incoming) {
+      const api = d as any;
+      const key = String(api?.deviceImei ?? api?.device_imei ?? api?.imei ?? '').trim() || `id-${api?.id ?? ''}`;
+      sseBufferRef.current.set(key, d); // gói mới nhất cho cùng thiết bị ghi đè gói cũ
+    }
+    // Chặn buffer phình vô hạn nếu backlog cực lớn → flush ngay khi vượt ngưỡng.
+    if (sseBufferRef.current.size >= 400) { flushSSEBuffer(); return; }
+    if (sseFlushTimerRef.current == null) {
+      sseFlushTimerRef.current = setTimeout(flushSSEBuffer, 300);
+    }
+  }, [flushSSEBuffer]);
+
+  // Dọn timer khi unmount.
+  useEffect(() => () => {
+    if (sseFlushTimerRef.current) clearTimeout(sseFlushTimerRef.current);
+  }, []);
+
   const { status: sseStatusValue, lastUpdate: sseLastUpdate } = useGosafeSSE(
-    applyApiDevices,
+    enqueueSSEDevices,
     true // luôn bật khi component mount
   );
 
@@ -1115,33 +1129,17 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     setSseStatus(sseStatusValue);
   }, [sseStatusValue]);
 
-  // ── Polling fallback — chỉ chạy khi SSE chưa/không kết nối được ─────────────
-  useEffect(() => {
-    // SSE đang hoạt động → không cần poll
-    if (sseStatusValue === 'connected') return;
-
-    // SSE chưa sẵn sàng (connecting/disconnected/unsupported) → dùng polling
-    fetchLiveDevices(); // fetch ngay lập tức
-    const id = setInterval(fetchLiveDevices, syncInterval * 1000);
-    return () => clearInterval(id);
-  }, [fetchLiveDevices, syncInterval, sseStatusValue]);
-
-  // ── Snapshot xác thực 1 lần khi mount (không phụ thuộc SSE) ──────────────────
-  // Bảo đảm full snapshot luôn chạy để dọn thiết bị API/mock mồ côi từ cache,
-  // kể cả khi SSE connect ngay (khiến effect polling phía trên bỏ qua fetch).
+  // ── Nạp 1 LẦN khi mount: gọi list để seed; sau đó dữ liệu real-time đến từ SSE
+  //    /stream (không còn setInterval poll định kỳ). Battery (/latest) và sự kiện
+  //    (/events) cũng chỉ seed 1 lần ban đầu — cập nhật tiếp theo do stream đẩy về.
   const didInitSnapshotRef = useRef(false);
   useEffect(() => {
     if (didInitSnapshotRef.current) return;
     didInitSnapshotRef.current = true;
     fetchLiveDevices();
-  }, [fetchLiveDevices]);
-
-  // ── Poll % pin thật từ BE (/latest) — độc lập với SSE ───────────────────────
-  useEffect(() => {
     pollLatestBattery();
-    const id = setInterval(pollLatestBattery, Math.max(syncInterval, 15) * 1000);
-    return () => clearInterval(id);
-  }, [pollLatestBattery, syncInterval]);
+    pollCriticalEvents();
+  }, [fetchLiveDevices, pollLatestBattery, pollCriticalEvents]);
 
   // ── GPS HISTORY ───────────────────────────────────────────────────────────────
 
@@ -1212,9 +1210,6 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     setScopeRegionId,
     scopeRegions,
     scopedDevices,
-    // device_management/map — tải thiết bị theo khung nhìn bản đồ
-    fetchDevicesInBounds,
-    mapTruncated,
     soundEnabled,
     setSoundEnabled,
     followDevice,

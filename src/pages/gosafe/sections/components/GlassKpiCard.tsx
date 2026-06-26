@@ -28,28 +28,30 @@ export default function GlassKpiCard({ label, value, sub, color, icon, isDark = 
     <Box
       sx={{
         p: 3,
+        pl: 3.5,
         height: '100%',
         borderRadius: '16px',
-        border: `1px solid ${isDark ? `${color}22` : `${color}18`}`,
+        border: `1px solid ${isDark ? `${color}33` : `${color}33`}`,
         background: isDark
-          ? `linear-gradient(135deg, ${color}18 0%, ${color}06 100%), rgba(9,13,31,0.55)`
-          : `linear-gradient(135deg, ${color}0d 0%, ${color}04 100%), rgba(255,255,255,0.75)`,
-        boxShadow: `0 4px 24px ${color}20, 0 1px 0 inset rgba(255,255,255,0.12)`,
+          ? `linear-gradient(135deg, ${color}26 0%, ${color}0a 60%), rgba(9,13,31,0.55)`
+          : `linear-gradient(135deg, ${color}24 0%, ${color}0a 60%), #ffffff`,
+        boxShadow: `0 6px 22px ${color}22, 0 1px 0 inset rgba(255,255,255,0.12)`,
         position: 'relative',
         overflow: 'hidden',
         transition: 'transform 0.25s ease, box-shadow 0.25s ease',
+        // Dải màu nhấn bên trái cho rõ phân loại
         '&::before': {
           content: '""',
           position: 'absolute',
           top: 0,
-          left: '10%',
-          right: '10%',
-          height: '1px',
-          background: `linear-gradient(90deg, transparent, ${color}80, transparent)`
+          bottom: 0,
+          left: 0,
+          width: '4px',
+          background: `linear-gradient(180deg, ${color}, ${color}80)`
         },
         '&:hover': {
           transform: 'translateY(-3px)',
-          boxShadow: `0 12px 40px ${color}30, 0 4px 16px rgba(0,0,0,0.1)`
+          boxShadow: `0 14px 42px ${color}3a, 0 4px 16px rgba(0,0,0,0.1)`
         }
       }}
     >
@@ -80,12 +82,11 @@ export default function GlassKpiCard({ label, value, sub, color, icon, isDark = 
         </Box>
         <Avatar
           sx={{
-            bgcolor: `${color}1a`,
-            color,
+            background: `linear-gradient(135deg, ${color}, ${color}cc)`,
+            color: '#fff',
             width: 52,
             height: 52,
-            border: `1.5px solid ${color}30`,
-            boxShadow: `0 4px 16px ${color}25`,
+            boxShadow: `0 6px 18px ${color}55`,
             flexShrink: 0
           }}
         >

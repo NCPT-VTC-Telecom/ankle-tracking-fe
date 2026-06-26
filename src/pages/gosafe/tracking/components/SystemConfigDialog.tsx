@@ -238,11 +238,6 @@ export default function SystemConfigDialog({ open, onClose, store, primaryColor,
                       control={<Radio size="small" />}
                       label={<Typography variant="body2">Vệ tinh</Typography>}
                     />
-                    <FormControlLabel
-                      value="terrain"
-                      control={<Radio size="small" />}
-                      label={<Typography variant="body2">Địa hình</Typography>}
-                    />
                   </RadioGroup>
                 </Stack>
               </Grid>
