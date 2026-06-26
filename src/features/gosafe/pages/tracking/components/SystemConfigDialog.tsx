@@ -41,14 +41,12 @@ export default function SystemConfigDialog({ open, onClose, store, primaryColor,
     connecting:  'Đang kết nối...',
     connected:   'Đang kết nối',
     disconnected:'Mất kết nối — đang thử lại',
-    unsupported: 'Trình duyệt không hỗ trợ',
   };
   const sseColor: Record<typeof sseStatus, string> = {
     idle:        '#64748b',
     connecting:  '#f59e0b',
     connected:   '#22c55e',
     disconnected:'#ef4444',
-    unsupported: '#ef4444',
   };
 
   // Local settings states (can be backed by local storage or just state-driven mockup for visual mapping)

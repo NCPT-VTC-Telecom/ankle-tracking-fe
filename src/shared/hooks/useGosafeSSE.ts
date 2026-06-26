@@ -1,4 +1,5 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { ApiDevice } from 'shared/api/gosafe.tracking.api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -7,8 +8,7 @@ export type SSEStatus =
   | 'idle'          // chưa khởi động
   | 'connecting'    // đang kết nối lần đầu
   | 'connected'     // đang nhận dữ liệu
-  | 'disconnected'  // mất kết nối, đang chờ reconnect
-  | 'unsupported';  // browser không hỗ trợ EventSource
+  | 'disconnected'; // mất kết nối, đang chờ reconnect
 
 export interface UseGosafeSSEReturn {
   /** Trạng thái kết nối hiện tại */
@@ -30,14 +30,35 @@ export const SSE_URL = `${SSE_BASE}/v1/gps_tracking/stream`;
 const INITIAL_BACKOFF_MS = 1_000;  // 1s lần reconnect đầu
 const MAX_BACKOFF_MS     = 30_000; // tối đa 30s giữa các lần reconnect
 
+/** Lỗi không thể phục hồi (vd 401/403) → dừng retry, không spam server. */
+class FatalSSEError extends Error {}
+
+// ── Parse helper: hỗ trợ các dạng BE có thể trả về ──────────────────
+// Stream push từng device: single object, { data: device }, [ ...devices ]
+const parseDevices = (raw: unknown): ApiDevice[] => {
+  if (Array.isArray(raw)) return raw as ApiDevice[];
+  const r = raw as Record<string, unknown>;
+  if (Array.isArray(r?.data)) return r.data as ApiDevice[];
+  // Batch lồng dưới khoá: { data: { devices: [...] } }
+  if (Array.isArray((r?.data as any)?.devices)) return (r.data as any).devices as ApiDevice[];
+  if (Array.isArray((r as any)?.devices)) return (r as any).devices as ApiDevice[];
+  // Single device: { data: { device_imei } } hoặc { device_imei }
+  if (r?.data && typeof (r.data as any).device_imei === 'string') return [r.data as ApiDevice];
+  if (typeof r?.device_imei === 'string') return [raw as ApiDevice];
+  return [];
+};
+
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 /**
  * Kết nối SSE tới GoSafe backend để nhận vị trí thiết bị real-time.
  *
- * - Tự động reconnect với exponential backoff khi mất kết nối
- * - Tự pause khi tab bị ẩn (visibility hidden), resume khi tab active lại
- * - `onDevices` luôn được gọi qua ref → callback không cần stable reference
+ * Dùng @microsoft/fetch-event-source (fetch + ReadableStream) thay cho native
+ * EventSource — vì native EventSource KHÔNG gửi được header. Ở đây ta đính
+ * `Authorization: Bearer <gosafe_token>` để stream được xác thực (BE mới đẩy
+ * location/id về). Thư viện tự:
+ *  - reconnect (ta điều khiển backoff qua onerror trả về số ms)
+ *  - pause khi tab ẩn + resume bằng Last-Event-ID khi tab hiện lại (openWhenHidden:false)
  *
  * @param onDevices  Callback nhận mảng ApiDevice mỗi khi BE push update
  * @param enabled    Tắt SSE hoàn toàn khi false (dùng khi route unmount)
@@ -53,135 +74,75 @@ export function useGosafeSSE(
   const onDevicesRef = useRef(onDevices);
   onDevicesRef.current = onDevices;
 
-  const enabledRef = useRef(enabled);
-  enabledRef.current = enabled;
-
-  const esRef             = useRef<EventSource | null>(null);
-  const backoffRef        = useRef(INITIAL_BACKOFF_MS);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // ── Helpers ──────────────────────────────────────────────────────────────
-
-  const clearReconnectTimer = useCallback(() => {
-    if (reconnectTimerRef.current) {
-      clearTimeout(reconnectTimerRef.current);
-      reconnectTimerRef.current = null;
-    }
-  }, []);
-
-  const closeEventSource = useCallback(() => {
-    if (esRef.current) {
-      esRef.current.close();
-      esRef.current = null;
-    }
-  }, []);
-
-  const cleanup = useCallback(() => {
-    clearReconnectTimer();
-    closeEventSource();
-  }, [clearReconnectTimer, closeEventSource]);
-
-  // ── Parse helper: hỗ trợ các dạng BE có thể trả về ──────────────────
-  // Stream push từng device: single object, { data: device }, [ ...devices ]
-
-  const parseDevices = (raw: unknown): ApiDevice[] => {
-    if (Array.isArray(raw)) return raw as ApiDevice[];
-    const r = raw as Record<string, unknown>;
-    if (Array.isArray(r?.data)) return r.data as ApiDevice[];
-    // { data: { device_imei: ... } } — wrapped single device
-    if (r?.data && typeof (r.data as any).device_imei === 'string') return [r.data as ApiDevice];
-    // { device_imei: ... } — single device at root
-    if (typeof r?.device_imei === 'string') return [raw as ApiDevice];
-    return [];
-  };
-
-  // ── Connect ───────────────────────────────────────────────────────────────
-
-  const connect = useCallback(() => {
-    if (!enabledRef.current) return;
-
-    if (!window.EventSource) {
-      setStatus('unsupported');
-      return;
-    }
-
-    cleanup();
-    setStatus('connecting');
-
-    const es = new EventSource(SSE_URL, { withCredentials: false });
-    esRef.current = es;
-
-    // ── Kết nối thành công ────────────────────────────────────────────────
-    es.onopen = () => {
-      setStatus('connected');
-      backoffRef.current = INITIAL_BACKOFF_MS; // reset backoff
-    };
-
-    // ── Handler chung — dùng cho cả named event lẫn fallback ─────────────
-    const handleData = (e: MessageEvent) => {
-      try {
-        const devices = parseDevices(JSON.parse(e.data as string));
-        if (devices.length > 0) {
-          onDevicesRef.current(devices);
-          setLastUpdate(new Date());
-        }
-      } catch {
-        // JSON malformed — bỏ qua, không crash
-      }
-    };
-
-    // Named event: BE gửi `event: device-update\ndata: {...}\n\n`
-    es.addEventListener('device-update', handleData);
-
-    // Fallback: BE gửi `data: {...}\n\n` (không có event name)
-    es.onmessage = handleData;
-
-    // ── Lỗi / mất kết nối → reconnect với backoff ────────────────────────
-    es.onerror = () => {
-      closeEventSource();
-      if (!enabledRef.current) return;
-
-      setStatus('disconnected');
-
-      const delay = backoffRef.current;
-      backoffRef.current = Math.min(backoffRef.current * 2, MAX_BACKOFF_MS);
-
-      reconnectTimerRef.current = setTimeout(() => {
-        if (enabledRef.current) connect();
-      }, delay);
-    };
-  }, [cleanup, closeEventSource]);
-
-  // ── Effect chính: start/stop dựa trên enabled + tab visibility ───────────
-
   useEffect(() => {
     if (!enabled) {
-      cleanup();
       setStatus('idle');
       return;
     }
 
-    connect();
+    const ctrl = new AbortController();
+    let backoff = INITIAL_BACKOFF_MS;
+    setStatus('connecting');
 
-    // Pause khi tab ẩn để tiết kiệm tài nguyên server
-    const onVisibilityChange = () => {
-      if (document.hidden) {
-        cleanup();
+    const token = localStorage.getItem('gosafe_token');
+
+    fetchEventSource(SSE_URL, {
+      signal: ctrl.signal,
+      // Tự đóng khi tab ẩn, mở lại (kèm Last-Event-ID) khi tab active → tiết kiệm.
+      openWhenHidden: false,
+      headers: {
+        Accept: 'text/event-stream',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      async onopen(res) {
+        const ct = res.headers.get('content-type') || '';
+        if (res.ok && ct.includes('text/event-stream')) {
+          setStatus('connected');
+          backoff = INITIAL_BACKOFF_MS; // reset backoff khi mở thành công
+          return;
+        }
+        // Token sai/hết hạn → dừng hẳn (xoá token để REST fallback xử lý)
+        if (res.status === 401 || res.status === 403) {
+          try { localStorage.removeItem('gosafe_token'); } catch { /* ignore */ }
+          throw new FatalSSEError(`SSE auth failed (${res.status})`);
+        }
+        throw new Error(`SSE bad response (${res.status})`);
+      },
+      onmessage(ev) {
+        if (!ev.data) return; // bỏ heartbeat/comment ": ping"
+        try {
+          const devices = parseDevices(JSON.parse(ev.data));
+          if (devices.length > 0) {
+            onDevicesRef.current(devices);
+            setLastUpdate(new Date());
+          }
+        } catch {
+          // JSON malformed — bỏ qua, không crash
+        }
+      },
+      onclose() {
+        // Server đóng stream → ném để thư viện gọi onerror và reconnect.
+        throw new Error('SSE closed by server');
+      },
+      onerror(err) {
+        if (err instanceof FatalSSEError) {
+          setStatus('disconnected');
+          throw err; // dừng retry
+        }
         setStatus('disconnected');
-      } else {
-        // Tab active lại → reset backoff và kết nối lại ngay
-        backoffRef.current = INITIAL_BACKOFF_MS;
-        connect();
-      }
-    };
-
-    document.addEventListener('visibilitychange', onVisibilityChange);
+        const delay = backoff;
+        backoff = Math.min(backoff * 2, MAX_BACKOFF_MS);
+        return delay; // reconnect sau `delay` ms (exponential backoff)
+      },
+    }).catch(() => {
+      // bị abort (unmount/disable) hoặc lỗi fatal — không cần xử lý thêm
+    });
 
     return () => {
-      cleanup();
-      document.removeEventListener('visibilitychange', onVisibilityChange);
+      ctrl.abort();
+      setStatus('idle');
     };
-  }, [enabled, connect, cleanup]);
+  }, [enabled]);
 
   return { status, lastUpdate };
 }

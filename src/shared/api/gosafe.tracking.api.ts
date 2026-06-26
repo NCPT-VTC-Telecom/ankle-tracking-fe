@@ -261,9 +261,14 @@ export interface GpsCommandBody {
 }
 
 export const gosafeTrackingApi = {
-  /** GET /v1/gps_tracking/devices — Danh sách thiết bị + vị trí hiện tại */
-  getDevices: (): AxiosPromise<ApiDevicesResponse> =>
-    axiosGosafe({ url: '/v1/gps_tracking/devices', method: 'GET' }),
+  /**
+   * GET /v1/gps_tracking/devices — Danh sách thiết bị + vị trí hiện tại.
+   * BE mặc định limit=20 (paginated) → phải xin limit lớn để seed HẾT thiết bị,
+   * nếu không bản đồ chỉ hiện 20 vị trí đầu. Stream chỉ đẩy delta nên REST là
+   * nguồn snapshot đầy đủ.
+   */
+  getDevices: (limit = 1000): AxiosPromise<ApiDevicesResponse> =>
+    axiosGosafe({ url: '/v1/gps_tracking/devices', method: 'GET', params: { page: 1, limit } }),
 
   /** GET /v1/gps_tracking/device/{imei} — Chi tiết 1 thiết bị + telemetry */
   getDevice: (imei: string): AxiosPromise<any> =>

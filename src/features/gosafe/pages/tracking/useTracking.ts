@@ -975,13 +975,15 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     [addLog, playSOSAlarm, playFiberAlarm, lookupSubject]
   );
 
-  /** Fetch thủ công qua REST — dùng làm fallback polling và nút refresh */
+  /** Fetch thủ công qua REST — seed vị trí TẤT CẢ thiết bị 1 lần + nút refresh */
   const fetchLiveDevices = useCallback(async () => {
     try {
       const res = await gosafeTrackingApi.getDevices();
-      const apiData = res.data;
-      if (apiData?.code !== 0 || !Array.isArray(apiData?.data)) return;
-      applyApiDevices(apiData.data, { fullSnapshot: true });
+      const apiData = res.data as any;
+      if (apiData?.code !== 0) return;
+      // BE trả {data:[...]} HOẶC {data:{devices:[...],meta}} → extractList lo cả hai.
+      const items = extractList(apiData);
+      if (items.length) applyApiDevices(items, { fullSnapshot: true });
     } catch {
       // silently ignore — SSE hoặc lần poll sau sẽ bù lại
     } finally {

@@ -5,9 +5,9 @@ import { useNavigate } from 'react-router-dom';
 import GuestGuard from 'shared/utils/route-guard/GuestGuard';
 import CommonLayout from 'shared/components/layout/CommonLayout';
 import Loadable from 'shared/components/Loadable';
-import GosafeLanding from 'features/gosafe/pages';
 
-// render - login
+// render - login (lazy → tách GoSafe + bản đồ ra khỏi bundle khởi động)
+const GosafeLanding = Loadable(lazy(() => import('features/gosafe/pages')));
 const AuthLogin = Loadable(lazy(() => import('features/auth/pages/auth1/login')));
 const AuthRegister = Loadable(lazy(() => import('features/auth/pages/auth1/register')));
 const AuthForgotPassword = Loadable(lazy(() => import('features/auth/pages/auth1/forgot-password')));

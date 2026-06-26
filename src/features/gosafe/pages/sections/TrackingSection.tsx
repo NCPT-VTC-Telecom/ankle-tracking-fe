@@ -876,7 +876,7 @@ export default function TrackingSection({
                         letterSpacing: -0.2
                       }}
                     >
-                      Giám sát thời gian thực
+                      Trực tuyến
                     </Typography>
                   </Stack>
 

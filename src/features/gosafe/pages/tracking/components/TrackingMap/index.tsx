@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import L from 'leaflet';
-import { Box, Button } from '@mui/material';
+import { Box } from '@mui/material';
 import { MapContainer, TileLayer, ScaleControl } from 'react-leaflet';
-import { Eye } from 'iconsax-react';
 import 'leaflet/dist/leaflet.css';
 import type { TrackingStore } from '../../useTracking';
-import { getPolygonCentroid, getPolygonArea, getPolygonPerimeter, fmtArea, fmtPerimeter } from '../../utils';
+import { getPolygonArea, getPolygonPerimeter, fmtArea, fmtPerimeter } from '../../utils';
 
 import { TILE_URLS, HYBRID_LABELS_URL, type MapLayer } from './components/tileConfig';
-import { MapViewUpdater, MapRefCapture, MapCullController } from './components/MapControllers';
+import { MapViewUpdater, MapRefCapture } from './components/MapControllers';
 import { DeviceMarker } from './components/DeviceMarker';
+import DeviceClusterGroup from './components/DeviceClusterGroup';
 import GeofenceLayer from './components/GeofenceLayer';
 import GeofenceEditHandles from './components/GeofenceEditHandles';
 import HistoryLayer from './components/HistoryLayer';
@@ -23,9 +23,13 @@ interface Props {
 }
 
 /**
- * Container bản đồ theo dõi — chứa state UI + các hàm xử lý, rồi truyền xuống các
- * component con (presentational) trong ./components. Dữ liệu đến từ store (list 1 lần
- * khi mount + SSE /stream), bản đồ chỉ render thành phần trong khu vực đang focus.
+ * Container bản đồ theo dõi — chỉ chứa state UI + các hàm xử lý, rồi truyền xuống
+ * các component con (presentational) trong ./components.
+ *
+ * Kiến trúc DATA vs RENDER:
+ *  - DATA: store giữ ĐỦ thiết bị (REST seed + SSE coalesced) → không bỏ sót → không bug.
+ *  - RENDER: marker được GOM CỤM (DeviceClusterGroup) để nhẹ khi có nhiều thiết bị;
+ *    thiết bị đang chọn / vi phạm được render RỜI để luôn nổi (không bị nuốt vào cụm).
  */
 export default function TrackingMap({ store, hideOverlays = false }: Props) {
   const {
@@ -62,35 +66,20 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
   const [showAccuracyCircles, setShowAccuracyCircles] = useState(false);
   useEffect(() => { setMapLayer(isDark ? 'dark' : 'light'); }, [isDark]);
 
-  // ── Viewport culling (streaming GTA) ──────────────────────────────────────────
-  const [renderBounds, setRenderBounds] = useState<L.LatLngBounds | null>(null);
-  const [viewMoved, setViewMoved] = useState(false);
-  const pendingBoundsRef = useRef<L.LatLngBounds | null>(null);
-  const renderBoundsRef = useRef<L.LatLngBounds | null>(null);
-  useEffect(() => { renderBoundsRef.current = renderBounds; }, [renderBounds]);
-
-  // Vùng render ĐÓNG BĂNG (đổi khi bấm "Xem khu vực này"/lần đầu). Pan/zoom ra ngoài
-  // chỉ bật cờ viewMoved (rẻ) — không re-render marker.
-  const handleViewportChange = useCallback((b: L.LatLngBounds) => {
-    pendingBoundsRef.current = b;
-    const rb = renderBoundsRef.current;
-    if (!rb) { setRenderBounds(b); return; }
-    setViewMoved(!rb.pad(0.3).contains(b));
-  }, []);
-
-  const applyPendingView = useCallback(() => {
-    if (pendingBoundsRef.current) setRenderBounds(pendingBoundsRef.current);
-    setViewMoved(false);
-  }, []);
-
-  const inRender = useCallback(
-    (latlng: [number, number]) => !renderBounds || renderBounds.pad(0.3).contains(latlng),
-    [renderBounds]
+  // ── Chia thiết bị: gom cụm vs render rời ──────────────────────────────────────
+  // Selected / vi phạm → render rời (luôn thấy). Còn lại → gom cụm.
+  const standaloneDevices = useMemo(
+    () => devices.filter((d) => d.id === selectedDeviceId || !!deviceViolations[d.id]),
+    [devices, selectedDeviceId, deviceViolations]
   );
-  const visibleDevices = useMemo(() => devices.filter((d) => inRender(d.coords)), [devices, inRender]);
-  const visibleGeofences = useMemo(
-    () => geofences.filter((g) => g.coordinates.length >= 3 && inRender(getPolygonCentroid(g.coordinates))),
-    [geofences, inRender]
+  const clusteredDevices = useMemo(
+    () => devices.filter((d) => d.id !== selectedDeviceId && !deviceViolations[d.id]),
+    [devices, selectedDeviceId, deviceViolations]
+  );
+  // Vùng cấm vẽ được: đang bật + đủ 3 đỉnh.
+  const drawableGeofences = useMemo(
+    () => geofences.filter((g) => g.active && g.coordinates.length >= 3),
+    [geofences]
   );
 
   const handleSelectDevice = useCallback((id: string) => {
@@ -109,7 +98,8 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
       ...devices.map((d) => L.latLng(d.coords[0], d.coords[1])),
       ...geofences.filter((g) => g.active).flatMap((g) => g.coordinates.map((c) => L.latLng(c[0], c[1]))),
     ];
-    if (pts.length > 0) mapRef.current.fitBounds(L.latLngBounds(pts), { padding: [40, 40], maxZoom: 18 });
+    if (pts.length === 0) return;
+    mapRef.current.fitBounds(L.latLngBounds(pts), { padding: [40, 40], maxZoom: 18 });
   }, [devices, geofences]);
 
   // ── Derived (glass tokens + edit metrics) ─────────────────────────────────────
@@ -124,7 +114,7 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
 
   return (
     <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
-      {/* CSS cho nhãn vùng + tooltip đỉnh */}
+      {/* CSS cho nhãn vùng + tooltip đỉnh + bong bóng cụm */}
       <style>{`
         .gs-gf-label { background: transparent !important; border: none !important; box-shadow: none !important; padding: 2px 4px !important; }
         .gs-gf-label::before { display: none !important; }
@@ -135,6 +125,14 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
           box-shadow: 0 2px 10px rgba(0,0,0,0.35) !important;
         }
         .gs-vtx-tip::before { display: none !important; }
+        .gs-cluster-wrap { background: transparent !important; border: none !important; }
+        .gs-cluster {
+          display: flex; align-items: center; justify-content: center;
+          border-radius: 50%; color: #fff; font-weight: 800; font-size: 13px;
+          font-family: 'Inter var', Inter, sans-serif;
+          border: 3px solid rgba(255,255,255,0.85);
+          box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+        }
       `}</style>
 
       <EditPanel
@@ -173,24 +171,9 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
         />
       )}
 
-      {/* Nút "Xem khu vực này" — khi pan ra ngoài vùng đang render (tiết kiệm RAM) */}
-      {viewMoved && (
-        <Box sx={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 1200 }}>
-          <Button
-            onClick={applyPendingView}
-            startIcon={<Eye size={16} />}
-            variant="contained"
-            sx={{ borderRadius: '999px', fontWeight: 700, fontSize: '0.78rem', px: 2.25, py: 0.6, textTransform: 'none', boxShadow: '0 6px 20px rgba(0,0,0,0.28)', bgcolor: '#2563eb', '&:hover': { bgcolor: '#1d4ed8' } }}
-          >
-            Xem khu vực này
-          </Button>
-        </Box>
-      )}
-
       {/* ═══ MAP ═══ */}
       <MapContainer center={mapCenter} zoom={mapZoom} attributionControl={false} zoomControl={false} style={{ width: '100%', height: '100%' }}>
         <MapRefCapture mapRef={mapRef} />
-        <MapCullController onView={handleViewportChange} />
         <ScaleControl position="bottomright" metric imperial={false} />
 
         <TileLayer key={mapLayer === 'hybrid' ? 'satellite' : mapLayer} url={TILE_URLS[mapLayer]} />
@@ -200,7 +183,7 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
 
         {showGeofences && (
           <GeofenceLayer
-            geofences={visibleGeofences}
+            geofences={drawableGeofences}
             showLabels={showGfLabels}
             editingGeofenceId={editingGeofenceId}
             editPolygonRef={editPolygonRef}
@@ -226,13 +209,24 @@ export default function TrackingMap({ store, hideOverlays = false }: Props) {
         <HistoryLayer devices={devices} historyState={historyState} historyVisible={historyVisible} />
 
         <TrailLayer
-          devices={visibleDevices}
+          devices={devices}
           showTrails={showTrails}
           showAccuracyCircles={showAccuracyCircles}
           deviceViolations={deviceViolations}
         />
 
-        {visibleDevices.map((dev) => (
+        {/* Thiết bị bình thường → gom cụm (nhẹ) */}
+        <DeviceClusterGroup
+          devices={clusteredDevices}
+          selectedDeviceId={selectedDeviceId}
+          deviceViolations={deviceViolations}
+          isDark={isDark}
+          primaryColor={store.primaryColor}
+          onSelect={handleSelectDevice}
+        />
+
+        {/* Thiết bị chọn / vi phạm → render rời, luôn nổi */}
+        {standaloneDevices.map((dev) => (
           <DeviceMarker
             key={dev.id}
             dev={dev}

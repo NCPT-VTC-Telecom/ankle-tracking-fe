@@ -644,8 +644,16 @@ export function mapApiMgmtDeviceToDevice(raw: any, live: Device | undefined, fal
 /** Đọc mảng data an toàn từ response GoSafe (data | data.items). */
 export function extractList(raw: any): any[] {
   if (Array.isArray(raw?.data)) return raw.data;
-  if (Array.isArray(raw?.data?.items)) return raw.data.items;
   if (Array.isArray(raw)) return raw;
+  // data lồng mảng dưới một khoá quen thuộc:
+  // gps_tracking/devices → data.devices; zone/device map → data.zones/devices;
+  // history → data.positions; events → data.events.
+  const d = raw?.data;
+  if (d && typeof d === 'object') {
+    for (const k of ['items', 'devices', 'zones', 'positions', 'events', 'list', 'records']) {
+      if (Array.isArray(d[k])) return d[k];
+    }
+  }
   return [];
 }
 
