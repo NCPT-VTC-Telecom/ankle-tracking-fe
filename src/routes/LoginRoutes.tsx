@@ -2,20 +2,20 @@ import { lazy, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // project-imports
-import GuestGuard from 'utils/route-guard/GuestGuard';
-import CommonLayout from 'layout/CommonLayout';
-import Loadable from 'components/Loadable';
-import GosafeLanding from 'pages/gosafe';
+import GuestGuard from 'shared/utils/route-guard/GuestGuard';
+import CommonLayout from 'shared/components/layout/CommonLayout';
+import Loadable from 'shared/components/Loadable';
+import GosafeLanding from 'features/gosafe/pages';
 
 // render - login
-const AuthLogin = Loadable(lazy(() => import('pages/auth/auth1/login')));
-const AuthRegister = Loadable(lazy(() => import('pages/auth/auth1/register')));
-const AuthForgotPassword = Loadable(lazy(() => import('pages/auth/auth1/forgot-password')));
-const AuthCheckMail = Loadable(lazy(() => import('pages/auth/auth1/check-mail')));
-const AuthResetPassword = Loadable(lazy(() => import('pages/auth/auth1/reset-password')));
-const AuthCodeVerification = Loadable(lazy(() => import('pages/auth/auth1/code-verification')));
+const AuthLogin = Loadable(lazy(() => import('features/auth/pages/auth1/login')));
+const AuthRegister = Loadable(lazy(() => import('features/auth/pages/auth1/register')));
+const AuthForgotPassword = Loadable(lazy(() => import('features/auth/pages/auth1/forgot-password')));
+const AuthCheckMail = Loadable(lazy(() => import('features/auth/pages/auth1/check-mail')));
+const AuthResetPassword = Loadable(lazy(() => import('features/auth/pages/auth1/reset-password')));
+const AuthCodeVerification = Loadable(lazy(() => import('features/auth/pages/auth1/code-verification')));
 
-const Map = Loadable(lazy(() => import('pages/auth/map')));
+const Map = Loadable(lazy(() => import('features/auth/pages/map')));
 
 // ==============================|| AUTH ROUTES ||============================== //
 

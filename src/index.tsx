@@ -21,8 +21,8 @@ import 'assets/third-party/react-table.css';
 import 'antd/dist/reset.css';
 
 // project-imports
-import { ConfigProvider } from 'contexts/ConfigContext';
-import { store } from 'store';
+import { ConfigProvider } from 'shared/contexts/ConfigContext';
+import { store } from 'shared/store';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 

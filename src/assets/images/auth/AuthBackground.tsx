@@ -3,7 +3,7 @@ import { useTheme } from '@mui/material/styles';
 import { Box } from '@mui/material';
 
 // types
-import { ThemeMode } from 'types/config';
+import { ThemeMode } from 'shared/types/config';
 
 // ==============================|| AUTH BLUR BACK SVG ||============================== //
 

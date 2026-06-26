@@ -2,16 +2,16 @@
 import { lazy } from 'react';
 
 // project-imports
-import Loadable from 'components/Loadable';
-import CommonLayout from 'layout/CommonLayout';
-import AuthGuard from 'utils/route-guard/AuthGuard';
+import Loadable from 'shared/components/Loadable';
+import CommonLayout from 'shared/components/layout/CommonLayout';
+import AuthGuard from 'shared/utils/route-guard/AuthGuard';
 
-const MaintenanceError = Loadable(lazy(() => import('pages/maintenance/error/404')));
-const MaintenanceError500 = Loadable(lazy(() => import('pages/maintenance/error/500')));
-const MaintenanceUnderConstruction = Loadable(lazy(() => import('pages/maintenance/under-construction/under-construction')));
-const MaintenanceComingSoon = Loadable(lazy(() => import('pages/maintenance/coming-soon/coming-soon2')));
+const MaintenanceError = Loadable(lazy(() => import('features/maintenance/pages/error/404')));
+const MaintenanceError500 = Loadable(lazy(() => import('features/maintenance/pages/error/500')));
+const MaintenanceUnderConstruction = Loadable(lazy(() => import('features/maintenance/pages/under-construction/under-construction')));
+const MaintenanceComingSoon = Loadable(lazy(() => import('features/maintenance/pages/coming-soon/coming-soon2')));
 
-const GosafeLanding = Loadable(lazy(() => import('pages/gosafe')));
+const GosafeLanding = Loadable(lazy(() => import('features/gosafe/pages')));
 
 // GoSafe-only: bỏ MainLayout + dashboard/statistic (WiFi cũ). Sau đăng nhập điều
 // hướng tới /gosafe/tracking (APP_DEFAULT_PATH).

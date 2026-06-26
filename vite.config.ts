@@ -27,25 +27,28 @@ export default defineConfig(({ mode }) => {
         ],
         resolve: {
             alias: {
-                // Map absolute imports to src directory
+                // Isolated Features structure
+                shared: path.resolve(__dirname, './src/shared'),
+                features: path.resolve(__dirname, './src/features'),
+                // App-level (giữ ở src root)
                 assets: path.resolve(__dirname, './src/assets'),
-                components: path.resolve(__dirname, './src/components'),
-                contexts: path.resolve(__dirname, './src/contexts'),
-                hooks: path.resolve(__dirname, './src/hooks'),
-                layout: path.resolve(__dirname, './src/layout'),
-                'menu-items': path.resolve(__dirname, './src/menu-items'),
-                pages: path.resolve(__dirname, './src/pages'),
                 routes: path.resolve(__dirname, './src/routes'),
-                sections: path.resolve(__dirname, './src/sections'),
-                store: path.resolve(__dirname, './src/store'),
-                themes: path.resolve(__dirname, './src/themes'),
-                types: path.resolve(__dirname, './src/types'),
-                utils: path.resolve(__dirname, './src/utils'),
-                api: path.resolve(__dirname, './src/api'),
                 data: path.resolve(__dirname, './src/data'),
                 config: path.resolve(__dirname, './src/config.ts'),
                 settings: path.resolve(__dirname, './src/settings.ts'),
-                styles: path.resolve(__dirname, './src/styles')
+                styles: path.resolve(__dirname, './src/styles'),
+                // Alias cũ repoint sang vị trí mới (an toàn — import đã rewrite sang shared/features)
+                components: path.resolve(__dirname, './src/shared/components'),
+                contexts: path.resolve(__dirname, './src/shared/contexts'),
+                hooks: path.resolve(__dirname, './src/shared/hooks'),
+                layout: path.resolve(__dirname, './src/shared/components/layout'),
+                'menu-items': path.resolve(__dirname, './src/shared/menu-items'),
+                sections: path.resolve(__dirname, './src/features/auth/sections'),
+                store: path.resolve(__dirname, './src/shared/store'),
+                themes: path.resolve(__dirname, './src/shared/themes'),
+                types: path.resolve(__dirname, './src/shared/types'),
+                utils: path.resolve(__dirname, './src/shared/utils'),
+                api: path.resolve(__dirname, './src/shared/api')
             }
         },
         server: {
