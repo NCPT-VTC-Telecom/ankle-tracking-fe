@@ -44,6 +44,7 @@ const useHandleNotification = ({ initQuery }: NotificationProps) => {
 
   return {
     unreadCount,
+    setUnreadCount,
     notifications: data,
     totalNotification: total,
     totalPages,

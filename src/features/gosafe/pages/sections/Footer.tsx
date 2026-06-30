@@ -82,7 +82,7 @@ const Footer = ({ isDark, primaryColor }: FooterProps) => {
                 <Typography sx={{ color: theme.palette.text.secondary, mt: 2, lineHeight: 1.6, fontSize: '0.95rem' }}>
                   <FormattedMessage
                     id="gosafe-footer-desc"
-                    defaultMessage="Giải pháp quản lý, giám sát tù nhân và các đối tượng theo dõi đặc biệt. Công nghệ tiên tiến, bảo mật cao và hỗ trợ tái hòa nhập cộng đồng."
+                    defaultMessage="Giải pháp quản lý, giám sát người thi hành án và các đối tượng theo dõi đặc biệt. Công nghệ tiên tiến, bảo mật cao và hỗ trợ tái hòa nhập cộng đồng."
                   />
                 </Typography>
               </Box>

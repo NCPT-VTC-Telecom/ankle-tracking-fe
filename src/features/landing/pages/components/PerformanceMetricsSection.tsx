@@ -1,5 +1,5 @@
 import { Box, Container, Grid, Stack, Typography, alpha, keyframes, useTheme } from '@mui/material';
-import { ChartSquare, Diagram, Shield, Wifi } from 'iconsax-react';
+import { ChartSquare, Gps, Routing, Shield } from 'iconsax-react';
 import { FormattedMessage } from 'react-intl';
 
 const float = keyframes`
@@ -22,41 +22,43 @@ const PerformanceMetricsSection = ({ isDark, primaryColor, secondaryColor }: Per
   const borderColor = isDark ? alpha('#fff', 0.1) : alpha('#000', 0.06);
 
   // Data metrics
+  // Mô tả NĂNG LỰC hệ thống (không phải số liệu benchmark bịa). Tránh các con số
+  // không kiểm chứng được (99.9%, <100ms, 50K...) gây "ảo" cho giới thiệu B2G.
   const metrics = [
     {
       labelKey: 'landing.performance.uptime.label',
-      labelDefault: 'Uptime Guarantee',
-      value: '99.9%',
+      labelDefault: 'Giám sát liên tục',
+      value: '24/7',
       descKey: 'landing.performance.uptime.desc',
-      descDefault: 'Hoạt động liên tục',
+      descDefault: 'Theo dõi không gián đoạn',
       icon: <ChartSquare size={28} variant="Bulk" />,
       color: '#22c55e' // Green
     },
     {
       labelKey: 'landing.performance.alert.label',
-      labelDefault: 'Alert Response',
-      value: '< 30s',
+      labelDefault: 'Cảnh báo vi phạm',
+      value: 'Tức thì',
       descKey: 'landing.performance.alert.desc',
-      descDefault: 'Phản hồi sự cố tức thì',
+      descDefault: 'Phát hiện & báo động ngay',
       icon: <Shield size={28} variant="Bulk" />,
       color: primaryColor
     },
     {
       labelKey: 'landing.performance.load.label',
-      labelDefault: 'Dashboard Load',
-      value: '< 100ms',
+      labelDefault: 'Đa công nghệ định vị',
+      value: 'GPS·LBS·WiFi',
       descKey: 'landing.performance.load.desc',
-      descDefault: 'Tốc độ tải trang cực nhanh',
-      icon: <Diagram size={28} variant="Bulk" />,
+      descDefault: 'Chính xác trong & ngoài trời',
+      icon: <Gps size={28} variant="Bulk" />,
       color: secondaryColor
     },
     {
       labelKey: 'landing.performance.users.label',
-      labelDefault: 'Concurrent Users',
-      value: '50K+',
+      labelDefault: 'Mở rộng thiết bị',
+      value: 'Không giới hạn',
       descKey: 'landing.performance.users.desc',
-      descDefault: 'Khả năng chịu tải đồng thời',
-      icon: <Wifi size={28} variant="Bulk" />,
+      descDefault: 'Quy mô lớn, linh hoạt',
+      icon: <Routing size={28} variant="Bulk" />,
       color: '#eab308' // Yellow
     }
   ];
@@ -90,7 +92,7 @@ const PerformanceMetricsSection = ({ isDark, primaryColor, secondaryColor }: Per
               }}
             >
               <Typography variant="caption" sx={{ fontWeight: 700, color: primaryColor, letterSpacing: 1.5, textTransform: 'uppercase' }}>
-                SYSTEM PERFORMANCE
+                <FormattedMessage id="landing.performance.badge" defaultMessage="HIỆU NĂNG HỆ THỐNG" />
               </Typography>
             </Box>
             <Typography

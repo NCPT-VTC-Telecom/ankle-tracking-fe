@@ -1,9 +1,9 @@
-import { Box, Container, Grid, Stack, Typography, alpha, keyframes, useTheme } from '@mui/material';
-import AppStoreBadge from 'assets/icons/app_store_badge.svg?react';
-import GooglePlayBadge from 'assets/icons/google_play_badge.svg?react';
-import appScreenImage from 'assets/images/app-screen.png';
-import { ChartSquare, Location, Map, Mobile, Wifi } from 'iconsax-react';
+import { Box, Button, Container, Grid, Stack, Typography, alpha, keyframes, useTheme } from '@mui/material';
+import { ArrowRight, ChartSquare, Location, Map, Mobile, Notification } from 'iconsax-react';
 import { FormattedMessage } from 'react-intl';
+
+// Ảnh GoSafe thật (màn hình giám sát) hiển thị trong khung điện thoại.
+const appScreenImage = '/images/Live-Monitoring---Offender-Tracking-System.png';
 
 // --- Animations ---
 const float = keyframes`
@@ -36,10 +36,10 @@ const MobileAppSection = ({ isDark, primaryColor, secondaryColor }: MobileAppSec
   const borderColor = isDark ? alpha('#fff', 0.1) : alpha('#000', 0.08);
 
   const features = [
-    { icon: <Location variant="Bold" />, titleKey: 'landing.mobileapp.features.indoor.title', titleDefault: 'Định vị Indoor', descKey: 'landing.mobileapp.features.indoor.desc', descDefault: 'Chính xác tới từng mét' },
-    { icon: <Wifi variant="Bold" />, titleKey: 'landing.mobileapp.features.wifi.title', titleDefault: 'Quản lý WiFi', descKey: 'landing.mobileapp.features.wifi.desc', descDefault: 'Cấu hình từ xa' },
-    { icon: <ChartSquare variant="Bold" />, titleKey: 'landing.mobileapp.features.analytics.title', titleDefault: 'Real-time Analytics', descKey: 'landing.mobileapp.features.analytics.desc', descDefault: 'Báo cáo trực quan' },
-    { icon: <Map variant="Bold" />, titleKey: 'landing.mobileapp.features.map.title', titleDefault: 'Bản đồ thiết bị', descKey: 'landing.mobileapp.features.map.desc', descDefault: 'Hiển thị vị trí AP & client trực quan' }
+    { icon: <Location variant="Bold" />, titleKey: 'landing.mobileapp.features.indoor.title', titleDefault: 'Định vị thời gian thực', descKey: 'landing.mobileapp.features.indoor.desc', descDefault: 'Chính xác tới từng mét' },
+    { icon: <Notification variant="Bold" />, titleKey: 'landing.mobileapp.features.wifi.title', titleDefault: 'Cảnh báo tức thì', descKey: 'landing.mobileapp.features.wifi.desc', descDefault: 'Nhận thông báo vi phạm' },
+    { icon: <ChartSquare variant="Bold" />, titleKey: 'landing.mobileapp.features.analytics.title', titleDefault: 'Báo cáo nhanh', descKey: 'landing.mobileapp.features.analytics.desc', descDefault: 'Thống kê trực quan' },
+    { icon: <Map variant="Bold" />, titleKey: 'landing.mobileapp.features.map.title', titleDefault: 'Bản đồ đối tượng', descKey: 'landing.mobileapp.features.map.desc', descDefault: 'Hiển thị vị trí đối tượng trực quan' }
   ];
 
   return (
@@ -107,7 +107,7 @@ const MobileAppSection = ({ isDark, primaryColor, secondaryColor }: MobileAppSec
                 <Typography sx={{ color: theme.palette.text.secondary, fontSize: '1.1rem', lineHeight: 1.6, maxWidth: '90%' }}>
                   <FormattedMessage
                     id="landing.mobileapp.description"
-                    defaultMessage="VTC Digital Map mang đến bản đồ số thông minh kết hợp các tiện ích trong sân bay, giúp bạn định vị, giám sát và trải nghiệm mọi thứ một cách trực quan và nhanh chóng."
+                    defaultMessage="Ứng dụng GoSafe dành cho cán bộ giám sát: theo dõi vị trí đối tượng, nhận cảnh báo vi phạm tức thì và tra cứu hồ sơ ngay trên điện thoại, mọi lúc mọi nơi."
                   />
                 </Typography>
               </Box>
@@ -168,46 +168,34 @@ const MobileAppSection = ({ isDark, primaryColor, secondaryColor }: MobileAppSec
                   }
                 }}
               >
-                {/* Left: Text Call to Action */}
+                {/* Left: Text Call to Action — ứng dụng cấp theo đơn vị (B2G), không phát hành công khai */}
                 <Box>
                   <Typography variant="subtitle1" fontWeight={700} sx={{ color: theme.palette.text.primary, lineHeight: 1.2 }}>
-                    <FormattedMessage id="landing.mobileapp.download" defaultMessage="Tải xuống ngay" />
+                    <FormattedMessage id="landing.mobileapp.download" defaultMessage="Ứng dụng cán bộ GoSafe" />
                   </Typography>
                   <Typography variant="caption" sx={{ color: theme.palette.text.secondary, display: 'block', mt: 0.5 }}>
-                    <FormattedMessage id="landing.mobileapp.available" defaultMessage="Có sẵn trên iOS & Android" />
+                    <FormattedMessage id="landing.mobileapp.available" defaultMessage="Cấp tài khoản theo đơn vị triển khai" />
                   </Typography>
                 </Box>
 
-                {/* Right: Store Buttons */}
-                <Stack direction="row" spacing={2}>
-                  <Box
-                    component="a"
-                    href="https://apps.apple.com/vn/app/vtc-digital-map/id6748637796"
-                    target="_blank"
-                    sx={{
-                      height: 48,
-                      transition: 'transform 0.2s',
-                      '&:hover': { transform: 'scale(1.05)' },
-                      '&:active': { transform: 'scale(0.95)' }
-                    }}
-                  >
-                    <AppStoreBadge style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                  </Box>
-
-                  <Box
-                    component="a"
-                    href="https://play.google.com/store/apps/details?id=com.vtcdigitalmap"
-                    target="_blank"
-                    sx={{
-                      height: 48,
-                      transition: 'transform 0.2s',
-                      '&:hover': { transform: 'scale(1.05)' },
-                      '&:active': { transform: 'scale(0.95)' }
-                    }}
-                  >
-                    <GooglePlayBadge style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                  </Box>
-                </Stack>
+                {/* Right: Liên hệ để được cấp ứng dụng */}
+                <Button
+                  href="#contact"
+                  variant="contained"
+                  endIcon={<ArrowRight size={18} />}
+                  sx={{
+                    flexShrink: 0,
+                    px: 3,
+                    py: 1.25,
+                    borderRadius: '12px',
+                    fontWeight: 700,
+                    textTransform: 'none',
+                    background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                    boxShadow: `0 8px 20px ${alpha(primaryColor, 0.3)}`
+                  }}
+                >
+                  <FormattedMessage id="landing.contact.title" defaultMessage="Liên hệ tư vấn" />
+                </Button>
               </Box>
             </Stack>
           </Grid>
@@ -264,7 +252,7 @@ const MobileAppSection = ({ isDark, primaryColor, secondaryColor }: MobileAppSec
               <Box
                 component="img"
                 src={appScreenImage}
-                alt="App Screen"
+                alt="Ứng dụng GoSafe - màn hình giám sát đối tượng"
                 sx={{
                   width: '100%',
                   height: '100%',
@@ -282,12 +270,12 @@ const MobileAppSection = ({ isDark, primaryColor, secondaryColor }: MobileAppSec
               />
             </Box>
 
-            {/* Floating Stat Card 1 (Top Right) */}
+            {/* Floating Stat Card (Bottom Left) — chỉ báo trạng thái trực tuyến, không số liệu bịa */}
             <Box
               sx={{
                 position: 'absolute',
-                top: '15%',
-                right: 0,
+                bottom: '20%',
+                left: { xs: 60, md: 30 },
                 p: 2,
                 borderRadius: 3,
                 bgcolor: cardBg,
@@ -301,49 +289,15 @@ const MobileAppSection = ({ isDark, primaryColor, secondaryColor }: MobileAppSec
                 gap: 1.5
               }}
             >
-              <Box sx={{ p: 1, borderRadius: '50%', bgcolor: '#FFD700', color: '#000' }}>
-                <Typography variant="caption" fontWeight={800}>
-                  4.9
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" display="block" lineHeight={1} color="text.secondary">
-                  <FormattedMessage id="landing.mobileapp.stat.rating" defaultMessage="Rating" />
-                </Typography>
-                <Typography variant="subtitle2" fontWeight={700}>
-                  <FormattedMessage id="landing.mobileapp.stat.excellent" defaultMessage="Excellent" />
-                </Typography>
-              </Box>
-            </Box>
-
-            {/* Floating Stat Card 2 (Bottom Left) */}
-            <Box
-              sx={{
-                position: 'absolute',
-                bottom: '20%',
-                left: { xs: 60, md: 30 },
-                p: 2,
-                borderRadius: 3,
-                bgcolor: cardBg,
-                backdropFilter: 'blur(12px)',
-                border: `1px solid ${borderColor}`,
-                boxShadow: `0 15px 30px ${alpha('#000', 0.1)}`,
-                zIndex: 3,
-                animation: `${float} 5s ease-in-out infinite delay-1s`,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5
-              }}
-            >
               <Box sx={{ p: 1, borderRadius: '12px', bgcolor: alpha(primaryColor, 0.1), color: primaryColor }}>
-                <ChartSquare size={20} variant="Bold" />
+                <Location size={20} variant="Bold" />
               </Box>
               <Box>
                 <Typography variant="caption" display="block" lineHeight={1} color="text.secondary">
-                  <FormattedMessage id="landing.mobileapp.stat.activeusers" defaultMessage="Active Users" />
+                  <FormattedMessage id="landing.mobileapp.features.indoor.title" defaultMessage="Định vị thời gian thực" />
                 </Typography>
                 <Typography variant="subtitle2" fontWeight={700}>
-                  50K+
+                  <FormattedMessage id="landing.mobileapp.stat.online" defaultMessage="Trực tuyến" />
                 </Typography>
               </Box>
             </Box>

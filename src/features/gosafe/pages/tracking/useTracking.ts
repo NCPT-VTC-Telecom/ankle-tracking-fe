@@ -107,6 +107,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
   const [tick, setTick] = useState(0);
   const [syncInterval, setSyncInterval] = useState<number>(30);
   const [sseStatus, setSseStatus] = useState<SSEStatus>('idle');
+  const [sseReconnectNonce, setSseReconnectNonce] = useState(0); // tăng để buộc mở lại stream (nút "Thử lại")
   const [criticalAlerts, setCriticalAlerts] = useState<CriticalAlert[]>([]);
   // Dedup cho SOS/fiber lấy từ API events: id sự kiện đã xử lý + cờ lần poll đầu.
   const seenCriticalEventsRef = useRef<Set<string>>(new Set());
@@ -577,8 +578,9 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
         deviceCode: f.name,
         imei: f.uniqueId,
         deviceType: f.deviceType,
-        phoneNumber: f.phoneNumber,
-        ...(f.regionId ? { regionId: f.regionId } : {})
+        ...(f.regionId ? { regionId: f.regionId } : {}),
+        ...(f.simId ? { simId: Number(f.simId) } : {}),
+        ...(f.providerId ? { providerId: Number(f.providerId) } : {})
       })
       .catch(() =>
         addLog(`Không tạo được thiết bị "${f.name}" trên máy chủ (lưu cục bộ).`, 'warning')
@@ -652,7 +654,8 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
         deviceCode: f.name,
         imei: f.uniqueId,
         deviceType: f.deviceType,
-        phoneNumber: f.phoneNumber
+        ...(f.simId ? { simId: Number(f.simId) } : {}),
+        ...(f.providerId ? { providerId: Number(f.providerId) } : {})
       })
       .catch(() =>
         addLog(`Không đồng bộ được thiết bị "${f.name}" lên máy chủ (lưu cục bộ).`, 'warning')
@@ -669,6 +672,8 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
       color: dev.color,
       assignedGeofenceId: dev.assignedGeofenceId,
       regionId: null,
+      simId: null,
+      providerId: null,
       subjectFullName: dev.subject?.fullName ?? '',
       subjectIdNumber: dev.subject?.idNumber ?? '',
       subjectCrime: dev.subject?.crime ?? '',
@@ -1123,8 +1128,21 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
 
   const { status: sseStatusValue, lastUpdate: sseLastUpdate } = useGosafeSSE(
     enqueueSSEDevices,
-    true // luôn bật khi component mount
+    true, // luôn bật khi component mount
+    sseReconnectNonce // đổi giá trị → hook mở lại stream
   );
+
+  /**
+   * Thử lại kết nối thủ công (nút "Thử lại" ở DeviceList khi mất kết nối/timeout):
+   * nạp lại snapshot REST và buộc SSE mở lại stream mới.
+   */
+  const retryConnection = useCallback(() => {
+    setDevicesLoaded(false);
+    fetchLiveDevices();
+    pollLatestBattery();
+    pollCriticalEvents();
+    setSseReconnectNonce((n) => n + 1);
+  }, [fetchLiveDevices, pollLatestBattery, pollCriticalEvents]);
 
   // Sync SSE status vào state để UI có thể hiển thị indicator
   useEffect(() => {
@@ -1225,6 +1243,7 @@ export function useTracking(isDark: boolean, primaryColor: string, secondaryColo
     setSyncInterval,
     sseStatus,
     sseLastUpdate,
+    retryConnection,
     criticalAlerts,
     dismissCriticalAlert,
     dismissAllCriticalAlerts,

@@ -30,7 +30,9 @@ import {
   Buildings2,
   Calendar,
   Refresh,
-  DocumentText
+  DocumentText,
+  Simcard,
+  Home2
 } from 'iconsax-react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -58,6 +60,8 @@ import UserManagement from './components/UserManagement';
 import RegionManagement from './components/RegionManagement';
 import AuditLogManagement from './components/AuditLogManagement';
 import ComplianceManagement from './components/ComplianceManagement';
+import SimManagement from './components/SimManagement';
+import ProviderManagement from './components/ProviderManagement';
 
 interface TrackingSectionProps {
   isDark: boolean;
@@ -66,12 +70,14 @@ interface TrackingSectionProps {
 }
 
 // Các view chỉ dành cho superadmin (quản trị hệ thống: thiết bị, SIM/NCC, địa bàn, người dùng).
-const SUPER_ONLY_VIEWS = ['devices', 'regions', 'users', 'audit'] as const;
+const SUPER_ONLY_VIEWS = ['devices', 'sim', 'providers', 'regions', 'users', 'audit'] as const;
 
 type DashboardView =
   | 'overview'
   | 'tracking'
   | 'devices'
+  | 'sim'
+  | 'providers'
   | 'prisoners'
   | 'alerts'
   | 'users'
@@ -82,6 +88,8 @@ const VALID_VIEWS: DashboardView[] = [
   'overview',
   'tracking',
   'devices',
+  'sim',
+  'providers',
   'prisoners',
   'alerts',
   'users',
@@ -195,6 +203,8 @@ export default function TrackingSection({
   const VIEW_META: Record<string, { crumb: string; title: string }> = {
     overview: { crumb: 'Tổng quan', title: 'Tổng quan hệ thống' },
     devices: { crumb: 'Quản lý thiết bị', title: 'Thông tin các thiết bị' },
+    sim: { crumb: 'Quản lý SIM', title: 'Quản lý SIM' },
+    providers: { crumb: 'Nhà cung cấp', title: 'Nhà cung cấp / nhà mạng' },
     prisoners: { crumb: 'Thông tin phạm nhân', title: 'Hồ sơ giám sát phạm nhân' },
     alerts: { crumb: 'Quản lý cảnh báo', title: 'Trung tâm cảnh báo' },
     compliance: { crumb: 'Lịch trình bắt buộc', title: 'Quy tắc tuân thủ & lịch bắt buộc' },
@@ -447,6 +457,18 @@ export default function TrackingSection({
                     label: 'Quản lý thiết bị',
                     icon: <Cpu size={19} variant="Bold" />,
                     superOnly: true
+                  },
+                  {
+                    id: 'sim' as const,
+                    label: 'Quản lý SIM',
+                    icon: <Simcard size={19} variant="Bold" />,
+                    superOnly: true
+                  },
+                  {
+                    id: 'providers' as const,
+                    label: 'Nhà cung cấp / nhà mạng',
+                    icon: <Buildings2 size={19} variant="Bold" />,
+                    superOnly: true
                   }
                 ]
               },
@@ -494,58 +516,72 @@ export default function TrackingSection({
                   boxShadow: '10px 0 40px rgba(0,0,0,0.15)'
                 }}
               >
-                {/* ── Sidebar Header: Logo & Title ── */}
-                <Stack
-                  direction="row"
-                  spacing={1.5}
-                  alignItems="center"
-                  sx={{
-                    px: 3,
-                    py: 2.5,
-                    borderBottom: `1px solid ${glassBorder}`,
-                    background: 'rgba(0, 0, 0, 0.1)'
-                  }}
-                >
-                  <Box
-                    component="img"
-                    src={logoVTC}
-                    alt="VTC Telecom"
+                {/* ── Sidebar Header: Logo & Title (bấm để về Trang giới thiệu) ── */}
+                <Tooltip title="Về Trang giới thiệu" placement="right">
+                  <Stack
+                    direction="row"
+                    spacing={1.5}
+                    alignItems="center"
+                    onClick={() => navigate('/gosafe')}
                     sx={{
-                      height: 32,
-                      width: 'auto',
-                      objectFit: 'contain',
-                      filter: 'brightness(0) invert(1)'
+                      px: 3,
+                      py: 2.5,
+                      cursor: 'pointer',
+                      borderBottom: `1px solid ${glassBorder}`,
+                      background: 'rgba(0, 0, 0, 0.1)',
+                      transition: 'background 0.2s',
+                      '&:hover': { background: 'rgba(0, 0, 0, 0.2)' },
+                      '&:hover .gs-home-icon': { opacity: 1 }
                     }}
-                  />
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography
+                  >
+                    <Box
+                      component="img"
+                      src={logoVTC}
+                      alt="VTC Telecom"
                       sx={{
-                        fontFamily: '"Inter", sans-serif',
-                        fontWeight: 700, // Inter Bold bình thường
-                        fontSize: '1.05rem',
-                        color: '#ffffff',
-                        lineHeight: 1.2,
-                        letterSpacing: '0.02em'
+                        height: 32,
+                        width: 'auto',
+                        objectFit: 'contain',
+                        filter: 'brightness(0) invert(1)'
                       }}
-                    >
-                      Hệ thống
-                    </Typography>
-                    <Typography
-                      sx={{
-                        fontFamily: '"Inter", sans-serif',
-                        fontWeight: 600,
-                        fontSize: '0.72rem',
-                        color: 'rgba(255, 255, 255, 0.6)',
-                        lineHeight: 1.1,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        mt: 0.2
-                      }}
-                    >
-                      Giám sát Điện tử EMS
-                    </Typography>
-                  </Box>
-                </Stack>
+                    />
+                    <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+                      <Typography
+                        sx={{
+                          fontFamily: '"Inter", sans-serif',
+                          fontWeight: 700, // Inter Bold bình thường
+                          fontSize: '1.05rem',
+                          color: '#ffffff',
+                          lineHeight: 1.2,
+                          letterSpacing: '0.02em'
+                        }}
+                      >
+                        Hệ thống
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontFamily: '"Inter", sans-serif',
+                          fontWeight: 600,
+                          fontSize: '0.72rem',
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          lineHeight: 1.1,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          mt: 0.2
+                        }}
+                      >
+                        Giám sát Điện tử EMS
+                      </Typography>
+                    </Box>
+                    <Home2
+                      size={18}
+                      color="#ffffff"
+                      variant="Bold"
+                      className="gs-home-icon"
+                      style={{ opacity: 0.45, transition: 'opacity 0.2s', flexShrink: 0 }}
+                    />
+                  </Stack>
+                </Tooltip>
 
                 {/* ── Nav Sections & Items ── */}
                 <Box
@@ -1339,6 +1375,16 @@ export default function TrackingSection({
                     setDashboardView={setDashboardView}
                     refreshKey={refreshKey}
                   />
+                )}
+
+                {/* ═══ QUẢN LÝ SIM (super-only) ═══════════════════════════════ */}
+                {dashboardView === 'sim' && isSuperAdmin && (
+                  <SimManagement isDark={isDark} isSuperAdmin={isSuperAdmin} refreshKey={refreshKey} />
+                )}
+
+                {/* ═══ NHÀ CUNG CẤP / NHÀ MẠNG (super-only) ═══════════════════ */}
+                {dashboardView === 'providers' && isSuperAdmin && (
+                  <ProviderManagement isDark={isDark} isSuperAdmin={isSuperAdmin} refreshKey={refreshKey} />
                 )}
 
                 {/* ═══ VIEW 4: PRISONER HOSIER (SUBJECTS TABLE) ══════════════════════ */}

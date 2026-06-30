@@ -31,7 +31,19 @@
       "PowerShell(npx tsc --noEmit -p tsconfig.json 2>&1)",
       "Bash(node -e \"const i=require\\('iconsax-react'\\); console.log\\('Send2:', !!i.Send2, 'CloseCircle:', !!i.CloseCircle\\)\")",
       "Bash(node -e \"const i=require\\('iconsax-react'\\); console.log\\('Send2:', !!i.Send2, 'CloseCircle:', !!i.CloseCircle, 'Send:', !!i.Send\\)\")",
-      "WebFetch(domain:tkshcm.edu.vn)"
+      "WebFetch(domain:tkshcm.edu.vn)",
+      "Bash(python -c \"import openpyxl; print\\('ok'\\)\")",
+      "Bash(node -e \"console.log\\(require\\('xlsx'\\) ? 'xlsx-ok':'no'\\)\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('name',p.name\\); console.log\\('scripts',JSON.stringify\\(p.scripts,null,1\\)\\); console.log\\('deps',Object.keys\\(p.dependencies||{}\\).join\\(', '\\)\\);\")",
+      "Bash(grep -rn \"max\\\\|cap\\\\|\\\\\\\\+\\\\|99\" \"F:\\\\Code\\\\ankle-tracking-fe\\\\src\\\\shared\\\\components\\\\layout\\\\MainLayout\\\\Header\\\\HeaderContent\\\\Notification.tsx\")",
+      "Bash(node \"C:\\\\Users\\\\PC-01\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\F--Code-ankle-tracking-fe\\\\e3ee43da-75c1-440f-aec4-2667b564c30d\\\\scratchpad\\\\rewrite-landing-i18n.js\")",
+      "Bash(node \"C:\\\\Users\\\\PC-01\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\F--Code-ankle-tracking-fe\\\\e3ee43da-75c1-440f-aec4-2667b564c30d\\\\scratchpad\\\\gen-checklist.js\")",
+      "Bash(cd \"F:\\\\Code\\\\ankle-tracking-fe\" && node \"C:\\\\Users\\\\PC-01\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\F--Code-ankle-tracking-fe\\\\e3ee43da-75c1-440f-aec4-2667b564c30d\\\\scratchpad\\\\gen-checklist.js\" && ls -la \"F:/Code/GoSafe_Checklist_Updated_2026-06-29.xlsx\")",
+      "Bash(npx eslint *)",
+      "Bash(grep -E '\\\\.\\(tsx|ts\\)$|prettier|warning|error' \"C:\\\\Users\\\\PC-01\\\\.claude\\\\projects\\\\F--Code-ankle-tracking-fe\\\\e3ee43da-75c1-440f-aec4-2667b564c30d\\\\tool-results\\\\bozg7kjkw.txt\")",
+      "Bash(awk '/DeviceList.tsx$/{f=1} f&&/prettier/{print \"DeviceList:\",$1} /TrackingSection.tsx$/{f=0}' \"C:\\\\Users\\\\PC-01\\\\.claude\\\\projects\\\\F--Code-ankle-tracking-fe\\\\e3ee43da-75c1-440f-aec4-2667b564c30d\\\\tool-results\\\\bozg7kjkw.txt\")",
+      "Bash(rm -f src/assets/images/airport.png src/assets/images/hotel.png src/assets/images/retail.png src/assets/images/office.png src/assets/images/education.png src/assets/images/dashboard.png src/assets/images/dashboard-dark.png src/assets/images/app-screen.png src/assets/icons/app_store_badge.svg src/assets/icons/google_play_badge.svg)",
+      "Bash(rm -rf src/assets/images/logos)"
     ]
   }
 }

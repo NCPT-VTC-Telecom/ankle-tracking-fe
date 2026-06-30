@@ -60,7 +60,7 @@ const FAQSection = ({ faqs, isDark, primaryColor, secondaryColor }: FAQSectionPr
               }}
             >
               <Typography variant="caption" sx={{ fontWeight: 700, color: primaryColor, letterSpacing: 1.5, textTransform: 'uppercase' }}>
-                SUPPORT
+                <FormattedMessage id="landing.faq.badge" defaultMessage="HỎI ĐÁP" />
               </Typography>
             </Box>
             <Typography
@@ -78,7 +78,7 @@ const FAQSection = ({ faqs, isDark, primaryColor, secondaryColor }: FAQSectionPr
             <Typography sx={{ color: theme.palette.text.secondary, fontSize: '1.1rem', maxWidth: 600 }}>
               <FormattedMessage
                 id="landing.faq.subtitle"
-                defaultMessage="Tìm câu trả lời nhanh cho các thắc mắc phổ biến về WiFi Digital."
+                defaultMessage="Giải đáp những thắc mắc phổ biến nhất về GoSafe."
               />
             </Typography>
           </Stack>

@@ -130,6 +130,8 @@ export const EMPTY_DEVICE_FORM: DeviceFormState = {
   color: DEVICE_PALETTE[2],
   assignedGeofenceId: null,
   regionId: null,
+  simId: null,
+  providerId: null,
   subjectFullName: '',
   subjectIdNumber: '',
   subjectCrime: '',

@@ -3,7 +3,7 @@ import useConfig from 'shared/hooks/useConfig';
 import { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { ThemeMode } from 'shared/types/config';
-import { benefits, comparisonData, faqs, features, integrations, useCases } from './data';
+import { benefits, comparisonData, faqs, features, useCases } from './data';
 
 // Components
 import BenefitsSection from './components/BenefitsSection';
@@ -14,14 +14,11 @@ import FadeInWhenVisible from './components/FadeInWhenVisible';
 import FeaturesSection from './components/FeaturesSection';
 import Footer from './components/Footer';
 import HeroSection from './components/HeroSection';
-import IntegrationsSection from './components/IntegrationsSection';
 import MobileAppSection from './components/MobileAppSection';
 import NavigationBar from './components/NavigationBar';
 import PerformanceMetricsSection from './components/PerformanceMetricsSection';
 import SecurityCertificationsSection from './components/SecurityCertificationsSection';
 import SolutionsSection from './components/SolutionsSection';
-import TrustBar from './components/TrustBar';
-import VideoDemoSection from './components/VideoDemoSection';
 
 const LandingPage = () => {
   const { onChangeMode, mode, onChangeLocalization, i18n } = useConfig();
@@ -102,18 +99,18 @@ const LandingPage = () => {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Helmet>
-        <title>WiFi Digital - Giải pháp quản lý WiFi toàn diện cho doanh nghiệp</title>
+        <title>GoSafe - Hệ thống giám sát người thi hành án bằng vòng đeo điện tử | VTC Telecom</title>
         <meta
           name="description"
-          content="Nền tảng quản lý WiFi Marketing, định vị indoor và analytics hàng đầu Việt Nam. Tối ưu vận hành, gia tăng doanh thu cho khách sạn, bán lẻ, văn phòng."
+          content="GoSafe của VTC Telecom - giải pháp giám sát người thi hành án bằng vòng đeo điện tử (GPS/LBS/WiFi). Định vị thời gian thực, cảnh báo vi phạm vùng giám sát và chống tháo gỡ."
         />
-        <meta name="keywords" content="wifi marketing, wifi management, indoor positioning, wifi analytics, vtc telecom" />
-        <meta property="og:title" content="WiFi Digital - Giải pháp quản lý WiFi toàn diện" />
-        <meta property="og:description" content="Nền tảng quản lý WiFi Marketing, định vị indoor và analytics hàng đầu Việt Nam." />
-        <meta property="og:image" content="https://wifi.vtctelecom.com.vn/share-image.jpg" />
-        <meta property="og:url" content="https://wifi.vtctelecom.com.vn" />
+        <meta name="keywords" content="GoSafe, vòng đeo điện tử, giám sát người thi hành án, giám sát điện tử, định vị GPS, electronic monitoring, vtc telecom" />
+        <meta property="og:title" content="GoSafe - Hệ thống giám sát người thi hành án bằng vòng đeo điện tử" />
+        <meta property="og:description" content="Giải pháp giám sát người thi hành án bằng vòng đeo điện tử của VTC Telecom: định vị thời gian thực, cảnh báo vi phạm và chống tháo gỡ." />
+        <meta property="og:image" content="https://www.vtctelecom.com.vn/images/deffiles/viLogo.png" />
+        <meta property="og:url" content="https://gosafe.vtctelecom.com.vn" />
         <meta name="twitter:card" content="summary_large_image" />
-        <link rel="canonical" href="https://wifi.vtctelecom.com.vn" />
+        <link rel="canonical" href="https://gosafe.vtctelecom.com.vn" />
       </Helmet>
 
       <Box sx={{ bgcolor: theme.palette.background.default, minHeight: '100vh', overflowX: 'hidden' }}>
@@ -137,15 +134,7 @@ const LandingPage = () => {
         <HeroSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
 
         <FadeInWhenVisible>
-          <TrustBar isDark={isDark} primaryColor={primaryColor} />
-        </FadeInWhenVisible>
-
-        <FadeInWhenVisible>
           <FeaturesSection features={features} isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
-        </FadeInWhenVisible>
-
-        <FadeInWhenVisible>
-          <IntegrationsSection integrations={integrations} isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
         </FadeInWhenVisible>
 
         <FadeInWhenVisible>
@@ -163,10 +152,6 @@ const LandingPage = () => {
             primaryColor={primaryColor}
             secondaryColor={secondaryColor}
           />
-        </FadeInWhenVisible>
-
-        <FadeInWhenVisible>
-          <VideoDemoSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
         </FadeInWhenVisible>
 
         <FadeInWhenVisible>

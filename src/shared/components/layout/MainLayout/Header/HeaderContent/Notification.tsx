@@ -44,7 +44,7 @@ const NotificationPage = () => {
   const [pageIndex, setPageIndex] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  const { queryNotification, fetchNotification, loadingNotification, notifications, unreadCount, setDataNotification } =
+  const { queryNotification, fetchNotification, loadingNotification, notifications, unreadCount, setUnreadCount, setDataNotification } =
     useHandleNotification({
       initQuery: {
         page: 1,
@@ -80,11 +80,27 @@ const NotificationPage = () => {
     }
   }, [pageIndex, loadingNotification, hasMore, loadNotifications]);
 
+  // Đánh dấu tất cả thông báo (đang tải) là đã đọc. BE hiện chỉ có read(id) → gọi song song
+  // cho từng mục chưa đọc, rồi cập nhật state + đưa badge về 0. (Có thể thay bằng endpoint
+  // bulk khi BE bổ sung để chính xác cả các mục chưa nạp.)
+  const handleMarkAllRead = async () => {
+    const unread = notifications.filter((item) => !item.is_read);
+    if (unread.length === 0) return;
+    try {
+      await Promise.all(unread.map((item) => notificationApi.read(item.id, { is_read: true })));
+      setDataNotification((prev) => prev.map((item) => ({ ...item, is_read: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const handleNotificationClick = async (notification: NotificationDataInterface) => {
     try {
       await notificationApi.read(notification.id, { is_read: true });
 
-      // Update state local
+      // Update state local + giảm badge nếu mục này trước đó chưa đọc
+      if (!notification.is_read) setUnreadCount((prev) => Math.max(0, prev - 1));
       setDataNotification((prev) => prev.map((item) => (item.id === notification.id ? { ...item, is_read: true } : item)));
 
       navigate(notification.navigate_url);
@@ -132,6 +148,7 @@ const NotificationPage = () => {
     <Box sx={{ flexShrink: 0 }}>
       <Badge
         badgeContent={unreadCount}
+        max={99}
         color="error"
         sx={{
           '& .MuiBadge-badge': {
@@ -197,7 +214,12 @@ const NotificationPage = () => {
                     <Typography variant="h5">
                       <FormattedMessage id="notifications" />
                     </Typography>
-                    <Typography variant="h6" className="hover:text-primary cursor-pointer hover:underline hover:text-[#4680ff]">
+                    <Typography
+                      variant="h6"
+                      onClick={handleMarkAllRead}
+                      className="hover:text-primary cursor-pointer hover:underline hover:text-[#4680ff]"
+                      sx={{ opacity: unreadCount > 0 ? 1 : 0.5, pointerEvents: unreadCount > 0 ? 'auto' : 'none' }}
+                    >
                       <FormattedMessage id="mark-all-read" />
                     </Typography>
                   </Stack>

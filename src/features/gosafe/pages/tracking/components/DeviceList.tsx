@@ -15,11 +15,14 @@ import {
   Grid,
   CircularProgress
 } from '@mui/material';
-import { Add, Edit, Trash, DocumentText, Gps, Clock, Flash, Lock1, BatteryFull, Activity } from 'iconsax-react';
+import { Add, Edit, Trash, DocumentText, Gps, Clock, Flash, Lock1, BatteryFull, Activity, Refresh, Warning2 } from 'iconsax-react';
 import { getBatteryColor, timeAgo, getMockBiometrics, translateCrime } from '../utils';
 import type { TrackingStore } from '../useTracking';
 import PaginationBar, { usePagination } from '../../components/PaginationBar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+
+// Sau ngần này ms vẫn còn "đang kết nối" → coi là quá hạn, hiện cảnh báo + nút thử lại.
+const CONNECT_TIMEOUT_MS = 20_000;
 
 interface Props {
   store: TrackingStore;
@@ -44,12 +47,34 @@ export default function DeviceList({ store }: Props) {
     setSubjectDetailId,
     setAddDeviceOpen,
     sseStatus,
-    devicesLoaded
+    devicesLoaded,
+    retryConnection
   } = store;
 
   const fontFamily = '"Inter", sans-serif';
   // Loading khi: chưa tải xong API lần đầu HOẶC SSE đang kết nối.
   const connecting = !devicesLoaded || sseStatus === 'idle' || sseStatus === 'connecting';
+  const disconnected = sseStatus === 'disconnected';
+
+  // Timeout: nếu vẫn "đang kết nối" quá lâu → coi như lỗi, cho người dùng thử lại thủ công
+  // thay vì để spinner quay vô hạn.
+  const [connectTimedOut, setConnectTimedOut] = useState(false);
+  useEffect(() => {
+    if (!connecting) {
+      setConnectTimedOut(false);
+      return;
+    }
+    const t = setTimeout(() => setConnectTimedOut(true), CONNECT_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [connecting]);
+
+  const handleRetry = () => {
+    setConnectTimedOut(false);
+    retryConnection?.();
+  };
+
+  // Hiển thị trạng thái lỗi (có nút thử lại) khi: mất kết nối HOẶC kết nối quá hạn.
+  const showError = disconnected || (connecting && connectTimedOut);
 
   // Phân trang để gọn khi nhiều thiết bị (scale 100+). Chọn thiết bị → tự nhảy tới trang chứa nó.
   const { page, setPage, total, totalPages, paged } = usePagination(filteredDevices, DEVICE_PAGE_SIZE);
@@ -88,17 +113,61 @@ export default function DeviceList({ store }: Props) {
         Thêm thiết bị mới
       </Button>
 
-      {/* Chỉ báo kết nối thời gian thực — luôn hiển thị để người dùng biết app đang chạy */}
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 0.5 }}>
-        {connecting ? (
-          <CircularProgress size={12} thickness={6} />
-        ) : (
-          <Box className={sseStatus === 'connected' ? 'gs-live-dot' : undefined} sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: sseStatus === 'connected' ? '#22c55e' : '#94a3b8' }} />
-        )}
-        <Typography sx={{ fontFamily, fontSize: '0.72rem', fontWeight: 700, color: connecting ? '#3b82f6' : sseStatus === 'connected' ? '#22c55e' : 'text.secondary' }}>
-          {connecting ? 'Đang kết nối máy chủ…' : sseStatus === 'connected' ? 'Trực tuyến · cập nhật thời gian thực' : 'Ngoại tuyến · đang thử lại'}
-        </Typography>
-      </Stack>
+      {/* Chỉ báo kết nối thời gian thực — luôn hiển thị để người dùng biết app đang chạy.
+          Khi mất kết nối / kết nối quá hạn → hiện cảnh báo kèm nút "Thử lại" thủ công. */}
+      {showError ? (
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          spacing={1}
+          sx={{
+            px: 1,
+            py: 0.75,
+            borderRadius: '12px',
+            border: '1px solid',
+            borderColor: isDark ? 'rgba(239,68,68,0.3)' : '#fecaca',
+            bgcolor: isDark ? 'rgba(239,68,68,0.06)' : '#fef2f2'
+          }}
+        >
+          <Stack direction="row" alignItems="center" spacing={0.75} sx={{ minWidth: 0 }}>
+            <Warning2 size={15} color="#ef4444" variant="Bold" />
+            <Typography noWrap sx={{ fontFamily, fontSize: '0.72rem', fontWeight: 700, color: '#ef4444' }}>
+              {connecting ? 'Kết nối máy chủ quá lâu' : 'Mất kết nối máy chủ'}
+            </Typography>
+          </Stack>
+          <Button
+            size="small"
+            onClick={handleRetry}
+            startIcon={<Refresh size={14} />}
+            sx={{
+              flexShrink: 0,
+              minWidth: 0,
+              px: 1.25,
+              py: 0.25,
+              fontFamily,
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              borderRadius: '8px',
+              color: '#ef4444',
+              '&:hover': { bgcolor: 'rgba(239,68,68,0.1)' }
+            }}
+          >
+            Thử lại
+          </Button>
+        </Stack>
+      ) : (
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 0.5 }}>
+          {connecting ? (
+            <CircularProgress size={12} thickness={6} />
+          ) : (
+            <Box className={sseStatus === 'connected' ? 'gs-live-dot' : undefined} sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: sseStatus === 'connected' ? '#22c55e' : '#94a3b8' }} />
+          )}
+          <Typography sx={{ fontFamily, fontSize: '0.72rem', fontWeight: 700, color: connecting ? '#3b82f6' : '#22c55e' }}>
+            {connecting ? 'Đang kết nối máy chủ…' : 'Trực tuyến · cập nhật thời gian thực'}
+          </Typography>
+        </Stack>
+      )}
 
       {paged.map((dev) => {
         const isViolating = deviceViolations[dev.id];
@@ -617,12 +686,28 @@ export default function DeviceList({ store }: Props) {
       })}
 
       {filteredDevices.length === 0 && (
-        connecting ? (
+        connecting && !connectTimedOut ? (
           <Stack alignItems="center" spacing={1.25} sx={{ mt: 4 }}>
             <CircularProgress size={26} />
             <Typography align="center" color="text.secondary" variant="body2" sx={{ fontFamily, fontSize: '0.9rem' }}>
               Đang kết nối & tải thiết bị…
             </Typography>
+          </Stack>
+        ) : showError ? (
+          <Stack alignItems="center" spacing={1.5} sx={{ mt: 4 }}>
+            <Warning2 size={28} color="#ef4444" variant="Bold" />
+            <Typography align="center" color="text.secondary" variant="body2" sx={{ fontFamily, fontSize: '0.9rem' }}>
+              Không tải được danh sách thiết bị.
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleRetry}
+              startIcon={<Refresh size={16} />}
+              sx={{ fontFamily, fontWeight: 700, borderRadius: '12px', textTransform: 'none' }}
+            >
+              Thử lại
+            </Button>
           </Stack>
         ) : (
           <Typography align="center" color="text.secondary" variant="body2" sx={{ fontFamily, mt: 4, fontSize: '0.9rem' }}>

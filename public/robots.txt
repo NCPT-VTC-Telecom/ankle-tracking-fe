@@ -1,6 +1,13 @@
-# robots.txt for Ankle Tracker - VTC Telecom
+# robots.txt for GoSafe - VTC Telecom
 User-agent: *
-Allow: /
+Allow: /$
+Allow: /index.html
+
+# Khu vực quản trị: không cho lập chỉ mục
+Disallow: /login
+Disallow: /dashboard
+Disallow: /gosafe
+Disallow: /admin
 
 # Sitemap location
-Sitemap: https://wifi.vtctelecom.com.vn/sitemap.xml
+Sitemap: https://gosafe.vtctelecom.com.vn/sitemap.xml

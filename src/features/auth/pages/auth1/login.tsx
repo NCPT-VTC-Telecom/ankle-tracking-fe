@@ -398,8 +398,8 @@ const Login = () => {
                   {/* Contact widgets */}
                   <Stack direction="row" spacing={1.5} justifyContent="center">
                     {[
-                      { label: 'Hotline', value: '1800 xxx xxx', color: ACCENT, icon: <Call size={15} variant="Bold" color={ACCENT} /> },
-                      { label: 'Email', value: 'support@gosafe', color: PRIMARY, icon: <Sms size={15} variant="Bold" color={PRIMARY} /> },
+                      { label: 'Hotline', value: '(84.28) 38331106', color: ACCENT, icon: <Call size={15} variant="Bold" color={ACCENT} /> },
+                      { label: 'Email', value: 'gosafe@vtctelecom.com.vn', color: PRIMARY, icon: <Sms size={15} variant="Bold" color={PRIMARY} /> },
                       { label: 'Hỗ trợ', value: '24/7', color: '#10b981', icon: <Clock size={15} variant="Bold" color="#10b981" /> }
                     ].map((item) => (
                       <Box

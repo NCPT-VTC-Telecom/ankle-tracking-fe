@@ -18,7 +18,7 @@ import {
   useTheme
 } from '@mui/material';
 import { Global, HambergerMenu, Moon, Sun1 } from 'iconsax-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FormattedMessage } from 'react-intl';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import settings from 'settings'; // Đảm bảo import đúng
@@ -33,11 +33,12 @@ interface NavigationBarProps {
 }
 
 const NavigationBar = ({ isDark, primaryColor, secondaryColor, currentLang, onToggleTheme, onToggleLanguage }: NavigationBarProps) => {
-  console.log({ currentLang });
   const theme = useTheme();
   const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Mục nav tương ứng section đang hiển thị (highlight active khi cuộn) — LP-18.
+  const [activeSection, setActiveSection] = useState<string>('');
 
   const trigger = useScrollTrigger({
     disableHysteresis: true,
@@ -54,6 +55,26 @@ const NavigationBar = ({ isDark, primaryColor, secondaryColor, currentLang, onTo
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
+
+  // Theo dõi section đang trong khung nhìn để highlight mục nav tương ứng.
+  useEffect(() => {
+    const ids = ['features', 'solutions', 'benefits', 'contact'];
+    const sections = ids.map((id) => document.getElementById(id)).filter((el): el is HTMLElement => el != null);
+    if (sections.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) setActiveSection(visible[0].target.id);
+      },
+      // Vùng kích hoạt nằm quanh giữa màn hình để chọn section "đang xem".
+      { rootMargin: '-45% 0px -50% 0px', threshold: 0 }
+    );
+    sections.forEach((s) => observer.observe(s));
+    return () => observer.disconnect();
+  }, []);
 
   // --- HÀM XỬ LÝ SCROLL MƯỢT ---
   const handleScrollToSection = (e: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>, href: string) => {
@@ -118,25 +139,30 @@ const NavigationBar = ({ isDark, primaryColor, secondaryColor, currentLang, onTo
       </Box>
       <Divider sx={{ borderColor: borderColor }} />
       <List>
-        {navItems.map((item) => (
-          <ListItemButton
-            key={item.href}
-            component="a"
-            href={item.href}
-            onClick={(e) => handleScrollToSection(e, item.href)}
-            sx={{
-              textAlign: 'center',
-              py: 2,
-              borderRadius: 2,
-              '&:hover': { bgcolor: alpha(primaryColor, 0.05), color: primaryColor }
-            }}
-          >
-            <ListItemText
-              primary={<FormattedMessage id={item.labelKey} defaultMessage={item.defaultLabel} />}
-              primaryTypographyProps={{ fontWeight: 600, fontSize: '1rem' }}
-            />
-          </ListItemButton>
-        ))}
+        {navItems.map((item) => {
+          const isActive = activeSection === item.href.substring(1);
+          return (
+            <ListItemButton
+              key={item.href}
+              component="a"
+              href={item.href}
+              onClick={(e) => handleScrollToSection(e, item.href)}
+              sx={{
+                textAlign: 'center',
+                py: 2,
+                borderRadius: 2,
+                color: isActive ? primaryColor : 'inherit',
+                bgcolor: isActive ? alpha(primaryColor, 0.05) : 'transparent',
+                '&:hover': { bgcolor: alpha(primaryColor, 0.05), color: primaryColor }
+              }}
+            >
+              <ListItemText
+                primary={<FormattedMessage id={item.labelKey} defaultMessage={item.defaultLabel} />}
+                primaryTypographyProps={{ fontWeight: isActive ? 700 : 600, fontSize: '1rem' }}
+              />
+            </ListItemButton>
+          );
+        })}
       </List>
 
       <Box sx={{ mt: 'auto', p: 2 }}>
@@ -212,30 +238,35 @@ const NavigationBar = ({ isDark, primaryColor, secondaryColor, currentLang, onTo
                   borderColor: borderColor // Border này cố định nên không giật
                 }}
               >
-                {navItems.map((item) => (
-                  <Button
-                    key={item.href}
-                    href={item.href}
-                    onClick={(e) => handleScrollToSection(e, item.href)}
-                    sx={{
-                      color: theme.palette.text.secondary,
-                      fontSize: '0.9rem',
-                      fontWeight: 600,
-                      textTransform: 'none',
-                      px: 2.5,
-                      py: 0.8,
-                      borderRadius: '50px',
-                      transition: 'all 0.2s',
-                      '&:hover': {
-                        color: theme.palette.text.primary,
-                        bgcolor: isDark ? alpha(primaryColor, 0.2) : '#fff',
-                        boxShadow: isDark ? 'none' : `0 2px 10px ${alpha('#000', 0.05)}`
-                      }
-                    }}
-                  >
-                    <FormattedMessage id={item.labelKey} defaultMessage={item.defaultLabel} />
-                  </Button>
-                ))}
+                {navItems.map((item) => {
+                  const isActive = activeSection === item.href.substring(1);
+                  return (
+                    <Button
+                      key={item.href}
+                      href={item.href}
+                      onClick={(e) => handleScrollToSection(e, item.href)}
+                      sx={{
+                        color: isActive ? primaryColor : theme.palette.text.secondary,
+                        fontSize: '0.9rem',
+                        fontWeight: isActive ? 700 : 600,
+                        textTransform: 'none',
+                        px: 2.5,
+                        py: 0.8,
+                        borderRadius: '50px',
+                        transition: 'all 0.2s',
+                        bgcolor: isActive ? (isDark ? alpha(primaryColor, 0.2) : '#fff') : 'transparent',
+                        boxShadow: isActive && !isDark ? `0 2px 10px ${alpha('#000', 0.05)}` : 'none',
+                        '&:hover': {
+                          color: isActive ? primaryColor : theme.palette.text.primary,
+                          bgcolor: isDark ? alpha(primaryColor, 0.2) : '#fff',
+                          boxShadow: isDark ? 'none' : `0 2px 10px ${alpha('#000', 0.05)}`
+                        }
+                      }}
+                    >
+                      <FormattedMessage id={item.labelKey} defaultMessage={item.defaultLabel} />
+                    </Button>
+                  );
+                })}
               </Stack>
             )}
 

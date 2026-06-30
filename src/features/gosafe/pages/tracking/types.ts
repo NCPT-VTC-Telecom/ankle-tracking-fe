@@ -97,6 +97,10 @@ export type DeviceFormState = {
   assignedGeofenceId: string | null;
   /** Địa bàn hành chính (region) quản lý thiết bị */
   regionId: string | null;
+  /** SIM gắn vào thiết bị (chọn từ kho SIM) */
+  simId: string | null;
+  /** Nhà cung cấp / nhà mạng — suy ra từ SIM đã chọn */
+  providerId: string | null;
   subjectFullName: string;
   subjectIdNumber: string;
   subjectCrime: string;

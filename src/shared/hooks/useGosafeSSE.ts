@@ -60,12 +60,15 @@ const parseDevices = (raw: unknown): ApiDevice[] => {
  *  - reconnect (ta điều khiển backoff qua onerror trả về số ms)
  *  - pause khi tab ẩn + resume bằng Last-Event-ID khi tab hiện lại (openWhenHidden:false)
  *
- * @param onDevices  Callback nhận mảng ApiDevice mỗi khi BE push update
- * @param enabled    Tắt SSE hoàn toàn khi false (dùng khi route unmount)
+ * @param onDevices       Callback nhận mảng ApiDevice mỗi khi BE push update
+ * @param enabled         Tắt SSE hoàn toàn khi false (dùng khi route unmount)
+ * @param reconnectNonce  Tăng giá trị này để buộc mở lại stream thủ công (nút "Thử lại").
+ *                        Hữu ích khi đã rơi vào FatalSSEError (vd token mới sau khi đăng nhập lại).
  */
 export function useGosafeSSE(
   onDevices: (devices: ApiDevice[]) => void,
   enabled = true,
+  reconnectNonce = 0,
 ): UseGosafeSSEReturn {
   const [status, setStatus]         = useState<SSEStatus>('idle');
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -142,7 +145,7 @@ export function useGosafeSSE(
       ctrl.abort();
       setStatus('idle');
     };
-  }, [enabled]);
+  }, [enabled, reconnectNonce]);
 
   return { status, lastUpdate };
 }

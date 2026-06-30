@@ -1,8 +1,9 @@
 import { Box, Button, Container, Stack, Typography, alpha, keyframes } from '@mui/material';
-import dashboardImage from 'assets/images/dashboard.png';
-import dashboardImageDark from 'assets/images/dashboard-dark.png';
-import { ArrowRight, Chart, Clock, ShieldSecurity, TickCircle, Wifi } from 'iconsax-react';
+import { ArrowRight, Chart, Clock, Gps, ShieldSecurity, TickCircle } from 'iconsax-react';
 import { FormattedMessage } from 'react-intl';
+
+// Ảnh GoSafe thật (màn hình giám sát thời gian thực) — đặt trong public/images.
+const heroImage = '/images/Live-Monitoring---Offender-Tracking-System.png';
 
 // Props
 interface HeroSectionProps {
@@ -28,17 +29,17 @@ const HeroSection = ({ isDark, primaryColor, secondaryColor }: HeroSectionProps)
   const features = [
     {
       icon: <TickCircle size="20" variant="Bold" />,
-      text: <FormattedMessage id="landing.hero.stats.enterprises" defaultMessage="50+ Doanh nghiệp" />
+      text: <FormattedMessage id="landing.hero.stats.enterprises" defaultMessage="Cơ quan tin dùng" />
     },
-    { icon: <Wifi size="20" variant="Bold" />, text: <FormattedMessage id="landing.hero.stats.aps" defaultMessage="5,000+ APs" /> },
+    { icon: <Gps size="20" variant="Bold" />, text: <FormattedMessage id="landing.hero.stats.aps" defaultMessage="Định vị thời gian thực" /> },
     {
       icon: <Clock size="20" variant="Bold" />,
-      text: <FormattedMessage id="landing.hero.stats.deployment" defaultMessage="Triển khai 48h" />
+      text: <FormattedMessage id="landing.hero.stats.deployment" defaultMessage="Triển khai nhanh" />
     },
-    { icon: <ShieldSecurity size="20" variant="Bold" />, text: <FormattedMessage id="landing.hero.stats.iso" defaultMessage="ISO 27001" /> },
+    { icon: <ShieldSecurity size="20" variant="Bold" />, text: <FormattedMessage id="landing.hero.stats.iso" defaultMessage="Bảo mật chuẩn ISO" /> },
     {
       icon: <Chart size="20" variant="Bold" />,
-      text: <FormattedMessage id="landing.hero.stats.reports" defaultMessage="Báo cáo Realtime" />
+      text: <FormattedMessage id="landing.hero.stats.reports" defaultMessage="Cảnh báo tức thì" />
     }
   ];
 
@@ -88,7 +89,7 @@ const HeroSection = ({ isDark, primaryColor, secondaryColor }: HeroSectionProps)
               maxWidth: '900px'
             }}
           >
-            <FormattedMessage id="landing.hero.title" defaultMessage="WiFi Digital Platform" />
+            <FormattedMessage id="landing.hero.title" defaultMessage="Hệ thống Giám sát Thi hành án Điện tử" />
           </Typography>
 
           {/* Description */}
@@ -104,7 +105,7 @@ const HeroSection = ({ isDark, primaryColor, secondaryColor }: HeroSectionProps)
           >
             <FormattedMessage
               id="landing.hero.description"
-              defaultMessage="Hệ thống WiFi Digital cho doanh nghiệp: quản lý 5,000+ thiết bị, theo dõi người dùng real-time, tăng 300% hiệu quả marketing, tối ưu chi phí vận hành."
+              defaultMessage="GoSafe của VTC Telecom — giải pháp giám sát người thi hành án bằng vòng đeo điện tử (GPS/LBS/WiFi). Định vị thời gian thực, cảnh báo vi phạm vùng giám sát và chống tháo gỡ."
             />
           </Typography>
 
@@ -205,8 +206,8 @@ const HeroSection = ({ isDark, primaryColor, secondaryColor }: HeroSectionProps)
             {/* Ảnh chính */}
             <Box
               component="img"
-              src={isDark ? dashboardImageDark : dashboardImage}
-              alt="Dashboard Preview"
+              src={heroImage}
+              alt="GoSafe - Màn hình giám sát thời gian thực"
               sx={{
                 width: '100%',
                 borderRadius: '24px',

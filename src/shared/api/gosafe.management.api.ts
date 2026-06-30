@@ -374,6 +374,36 @@ export const complianceApi = {
     axiosGosafe({ url: '/v1/compliance_management/delete', method: 'POST', params: { id } })
 };
 
+// ─── NHÀ CUNG CẤP / NHÀ MẠNG (provider_management) ─────────────────────────────
+
+export const providersApi = {
+  list: (params?: ListParams): AxiosPromise<GosafePaginated<any>> =>
+    axiosGosafe({ url: '/v1/provider_management/list', method: 'GET', params }),
+  detail: (id: string | number): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/provider_management/detail', method: 'GET', params: { id } }),
+  create: (body: any): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/provider_management/create', method: 'POST', data: body }),
+  update: (id: string | number, body: any): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/provider_management/update', method: 'POST', params: { id }, data: body }),
+  delete: (id: string | number): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/provider_management/delete', method: 'POST', params: { id } })
+};
+
+// ─── QUẢN LÝ SIM (sim_management) ──────────────────────────────────────────────
+
+export const simsApi = {
+  list: (params?: ListParams): AxiosPromise<GosafePaginated<any>> =>
+    axiosGosafe({ url: '/v1/sim_management/list', method: 'GET', params }),
+  detail: (id: string | number): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/sim_management/detail', method: 'GET', params: { id } }),
+  create: (body: any): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/sim_management/create', method: 'POST', data: body }),
+  update: (id: string | number, body: any): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/sim_management/update', method: 'POST', params: { id }, data: body }),
+  delete: (id: string | number): AxiosPromise<GosafeSingle<any>> =>
+    axiosGosafe({ url: '/v1/sim_management/delete', method: 'POST', params: { id } })
+};
+
 // ─── CHECK-IN (Điểm danh) ──────────────────────────────────────────────────────
 
 export const checkinApi = {

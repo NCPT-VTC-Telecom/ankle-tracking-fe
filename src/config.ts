@@ -18,7 +18,7 @@ export const HEADER_HEIGHT = 74;
 
 const config: DefaultConfigProps = {
   fontFamily: `Inter var`,
-  i18n: 'en',
+  i18n: 'vi',
   menuOrientation: MenuOrientation.VERTICAL,
   menuCaption: true,
   miniDrawer: false,

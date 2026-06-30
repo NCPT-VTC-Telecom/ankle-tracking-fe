@@ -37,7 +37,7 @@ interface PrisonerForm {
   releaseDate: string;     // yyyy-mm-dd
   address: string;
   imei: string;            // để gán thiết bị
-  geofenceIds: string[];   // vùng giám sát gán cho phạm nhân
+  geofenceIds: string[];   // vùng giám sát gán cho người thi hành án
 }
 
 const EMPTY_FORM: PrisonerForm = {
@@ -82,6 +82,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
   const { devices, deviceViolations, setSelectedDeviceId, geofences } = store;
   const primaryColor = store.primaryColor;
   const { confirm, notify } = useFeedback();
+  const fontFamily = '"Inter", sans-serif';
 
   const [mgmtDevices, setMgmtDevices] = useState<any[]>([]); // device_management (imei→id, offenderId)
   const [prisonerSearch, setPrisonerSearch] = useState('');
@@ -103,13 +104,13 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
     return () => clearTimeout(t);
   }, [prisonerSearch]);
 
-  // Server-side: chỉ tải đúng 1 trang phạm nhân theo tìm kiếm (không load hết 200 rồi cắt).
+  // Server-side: chỉ tải đúng 1 trang người thi hành án theo tìm kiếm (không load hết 200 rồi cắt).
   const fetcher = useCallback(async (page: number, pageSize: number) => {
     try {
       const res = await offendersApi.list({ page, pageSize, filters: debouncedSearch || undefined });
       return { items: extractList(res.data), total: extractTotal(res.data) };
     } catch {
-      notify('Không tải được danh sách phạm nhân từ máy chủ.', 'error');
+      notify('Không tải được danh sách người thi hành án từ máy chủ.', 'error');
       return { items: [] as any[], total: 0 };
     }
   }, [debouncedSearch, notify]);
@@ -154,7 +155,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
     });
   }, [offenders, devices, deviceViolations]);
 
-  // Thiết bị device_management chưa gán phạm nhân (offenderId null) — để gán mới.
+  // Thiết bị device_management chưa gán người thi hành án (offenderId null) — để gán mới.
   const freeMgmtDevices = useMemo(
     () => mgmtDevices.filter((d) => !d.offenderId && d.imei),
     [mgmtDevices]
@@ -188,7 +189,9 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
   };
 
   const handleSubmit = async () => {
-    if (!form.fullName.trim()) { notify('Vui lòng nhập họ tên phạm nhân.', 'error'); return; }
+    if (!form.fullName.trim()) { notify('Vui lòng nhập họ tên người thi hành án.', 'error'); return; }
+    // CCCD (nếu nhập) phải đúng 12 chữ số.
+    if (form.idNumber && !/^\d{12}$/.test(form.idNumber.trim())) { notify('CCCD phải gồm đúng 12 chữ số.', 'error'); return; }
     // Validate theo BLHS 2015 (Thông tư 65/2019).
     const err = validateSentence(form.sentenceType, form.startDate, form.releaseDate);
     if (err) { notify(err, 'error'); return; }
@@ -229,14 +232,14 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
         );
       }
 
-      notify(form.id ? 'Đã cập nhật phạm nhân.' : 'Đã thêm phạm nhân.', 'success');
+      notify(form.id ? 'Đã cập nhật người thi hành án.' : 'Đã thêm người thi hành án.', 'success');
       setDrawerOpen(false);
       setForm(EMPTY_FORM);
       reload();
       loadMgmt();
       store.fetchLiveDevices?.();
     } catch {
-      notify('Lưu phạm nhân thất bại trên máy chủ.', 'error');
+      notify('Lưu người thi hành án thất bại trên máy chủ.', 'error');
     } finally {
       setSaving(false);
     }
@@ -244,7 +247,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
 
   const handleDelete = async (row: PrisonerRow) => {
     const ok = await confirm({
-      title: 'Xóa phạm nhân',
+      title: 'Xóa người thi hành án',
       message: <>Xóa hồ sơ <b>{row.fullName}</b>? Hành động không thể hoàn tác.</>,
       confirmText: 'Xóa', tone: 'danger'
     });
@@ -252,9 +255,9 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
     try {
       await offendersApi.delete(row.id);
       reload();
-      notify('Đã xóa phạm nhân.', 'success');
+      notify('Đã xóa người thi hành án.', 'success');
     } catch {
-      notify('Xóa phạm nhân thất bại.', 'error');
+      notify('Xóa người thi hành án thất bại.', 'error');
     }
   };
 
@@ -279,7 +282,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
         <Stack direction="row" spacing={1.5} alignItems="center">
           <TextField
             size="small"
-            placeholder="Tìm phạm nhân, CCCD, mã hồ sơ..."
+            placeholder="Tìm người thi hành án, CCCD, mã hồ sơ..."
             value={prisonerSearch}
             onChange={(e) => setPrisonerSearch(e.target.value)}
             InputProps={{
@@ -302,81 +305,308 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
           variant="contained" startIcon={<Add size={20} />} onClick={openAdd}
           sx={{ fontWeight: 700, textTransform: 'none', fontSize: '0.9rem', borderRadius: '12px', py: 1.2, px: 2.5, background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, boxShadow: `0 4px 16px ${primaryColor}40`, '&:hover': { boxShadow: `0 6px 24px ${primaryColor}50` } }}
         >
-          Thêm phạm nhân
+          Thêm người thi hành án
         </Button>
       </Stack>
 
       {/* ── Card view ── */}
       {viewMode === 'cards' && (
-        <Grid container spacing={2.5}>
+        <Grid container spacing={3}>
           {paged.map((row) => {
             const color = row.device?.color ?? primaryColor;
             const alertColor = statusColorOf(row);
+
             return (
               <Grid item xs={12} sm={6} lg={4} key={row.id}>
-                <Box sx={{ borderRadius: '12px', border: `1px solid ${color}22`, background: isDark ? 'rgba(9,13,31,0.72)' : 'rgba(255,255,255,0.88)', backdropFilter: glassBlur, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', overflow: 'hidden', transition: 'transform 0.25s, box-shadow 0.25s', '&:hover': { transform: 'translateY(-3px)', boxShadow: `0 12px 36px ${color}28`, borderColor: color } }}>
-                  <Box sx={{ px: 2.25, pt: 2.25, pb: 2, background: `linear-gradient(135deg, ${color}18 0%, transparent 70%)`, borderBottom: `1px solid ${color}18` }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5}>
-                      <Chip label={row.profileCode || 'PN'} size="small" sx={{ height: 20, fontSize: '0.68rem', fontWeight: 700, borderRadius: '6px', bgcolor: `${color}15`, color, border: `1px solid ${color}30` }} />
-                      <Chip label={statusLabelOf(row)} size="small" className={row.violation ? 'gs-blink' : ''} sx={{ height: 20, fontSize: '0.68rem', fontWeight: 700, borderRadius: '6px', bgcolor: `${alertColor}12`, color: alertColor, border: `1px solid ${alertColor}30` }} />
+                <Box
+                  sx={{
+                    borderRadius: '16px',
+                    border: '1px solid',
+                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+                    background: isDark ? 'rgba(15, 23, 42, 0.65)' : '#ffffff',
+                    backdropFilter: glassBlur,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+                    overflow: 'hidden',
+                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 12px 36px ${color}22`,
+                      borderColor: color
+                    }
+                  }}
+                >
+                  {/* Card Header Section */}
+                  <Box
+                    sx={{
+                      px: 2.5,
+                      pt: 2.5,
+                      pb: 2,
+                      background: `linear-gradient(135deg, ${color}12 0%, transparent 80%)`,
+                      borderBottom: '1px solid',
+                      borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9'
+                    }}
+                  >
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.75}>
+                      <Chip
+                        label={row.profileCode || 'PN'}
+                        size="small"
+                        sx={{
+                          height: 22,
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          fontFamily,
+                          borderRadius: '8px',
+                          bgcolor: `${color}12`,
+                          color,
+                          border: `1px solid ${color}25`
+                        }}
+                      />
+                      <Chip
+                        label={statusLabelOf(row)}
+                        size="small"
+                        className={row.violation ? 'gs-blink' : ''}
+                        sx={{
+                          height: 22,
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          fontFamily,
+                          borderRadius: '8px',
+                          bgcolor: `${alertColor}12`,
+                          color: alertColor,
+                          border: `1px solid ${alertColor}25`
+                        }}
+                      />
                     </Stack>
-                    <Stack direction="row" spacing={1.75} alignItems="center">
-                      <Avatar sx={{ width: 44, height: 44, bgcolor: color, fontWeight: 700, fontSize: '1.05rem', flexShrink: 0 }}>
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <Avatar
+                        sx={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: '14px',
+                          bgcolor: color,
+                          fontWeight: 700,
+                          fontSize: '1.1rem',
+                          fontFamily,
+                          flexShrink: 0
+                        }}
+                      >
                         {row.fullName.split(' ').slice(-1)[0]?.charAt(0) ?? '?'}
                       </Avatar>
-                      <Box>
-                        <Typography variant="body1" sx={{ fontWeight: 700, color: isDark ? '#f1f5f9' : '#0f172a', lineHeight: 1.3 }}>{row.fullName}</Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>CCCD: {row.idNumber || '—'}</Typography>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            fontWeight: 700,
+                            color: isDark ? '#f8fafc' : '#0f172a',
+                            lineHeight: 1.3,
+                            fontFamily,
+                            fontSize: '1.05rem'
+                          }}
+                        >
+                          {row.fullName}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{
+                            fontSize: '0.8rem',
+                            fontFamily,
+                            mt: 0.25,
+                            display: 'block'
+                          }}
+                        >
+                          CCCD: {row.idNumber || '—'}
+                        </Typography>
                       </Box>
                     </Stack>
                   </Box>
 
-                  <Box sx={{ px: 2.25, py: 2 }}>
-                    <Stack spacing={0.6} mb={1.75}>
+                  {/* Card Content Section */}
+                  <Box sx={{ px: 2.5, py: 2.25 }}>
+                    <Stack spacing={0.85} mb={2}>
                       {[
                         { label: 'Loại đối tượng', value: translateCrime(row.subjectType) },
                         { label: 'Hình phạt', value: translateSentence(row.sentenceType) },
                         { label: 'Thời hạn', value: row.startDate && row.releaseDate ? `${formatDateVN(row.startDate)} → ${formatDateVN(row.releaseDate)}` : formatDateVN(row.releaseDate) },
                         { label: 'Cán bộ phụ trách', value: row.officerName || '—' }
                       ].map(({ label, value }) => (
-                        <Stack key={label} direction="row" justifyContent="space-between" spacing={1.5}>
-                          <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, fontSize: '0.7rem' }}>{label}:</Typography>
-                          <Typography variant="caption" sx={{ fontWeight: 600, color: isDark ? '#e2e8f0' : '#1e293b', textAlign: 'right', fontSize: '0.7rem' }}>{value || '—'}</Typography>
+                        <Stack key={label} direction="row" justifyContent="space-between" spacing={1.5} alignItems="center">
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{
+                              flexShrink: 0,
+                              fontSize: '0.82rem',
+                              fontFamily,
+                              fontWeight: 400
+                            }}
+                          >
+                            {label}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 700,
+                              color: isDark ? '#e2e8f0' : '#1e293b',
+                              textAlign: 'right',
+                              fontSize: '0.82rem',
+                              fontFamily
+                            }}
+                          >
+                            {value || '—'}
+                          </Typography>
                         </Stack>
                       ))}
                     </Stack>
 
-                    <Divider sx={{ borderColor: glassBdr, my: 1.5 }} />
+                    <Divider sx={{ borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9', my: 2 }} />
 
                     {row.device ? (
-                      <Grid container spacing={1.25} mb={1.75}>
+                      <Grid container spacing={1.5} mb={2}>
                         {[
-                          { icon: <Gps size="14" color={row.device.status.gpsFix ? '#22c55e' : '#f59e0b'} />, label: 'Định vị GPS', value: row.device.status.gpsFix ? `Đã định vị · ${row.device.status.satelliteCount} vệ tinh` : 'Chưa định vị', color: row.device.status.gpsFix ? '#22c55e' : '#f59e0b' },
-                          { icon: <Activity size="14" color={row.device.status.battery < 20 ? '#ef4444' : '#10b981'} />, label: 'Pin thiết bị', value: `${row.device.status.battery}%`, color: row.device.status.battery < 20 ? '#ef4444' : '#10b981' },
-                          { icon: <Clock size="14" color="#3b82f6" />, label: 'Đồng bộ', value: timeAgo(row.device.status.lastServerSync) }
+                          { icon: <Gps size="16" color={row.device.status.gpsFix ? '#22c55e' : '#f59e0b'} />, label: 'Định vị GPS', value: row.device.status.gpsFix ? `Đã định vị · ${row.device.status.satelliteCount} vệ tinh` : 'Chưa định vị', color: row.device.status.gpsFix ? '#22c55e' : '#f59e0b' },
+                          { icon: <Activity size="16" color={row.device.status.battery < 20 ? '#ef4444' : '#10b981'} />, label: 'Pin thiết bị', value: `${row.device.status.battery}%`, color: row.device.status.battery < 20 ? '#ef4444' : '#10b981' },
+                          { icon: <Clock size="16" color="#3b82f6" />, label: 'Đồng bộ', value: timeAgo(row.device.status.lastServerSync) }
                         ].map((s) => (
                           <Grid item xs={6} key={s.label}>
-                            <Stack direction="row" spacing={0.75} alignItems="flex-start">
-                              <Box sx={{ mt: 0.1, flexShrink: 0 }}>{s.icon}</Box>
+                            <Stack direction="row" spacing={1} alignItems="flex-start">
+                              <Box sx={{ mt: 0.25, flexShrink: 0 }}>{s.icon}</Box>
                               <Box>
-                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.62rem', lineHeight: 1 }}>{s.label}</Typography>
-                                <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.77rem', color: (s as any).color || (isDark ? '#f8fafc' : '#0f172a') }}>{s.value}</Typography>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{
+                                    display: 'block',
+                                    fontSize: '0.72rem',
+                                    lineHeight: 1.2,
+                                    fontFamily,
+                                    fontWeight: 400
+                                  }}
+                                >
+                                  {s.label}
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontWeight: 700,
+                                    fontSize: '0.85rem',
+                                    color: (s as any).color || (isDark ? '#f8fafc' : '#0f172a'),
+                                    fontFamily,
+                                    mt: 0.25
+                                  }}
+                                >
+                                  {s.value}
+                                </Typography>
                               </Box>
                             </Stack>
                           </Grid>
                         ))}
                       </Grid>
                     ) : (
-                      <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', display: 'block', mb: 1.5 }}>Chưa gắn thiết bị giám sát.</Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{
+                          fontStyle: 'italic',
+                          display: 'block',
+                          mb: 2,
+                          fontFamily,
+                          fontSize: '0.8rem'
+                        }}
+                      >
+                        Chưa gắn thiết bị giám sát.
+                      </Typography>
                     )}
 
-                    <Divider sx={{ borderColor: glassBdr, mb: 1.5 }} />
+                    <Divider sx={{ borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9', mb: 2 }} />
 
-                    <Stack direction="row" spacing={0.75} justifyContent="flex-end">
-                      <Tooltip title="Chỉnh sửa hồ sơ"><IconButton size="small" onClick={() => openEdit(row)} sx={{ border: `1px solid ${glassBdr}`, borderRadius: '8px', width: 30, height: 30 }}><Edit size={15} /></IconButton></Tooltip>
-                      <Tooltip title="Xóa"><IconButton size="small" onClick={() => handleDelete(row)} sx={{ border: `1px solid ${glassBdr}`, borderRadius: '8px', width: 30, height: 30, color: '#ef4444' }}><Trash size={15} /></IconButton></Tooltip>
-                      <Button size="small" variant="outlined" onClick={() => openDetail(row)} sx={{ fontSize: '0.73rem', fontWeight: 700, borderRadius: '8px', textTransform: 'none', py: 0.5, px: 1.25, borderColor: glassBdr }}>Hồ sơ</Button>
-                      <Button size="small" variant="contained" disabled={!row.device} startIcon={<Location size={13} />} onClick={() => locate(row)} sx={{ fontSize: '0.73rem', fontWeight: 700, borderRadius: '8px', textTransform: 'none', py: 0.5, px: 1.25, background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)` }}>Định vị</Button>
+                    <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center">
+                      <Tooltip title="Chỉnh sửa hồ sơ">
+                        <IconButton
+                          size="small"
+                          onClick={() => openEdit(row)}
+                          sx={{
+                            border: '1px solid',
+                            borderColor: isDark ? 'rgba(255,255,255,0.12)' : '#e2e8f0',
+                            borderRadius: '10px',
+                            width: 32,
+                            height: 32,
+                            color: 'text.primary',
+                            '&:hover': {
+                              borderColor: primaryColor,
+                              bgcolor: `${primaryColor}10`
+                            }
+                          }}
+                        >
+                          <Edit size={16} />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Xóa">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDelete(row)}
+                          sx={{
+                            border: '1px solid',
+                            borderColor: isDark ? 'rgba(239,68,68,0.2)' : '#fecaca',
+                            borderRadius: '10px',
+                            width: 32,
+                            height: 32,
+                            color: '#ef4444',
+                            '&:hover': {
+                              borderColor: '#ef4444',
+                              bgcolor: 'rgba(239,68,68,0.08)'
+                            }
+                          }}
+                        >
+                          <Trash size={16} />
+                        </IconButton>
+                      </Tooltip>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => openDetail(row)}
+                        sx={{
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          borderRadius: '10px',
+                          textTransform: 'none',
+                          py: 0.6,
+                          px: 1.5,
+                          fontFamily,
+                          borderColor: isDark ? 'rgba(255,255,255,0.12)' : '#e2e8f0',
+                          color: 'text.primary',
+                          '&:hover': {
+                            borderColor: primaryColor,
+                            bgcolor: `${primaryColor}10`
+                          }
+                        }}
+                      >
+                        Hồ sơ
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        disabled={!row.device}
+                        startIcon={<Location size={14} />}
+                        onClick={() => locate(row)}
+                        sx={{
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          borderRadius: '10px',
+                          textTransform: 'none',
+                          py: 0.6,
+                          px: 1.5,
+                          fontFamily,
+                          background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
+                          boxShadow: `0 4px 12px ${primaryColor}20`,
+                          '&:hover': {
+                            background: primaryColor,
+                            boxShadow: `0 6px 16px ${primaryColor}35`
+                          }
+                        }}
+                      >
+                        Định vị
+                      </Button>
                     </Stack>
                   </Box>
                 </Box>
@@ -384,7 +614,13 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
             );
           })}
           {!loading && paged.length === 0 && (
-            <Grid item xs={12}><Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}><Typography variant="body2" sx={{ fontStyle: 'italic' }}>Không có phạm nhân nào.</Typography></Box></Grid>
+            <Grid item xs={12}>
+              <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
+                <Typography variant="body2" sx={{ fontStyle: 'italic', fontFamily }}>
+                  Không có người thi hành án nào.
+                </Typography>
+              </Box>
+            </Grid>
           )}
         </Grid>
       )}
@@ -395,7 +631,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                {['', 'Họ tên phạm nhân', 'CCCD', 'Loại đối tượng', 'Hình phạt', 'Mãn hạn', 'Thiết bị', 'Cán bộ', 'Trạng thái', ''].map((h) => (
+                {['', 'Họ tên người thi hành án', 'CCCD', 'Loại đối tượng', 'Hình phạt', 'Mãn hạn', 'Thiết bị', 'Cán bộ', 'Trạng thái', ''].map((h) => (
                   <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: isDark ? '#64748b' : '#94a3b8', borderBottom: `1px solid ${glassBdr}`, whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -444,14 +680,14 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
                 );
               })}
               {!loading && paged.length === 0 && (
-                <tr><td colSpan={10} style={{ textAlign: 'center', padding: '48px 16px' }}><Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>Không có phạm nhân nào.</Typography></td></tr>
+                <tr><td colSpan={10} style={{ textAlign: 'center', padding: '48px 16px' }}><Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>Không có người thi hành án nào.</Typography></td></tr>
               )}
             </tbody>
           </table>
         </Box>
       )}
 
-      <PaginationBar page={page} totalPages={totalPages} total={total} shownCount={paged.length} onChange={setPage} label="phạm nhân" />
+      <PaginationBar page={page} totalPages={totalPages} total={total} shownCount={paged.length} onChange={setPage} label="người thi hành án" />
 
       {/* ══ Add/Edit drawer ══ */}
       <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}
@@ -459,7 +695,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
         <Box sx={{ px: 3, py: 2.5, background: `linear-gradient(135deg, ${primaryColor}18, ${primaryColor}06)`, borderBottom: `1px solid ${glassBdr}`, flexShrink: 0 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: 700, color: isDark ? '#f1f5f9' : '#0f172a', fontSize: '1rem' }}>{form.id ? 'Sửa hồ sơ phạm nhân' : 'Thêm phạm nhân mới'}</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 700, color: isDark ? '#f1f5f9' : '#0f172a', fontSize: '1rem' }}>{form.id ? 'Sửa hồ sơ người thi hành án' : 'Thêm người thi hành án mới'}</Typography>
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>Thông tin offender · Gán thiết bị · Gán vùng giám sát</Typography>
             </Box>
             <IconButton onClick={() => setDrawerOpen(false)} sx={{ color: 'text.secondary', '&:hover': { color: '#ef4444' } }}><CloseCircle size={22} /></IconButton>
@@ -469,7 +705,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
         <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 3 }}>
           <Stack spacing={3.5}>
             <Box>
-              <SectionHeader icon={<Profile2User size={16} color={primaryColor} />} title="Thông tin phạm nhân" accent={primaryColor} isDark={isDark} />
+              <SectionHeader icon={<Profile2User size={16} color={primaryColor} />} title="Thông tin người thi hành án" accent={primaryColor} isDark={isDark} />
               <Stack spacing={2}>
                 <TextField label="Họ và tên *" size="small" fullWidth value={form.fullName} onChange={(e) => setF({ fullName: e.target.value })} placeholder="Vd: Nguyễn Văn A" />
                 <TextField label="Số CCCD / CMND" size="small" fullWidth value={form.idNumber} onChange={(e) => setF({ idNumber: e.target.value })} placeholder="12 chữ số" inputProps={{ maxLength: 12, style: { letterSpacing: 2 } }} />
@@ -551,7 +787,7 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
             <Button onClick={() => { setDrawerOpen(false); setForm(EMPTY_FORM); }} variant="outlined" sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px', borderColor: glassBdr, color: 'text.secondary', px: 2.5 }}>Hủy bỏ</Button>
             <Button onClick={handleSubmit} variant="contained" disabled={!form.fullName.trim() || saving} startIcon={<ShieldSecurity size={16} />}
               sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px', px: 2.5, background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, boxShadow: `0 4px 16px ${primaryColor}40`, '&:disabled': { opacity: 0.5 } }}>
-              {saving ? 'Đang lưu…' : form.id ? 'Cập nhật' : 'Lưu hồ sơ phạm nhân'}
+              {saving ? 'Đang lưu…' : form.id ? 'Cập nhật' : 'Lưu hồ sơ người thi hành án'}
             </Button>
           </Stack>
         </Box>

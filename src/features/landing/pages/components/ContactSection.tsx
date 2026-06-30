@@ -146,18 +146,18 @@ const ContactSection = ({ isDark, primaryColor, secondaryColor }: ContactSection
                       titleKey: 'landing.contact.info.phone',
                       titleDefault: 'Số điện thoại',
                       contentKey: 'landing.contact.info.phone.value',
-                      contentDefault: '0901 418 053',
+                      contentDefault: '(84.28) 38331106',
                       isLink: true,
-                      href: 'tel:0901418053'
+                      href: 'tel:+842838331106'
                     },
                     {
                       icon: <Sms size={24} variant="Bold" />,
                       titleKey: 'landing.contact.info.email',
                       titleDefault: 'Email',
                       contentKey: 'landing.contact.info.email.value',
-                      contentDefault: 'nam.nguyen-hoang@vtctelecom.com.vn',
+                      contentDefault: 'gosafe@vtctelecom.com.vn',
                       isLink: true,
-                      href: 'mailto:nam.nguyen-hoang@vtctelecom.com.vn'
+                      href: 'mailto:gosafe@vtctelecom.com.vn'
                     }
                   ].map((item, index) => (
                     <Stack key={index} direction="row" spacing={2.5} alignItems="flex-start">
@@ -256,7 +256,7 @@ const ContactSection = ({ isDark, primaryColor, secondaryColor }: ContactSection
                       fullWidth
                       placeholder={intl.formatMessage({
                         id: 'landing.contact.form.phone.placeholder',
-                        defaultMessage: '0901 418 053'
+                        defaultMessage: '(84.28) 38331106'
                       })}
                       name="phoneNumber"
                       value={formData.phoneNumber}

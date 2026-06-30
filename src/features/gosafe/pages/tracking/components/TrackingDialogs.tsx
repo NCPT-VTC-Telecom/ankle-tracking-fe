@@ -25,7 +25,7 @@ import {
 } from '@mui/material';
 import { DEVICE_PALETTE, ZONE_PRESETS, DEFAULT_ZONE_SCHEDULE, WEEKDAY_LABELS, ZONE_PRESET_MAP } from '../constants';
 import { getMockBiometrics, translateCrime, translateSentence, formatDateVN } from '../utils';
-import { regionsApi, extractList } from 'shared/api/gosafe.management.api';
+import { regionsApi, simsApi, extractList } from 'shared/api/gosafe.management.api';
 import type { ZoneType, ZoneSchedule } from '../types';
 import type { TrackingStore } from '../useTracking';
 import SideDrawer from '../../components/SideDrawer';
@@ -51,6 +51,35 @@ function DeviceFormContent({ store }: Props) {
     return () => { cancelled = true; };
   }, []);
 
+  // SIM (kho) cho selector — chọn SIM sẽ gắn simId + suy ra providerId (nhà mạng).
+  const [sims, setSims] = useState<{ id: string; phoneNumber: string; providerId: string; providerName: string }[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    simsApi
+      .list({ pageSize: 200 })
+      .then((r) => {
+        if (cancelled) return;
+        setSims(
+          extractList(r.data).map((s: any) => ({
+            id: String(s.id),
+            phoneNumber: s.phoneNumber ?? '',
+            providerId: s.providerId != null ? String(s.providerId) : '',
+            providerName: s.provider?.name ?? ''
+          }))
+        );
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  // Chọn SIM: bỏ chọn → xoá; không tìm thấy → chỉ set simId; còn lại → set đủ simId + providerId + số.
+  const onPickSim = (simId: string) => {
+    if (!simId) { set({ simId: null, providerId: null }); return; }
+    const sim = sims.find((s) => s.id === simId);
+    if (!sim) { set({ simId, providerId: null }); return; }
+    set({ simId, providerId: sim.providerId || null, phoneNumber: sim.phoneNumber || f.phoneNumber });
+  };
+
   return (
     <Stack spacing={2.5}>
       <Stack direction="row" spacing={2}>
@@ -66,7 +95,16 @@ function DeviceFormContent({ store }: Props) {
       </Stack>
       <Stack direction="row" spacing={2}>
         <TextField label="IMEI *" fullWidth value={f.uniqueId} onChange={(e) => set({ uniqueId: e.target.value })} />
-        <TextField label="Số SIM" fullWidth value={f.phoneNumber} onChange={(e) => set({ phoneNumber: e.target.value })} />
+        <FormControl fullWidth>
+          <InputLabel>SIM (kho)</InputLabel>
+          <Select value={f.simId ?? ''} label="SIM (kho)" onChange={(e) => onPickSim(e.target.value)}>
+            <MenuItem value=""><em>— Chưa gắn SIM —</em></MenuItem>
+            {sims.map((s) => (
+              <MenuItem key={s.id} value={s.id}>{s.phoneNumber}{s.providerName ? ` · ${s.providerName}` : ''}</MenuItem>
+            ))}
+            {sims.length === 0 && <MenuItem disabled>Chưa có SIM — tạo ở mục Quản lý SIM</MenuItem>}
+          </Select>
+        </FormControl>
       </Stack>
       <TextField label="Dòng thiết bị" fullWidth value={f.deviceType} onChange={(e) => set({ deviceType: e.target.value })} />
 

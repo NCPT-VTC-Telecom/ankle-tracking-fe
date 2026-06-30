@@ -36,71 +36,46 @@ const Footer = ({ isDark, primaryColor }: FooterProps) => {
     { icon: linkedinIcon, href: 'https://www.linkedin.com/company/vtc-telecom/', label: 'Linkedin' }
   ];
 
+  // Trang doanh nghiệp ngoài dùng cho các liên kết chưa có trang nội bộ tương ứng.
+  const VTC_SITE = 'https://www.vtctelecom.com.vn';
+
   const footerLinks = {
     product: {
       titleKey: 'landing.footer.product',
       titleDefault: 'Sản phẩm',
       links: [
-        {
-          labelKey: 'landing.footer.product.features',
-          labelDefault: 'Tính năng',
-          href: '#features'
-        },
-        {
-          labelKey: 'landing.footer.product.solutions',
-          labelDefault: 'Giải pháp',
-          href: '#solutions'
-        },
-        { labelKey: 'landing.footer.product.pricing', labelDefault: 'Bảng giá', href: '#pricing' },
-        {
-          labelKey: 'landing.footer.product.changelog',
-          labelDefault: 'Changelog',
-          href: '#changelog'
-        }
+        { labelKey: 'landing.footer.product.features', labelDefault: 'Tính năng', href: '#features' },
+        { labelKey: 'landing.footer.product.solutions', labelDefault: 'Giải pháp', href: '#solutions' },
+        { labelKey: 'landing.footer.product.pricing', labelDefault: 'Lợi ích', href: '#benefits' },
+        { labelKey: 'landing.footer.product.changelog', labelDefault: 'Câu hỏi thường gặp', href: '#faq' }
       ]
     },
     company: {
       titleKey: 'landing.footer.company',
       titleDefault: 'Công ty',
       links: [
-        { labelKey: 'landing.footer.company.about', labelDefault: 'Về chúng tôi', href: '#about' },
-        {
-          labelKey: 'landing.footer.company.customers',
-          labelDefault: 'Khách hàng',
-          href: '#customers'
-        },
-        { labelKey: 'landing.footer.company.partners', labelDefault: 'Đối tác', href: '#partners' },
-        { labelKey: 'landing.footer.company.news', labelDefault: 'Tin tức', href: '#news' }
+        { labelKey: 'landing.footer.company.about', labelDefault: 'Về chúng tôi', href: VTC_SITE, external: true },
+        { labelKey: 'landing.footer.company.customers', labelDefault: 'Khách hàng', href: '#comparison' },
+        { labelKey: 'landing.footer.company.partners', labelDefault: 'Đối tác', href: '#integrations' },
+        { labelKey: 'landing.footer.company.news', labelDefault: 'Tin tức', href: VTC_SITE, external: true }
       ]
     },
     support: {
       titleKey: 'landing.footer.support',
       titleDefault: 'Hỗ trợ',
       links: [
-        {
-          labelKey: 'landing.footer.support.help',
-          labelDefault: 'Trung tâm trợ giúp',
-          href: '#help'
-        },
-        {
-          labelKey: 'landing.footer.support.community',
-          labelDefault: 'Cộng đồng',
-          href: '#community'
-        },
-        {
-          labelKey: 'landing.footer.support.status',
-          labelDefault: 'Trạng thái hệ thống',
-          href: '#status'
-        },
+        { labelKey: 'landing.footer.support.help', labelDefault: 'Trung tâm trợ giúp', href: '#faq' },
+        { labelKey: 'landing.footer.support.community', labelDefault: 'Cộng đồng', href: 'https://www.facebook.com/vtctelecomjsc', external: true },
+        { labelKey: 'landing.footer.support.status', labelDefault: 'Trạng thái hệ thống', href: '#performance' },
         { labelKey: 'landing.footer.support.contact', labelDefault: 'Liên hệ', href: '#contact' }
       ]
     }
   };
 
   const bottomLinks = [
-    { labelKey: 'landing.footer.privacy', labelDefault: 'Privacy Policy', href: '#privacy' },
-    { labelKey: 'landing.footer.terms', labelDefault: 'Terms of Service', href: '#terms' },
-    { labelKey: 'landing.footer.cookies', labelDefault: 'Cookies Settings', href: '#cookies' }
+    { labelKey: 'landing.footer.privacy', labelDefault: 'Chính sách bảo mật', href: VTC_SITE, external: true },
+    { labelKey: 'landing.footer.terms', labelDefault: 'Điều khoản dịch vụ', href: VTC_SITE, external: true },
+    { labelKey: 'landing.footer.cookies', labelDefault: 'Cài đặt Cookies', href: VTC_SITE, external: true }
   ];
 
   return (
@@ -166,6 +141,7 @@ const Footer = ({ isDark, primaryColor }: FooterProps) => {
                     key={link.labelKey}
                     href={link.href}
                     underline="none"
+                    {...((link as { external?: boolean }).external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                     sx={{
                       color: theme.palette.text.secondary,
                       fontSize: '0.95rem',
@@ -273,6 +249,7 @@ const Footer = ({ isDark, primaryColor }: FooterProps) => {
                 key={item.labelKey}
                 href={item.href}
                 underline="hover"
+                {...((item as { external?: boolean }).external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                 sx={{
                   color: theme.palette.text.secondary,
                   fontSize: '0.85rem',

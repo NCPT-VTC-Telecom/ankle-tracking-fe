@@ -1,155 +1,115 @@
 import {
-  Airplane,
   Building,
   ChartSquare,
-  Diagram,
+  Danger,
+  Gps,
   House2,
   Location,
   Lock,
-  Mobile,
+  Personalcard,
+  Profile2User,
   Shield,
   ShieldTick,
-  Shop,
-  Teacher,
-  Verify,
-  Wifi
+  Verify
 } from 'iconsax-react';
-import tplinkLogo from 'assets/images/logos/tp-link.png';
-import arubaLogo from 'assets/images/logos/aruba.png';
-import ruckusLogo from 'assets/images/logos/ruckus.png';
-import unifiLogo from 'assets/images/logos/unifi.png';
-import salesforceLogo from 'assets/images/logos/salesforce.png';
-import microsoftLogo from 'assets/images/logos/microsoft.png';
-import googleLogo from 'assets/images/logos/google.png';
-import oracleLogo from 'assets/images/logos/oracle.png';
-import airportImg from 'assets/images/airport.png';
-import hotelImg from 'assets/images/hotel.png';
-import retailImg from 'assets/images/retail.png';
-import officeImg from 'assets/images/office.png';
-import educationImg from 'assets/images/education.png';
+import homeBeaconImg from 'assets/images/g737-home-beacon.png';
+import ankleTrackerImg from 'assets/images/gosafe-g737-offender-tracker-1.png';
 
 export const features = [
   {
-    icon: <Wifi size={32} variant="Bold" />,
+    icon: <Gps size={32} variant="Bold" />,
     titleKey: 'landing.features.wifi.title',
-    defaultTitle: 'Quản lý WiFi Tập trung',
+    defaultTitle: 'Giám sát GPS thời gian thực',
     descKey: 'landing.features.wifi.desc',
-    defaultDesc: 'Giám sát và cấu hình hàng nghìn Access Points từ một dashboard duy nhất. Tự động tối ưu hóa sóng và băng thông.'
+    defaultDesc: 'Định vị chính xác vị trí đối tượng theo thời gian thực trên bản đồ số, kết hợp GPS/LBS/WiFi để bám vết liên tục.'
   },
   {
     icon: <ChartSquare size={32} variant="Bold" />,
     titleKey: 'landing.features.analytics.title',
-    defaultTitle: 'Analytics & Reporting',
+    defaultTitle: 'Báo cáo & Thống kê',
     descKey: 'landing.features.analytics.desc',
-    defaultDesc: 'Báo cáo chi tiết về lưu lượng, hành vi người dùng, và hiệu suất mạng. Xuất báo cáo tự động định kỳ.'
+    defaultDesc: 'Báo cáo chi tiết lịch sử di chuyển, vi phạm và tình trạng thiết bị. Xuất báo cáo định kỳ.'
   },
   {
     icon: <Shield size={32} variant="Bold" />,
     titleKey: 'landing.features.security.title',
-    defaultTitle: 'Bảo mật Nâng cao',
+    defaultTitle: 'Chống tháo gỡ & Bảo mật',
     descKey: 'landing.features.security.desc',
-    defaultDesc: 'Phát hiện và ngăn chặn xâm nhập (WIPS). Tách biệt mạng khách và nội bộ. Xác thực người dùng đa lớp.'
+    defaultDesc: 'Phát hiện và cảnh báo tức thì khi đối tượng cố tháo gỡ hoặc phá thiết bị. Dữ liệu mã hóa, máy chủ tại Việt Nam.'
   },
   {
-    icon: <Mobile size={32} variant="Bold" />,
+    icon: <Danger size={32} variant="Bold" />,
     titleKey: 'landing.features.marketing.title',
-    defaultTitle: 'WiFi Marketing',
+    defaultTitle: 'Cảnh báo vi phạm tức thì',
     descKey: 'landing.features.marketing.desc',
-    defaultDesc: 'Tùy biến trang chào (Splash Page), thu thập thông tin khách hàng, tích hợp quảng cáo và khảo sát.'
+    defaultDesc: 'Tự động phát cảnh báo khi đối tượng ra khỏi vùng giám sát, vi phạm giới nghiêm hoặc mất tín hiệu.'
   },
   {
     icon: <Location size={32} variant="Bold" />,
     titleKey: 'landing.features.location.title',
-    defaultTitle: 'Định vị & Bản đồ số',
+    defaultTitle: 'Vùng giám sát (Geofence)',
     descKey: 'landing.features.location.desc',
-    defaultDesc: 'Theo dõi vị trí thiết bị thời gian thực trên bản đồ số. Heatmap mật độ người dùng.'
+    defaultDesc: 'Thiết lập linh hoạt vùng cho phép/cấm theo từng đối tượng. Cảnh báo ngay khi ra/vào vùng không hợp lệ.'
   },
   {
-    icon: <Diagram size={32} variant="Bold" />,
+    icon: <Personalcard size={32} variant="Bold" />,
     titleKey: 'landing.features.integration.title',
-    defaultTitle: 'Tích hợp Hệ thống',
+    defaultTitle: 'Quản lý hồ sơ & Tuân thủ',
     descKey: 'landing.features.integration.desc',
-    defaultDesc: 'API mở sẵn sàng tích hợp với CRM, ERP, PMS (Hotel), và các hệ thống quản trị khác.'
-  }
-];
-
-export const integrations: any = [
-  {
-    categoryKey: 'landing.integrations.category.hardware',
-    categoryDefault: 'Hardware Partners',
-    descKey: 'landing.integrations.category.hardware.desc',
-    descDefault: 'Quản lý và đồng bộ dữ liệu hardware partners liền mạch.',
-    partners: [
-      { name: 'TP-Link', logo: tplinkLogo, description: 'Enterprise Networking' },
-      { name: 'Aruba', logo: arubaLogo, description: 'Secure Mobility' },
-      { name: 'Ruckus', logo: ruckusLogo, description: 'High Performance' },
-      { name: 'Unifi', logo: unifiLogo, description: 'Ubiquiti Networks' }
-    ]
-  },
-  {
-    categoryKey: 'landing.integrations.category.software',
-    categoryDefault: 'Software Integrations',
-    descKey: 'landing.integrations.category.software.desc',
-    descDefault: 'Quản lý và đồng bộ dữ liệu software integrations liền mạch.',
-    partners: [
-      { name: 'Salesforce', logo: salesforceLogo, description: 'CRM Integration' },
-      { name: 'Microsoft', logo: microsoftLogo, description: 'Azure AD / 365' },
-      { name: 'Google', logo: googleLogo, description: 'Analytics & Auth' },
-      { name: 'Oracle', logo: oracleLogo, description: 'Opera PMS' }
-    ]
+    defaultDesc: 'Quản lý hồ sơ đối tượng, lịch trình bắt buộc và hồ sơ thi hành án tập trung, đúng quy định pháp luật.'
   }
 ];
 
 export const useCases: any = [
   {
     titleKey: 'landing.solutions.airport',
-    titleDefault: 'Sân bay & Giao thông công cộng',
+    titleDefault: 'Quản lý tại gia & Cấm cư trú',
     descKey: 'landing.solutions.airport.desc',
-    descDefault: 'WiFi tốc độ cao, định tuyến thông minh, quảng cáo theo vị trí & hành trình.',
+    descDefault: 'Giám sát đối tượng bị quản chế tại gia, cảnh báo khi rời khỏi nơi cư trú được phép.',
     metricsKey: 'landing.solutions.airport.metrics',
-    metricsDefault: 'Phục vụ 50.000+ lượt kết nối/ngày',
-    icon: <Airplane variant="Bold" />,
-    imageUrl: airportImg
+    metricsDefault: 'Giám sát 24/7 theo thời gian thực',
+    icon: <House2 variant="Bold" />,
+    imageUrl: homeBeaconImg
   },
   {
     titleKey: 'landing.solutions.hotel',
-    titleDefault: 'Khách sạn & Resort',
+    titleDefault: 'Án treo & Tha tù trước thời hạn',
     descKey: 'landing.solutions.hotel.desc',
-    descDefault: 'Tích hợp PMS, trang chào cá nhân hóa, quản lý băng thông theo hạng phòng.',
+    descDefault: 'Theo dõi đối tượng được hưởng án treo, tha tù có điều kiện, đảm bảo tuân thủ cam kết.',
     metricsKey: 'landing.solutions.hotel.metrics',
-    metricsDefault: 'Tăng 20% doanh thu dịch vụ',
-    icon: <House2 variant="Bold" />,
-    imageUrl: hotelImg
+    metricsDefault: 'Giảm tải nhân lực giám sát',
+    icon: <Profile2User variant="Bold" />,
+    imageUrl: ankleTrackerImg
   },
   {
     titleKey: 'landing.solutions.retail',
-    titleDefault: 'Chuỗi bán lẻ & TTTM',
+    titleDefault: 'Cấm tiếp xúc & Vùng cấm',
     descKey: 'landing.solutions.retail.desc',
-    descDefault: 'Phân tích hành vi mua sắm, heatmap khách hàng, đẩy quảng cáo đúng ngữ cảnh.',
+    descDefault: 'Thiết lập vùng cấm quanh nạn nhân/khu vực nhạy cảm, cảnh báo khi đối tượng tới gần.',
     metricsKey: 'landing.solutions.retail.metrics',
-    metricsDefault: 'Tăng 15% tỷ lệ quay lại',
-    icon: <Shop variant="Bold" />,
-    imageUrl: retailImg
+    metricsDefault: 'Cảnh báo vi phạm tức thì',
+    icon: <Location variant="Bold" />,
+    imageUrl: '/images/Flexible-Geofence---Offender-Tracking-System.png'
   },
   {
     titleKey: 'landing.solutions.office',
-    titleDefault: 'Văn phòng & Tòa nhà',
+    titleDefault: 'Đối tượng nguy cơ cao',
     descKey: 'landing.solutions.office.desc',
-    descDefault: 'Bảo mật cấp doanh nghiệp, xác thực 802.1x, quản lý thiết bị BYOD.',
+    descDefault: 'Bám vết liên tục, chống tháo gỡ và cảnh báo nhiều lớp cho nhóm đối tượng cần giám sát chặt.',
     metricsKey: 'landing.solutions.office.metrics',
-    metricsDefault: 'Giảm 40% ticket IT',
-    icon: <Building variant="Bold" />,
-    imageUrl: officeImg
+    metricsDefault: 'Chống tháo gỡ, cảnh báo đa lớp',
+    icon: <Danger variant="Bold" />,
+    imageUrl: '/images/Various-Alarms-setting---Offender-Tracking-System.png'
   },
   {
     titleKey: 'landing.solutions.education',
-    titleDefault: 'Giáo dục & Trường học',
+    titleDefault: 'Cơ quan thi hành án',
     descKey: 'landing.solutions.education.desc',
-    descDefault: 'Lọc nội dung, quản lý truy cập theo giờ, hỗ trợ thi trực tuyến ổn định.',
+    descDefault: 'Quản lý tập trung toàn bộ đối tượng, hồ sơ, lịch trình và báo cáo trên một nền tảng duy nhất.',
     metricsKey: 'landing.solutions.education.metrics',
-    metricsDefault: '100% kiểm soát truy cập',
-    icon: <Teacher variant="Bold" />,
-    imageUrl: educationImg
+    metricsDefault: 'Quản lý tập trung, minh bạch',
+    icon: <Building variant="Bold" />,
+    imageUrl: '/images/One-stop-solution-for-offenders-tracking.png'
   }
 ];
 
@@ -205,12 +165,12 @@ export const certificationsList = [
   {
     name: 'ISO 27001',
     descKey: 'landing.certifications.iso.desc',
-    descDefault: 'Information Security',
+    descDefault: 'An toàn thông tin',
     icon: <ShieldTick variant="Bold" />
   },
-  { name: 'GDPR Ready', descKey: 'landing.certifications.gdpr.desc', descDefault: 'Data Protection', icon: <Verify variant="Bold" /> },
-  { name: 'SOC 2 Type II', descKey: 'landing.certifications.soc.desc', descDefault: 'Service Organization', icon: <Lock variant="Bold" /> },
-  { name: 'PCI DSS', descKey: 'landing.certifications.pci.desc', descDefault: 'Payment Security', icon: <Shield variant="Bold" /> }
+  { name: 'Mã hóa dữ liệu', descKey: 'landing.certifications.gdpr.desc', descDefault: 'Bảo vệ dữ liệu cá nhân', icon: <Verify variant="Bold" /> },
+  { name: 'Lưu trữ tại VN', descKey: 'landing.certifications.soc.desc', descDefault: 'Máy chủ tại Việt Nam', icon: <Lock variant="Bold" /> },
+  { name: 'Tuân thủ pháp luật', descKey: 'landing.certifications.pci.desc', descDefault: 'Quy định hiện hành', icon: <Shield variant="Bold" /> }
 ];
 
 export const benefits = [

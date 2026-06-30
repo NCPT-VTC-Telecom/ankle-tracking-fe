@@ -358,7 +358,7 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView,
                 const isLowBattery = dev.status.battery < 20;
                 const isOnline     = conn === 'online';
                 const statusColor  = isViolating ? '#ef4444' : isOnline ? '#22c55e' : conn === 'offline' ? '#64748b' : '#f59e0b';
-                const statusLabel  = isViolating ? 'Vi phạm' : isOnline ? 'Online' : conn === 'offline' ? 'Offline' : 'Chập chờn';
+                const statusLabel  = isViolating ? 'Vi phạm' : isOnline ? 'Trực tuyến' : conn === 'offline' ? 'Ngoại tuyến' : 'Chập chờn';
                 const rowBg        = rowIdx % 2 === 0
                   ? (isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.008)')
                   : 'transparent';
@@ -645,7 +645,7 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView,
           const conn         = dev.status.connectionStatus;
           const isOnline     = conn === 'online';
           const statusColor  = isViolating ? '#ef4444' : isOnline ? '#22c55e' : conn === 'offline' ? '#64748b' : '#f59e0b';
-          const statusLabel  = isViolating ? 'Vi phạm' : isOnline ? 'Online' : conn === 'offline' ? 'Offline' : 'Chập chờn';
+          const statusLabel  = isViolating ? 'Vi phạm' : isOnline ? 'Trực tuyến' : conn === 'offline' ? 'Ngoại tuyến' : 'Chập chờn';
 
           const network = getDeviceNetwork(dev.uniqueId);
           const carrier = getCarrierInfo(dev.phoneNumber);
