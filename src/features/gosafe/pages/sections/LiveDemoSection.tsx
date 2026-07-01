@@ -219,7 +219,7 @@ const LiveDemoSection = ({ primaryColor }: Props) => {
             />
             <Typography
               variant="h3"
-              fontWeight={800}
+              fontWeight={700}
               textAlign="center"
               sx={{ color: '#f8fafc', lineHeight: 1.2, maxWidth: 640 }}
             >
@@ -273,7 +273,7 @@ const LiveDemoSection = ({ primaryColor }: Props) => {
                   </Box>
                   <Typography
                     variant="h4"
-                    fontWeight={800}
+                    fontWeight={700}
                     sx={{ color: '#f8fafc', lineHeight: 1, mb: 0.5, fontSize: { xs: '1.6rem', md: '2rem' } }}
                   >
                     <AnimatedCounter target={s.value} suffix={s.suffix} />
@@ -322,7 +322,7 @@ const LiveDemoSection = ({ primaryColor }: Props) => {
                     boxShadow: '0 0 8px #22c55e'
                   }}
                 />
-                <Typography variant="body2" fontWeight={600} sx={{ color: '#f8fafc' }}>
+                <Typography variant="body2" fontWeight={700} sx={{ color: '#f8fafc' }}>
                   <FormattedMessage id="gosafe-demo-map-title" defaultMessage="Live Tracking Simulation" />
                 </Typography>
               </Stack>
@@ -390,7 +390,7 @@ const LiveDemoSection = ({ primaryColor }: Props) => {
                     }}
                   >
                     <Tooltip permanent direction="top" offset={[0, -ALLOWED_RADIUS / 100]}>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: '#22c55e' }}>Allowed Zone</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>Allowed Zone</span>
                     </Tooltip>
                   </Circle>
 
@@ -407,7 +407,7 @@ const LiveDemoSection = ({ primaryColor }: Props) => {
                     }}
                   >
                     <Tooltip permanent direction="top" offset={[0, -RESTRICTED_RADIUS / 100]}>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: '#ef4444' }}>⛔ Restricted Zone</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>⛔ Restricted Zone</span>
                     </Tooltip>
                   </Circle>
 

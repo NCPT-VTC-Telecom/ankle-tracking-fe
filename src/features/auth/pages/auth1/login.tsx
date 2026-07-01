@@ -6,7 +6,7 @@ import useMapCode from 'shared/hooks/useMapCode';
 import useScriptRef from 'shared/hooks/useScriptRef';
 import { Eye, EyeSlash, Lock1, Profile, InfoCircle, ShieldTick, Call, Sms, Clock } from 'iconsax-react';
 import { enqueueSnackbar } from 'notistack';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useIntl } from 'react-intl';
 import { Link as RouterLink } from 'react-router-dom';
 import { dispatch } from 'shared/store';
@@ -14,97 +14,184 @@ import { handlerIconVariants, openSnackbar } from 'shared/store/reducers/snackba
 import * as Yup from 'yup';
 import logoVTC from 'assets/logo/logo-VTC.png';
 
+// Project Screenshots for Showcase
+import liveMonitoring from '/public/images/Live-Monitoring---Offender-Tracking-System.png';
+import flexibleGeofence from '/public/images/Flexible-Geofence---Offender-Tracking-System.png';
+import variousAlarms from '/public/images/Various-Alarms-setting---Offender-Tracking-System.png';
+import multiPlatform from '/public/images/Multi-Platform-Offender-Tracking-System.png';
+
 const PRIMARY = '#2563eb'; // Blue-600
 const PRIMARY_DARK = '#1d4ed8';
 const ACCENT = '#0ea5e9'; // Sky-500
 
-// ─── Light tracking illustration (left panel) ───────────────────────────────
-const TrackingIllustration = () => (
-  <svg viewBox="0 0 420 420" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', maxWidth: 360 }}>
-    <ellipse cx="210" cy="392" rx="120" ry="13" fill="rgba(37,99,235,0.10)" />
+// ─── Dynamic Product Showcase (left panel) ───────────────────────────────
+const ProductShowcase = () => {
+  const [activeSlide, setActiveSlide] = useState(0);
+  const slides = [
+    {
+      image: liveMonitoring,
+      title: 'Giám Sát Thời Gian Thực',
+      description: 'Định vị GPS liên tục, cập nhật lộ trình di chuyển của đối tượng với độ chính xác cao.'
+    },
+    {
+      image: flexibleGeofence,
+      title: 'Thiết Lập Vùng Địa Giới',
+      description: 'Tự động phát hiện và gửi cảnh báo tức thì khi đối tượng vi phạm khu vực thiết lập.'
+    },
+    {
+      image: variousAlarms,
+      title: 'Cảnh Báo Thông Minh',
+      description: 'Cảnh báo ngay lập tức các hành vi tháo thiết bị, pin yếu hoặc đi vào vùng cấm.'
+    },
+    {
+      image: multiPlatform,
+      title: 'Quản Lý Đa Nền Tảng',
+      description: 'Theo dõi và quản trị mọi lúc mọi nơi thông qua giao diện Web và ứng dụng di động trực quan.'
+    }
+  ];
 
-    {/* Map card */}
-    <rect x="60" y="80" width="300" height="240" rx="24" fill="#ffffff" />
-    <rect x="60" y="80" width="300" height="240" rx="24" stroke="rgba(37,99,235,0.18)" strokeWidth="1.5" />
-    {[120, 160, 200, 240, 280].map((y) => (
-      <line key={y} x1="72" y1={y} x2="348" y2={y} stroke="rgba(37,99,235,0.06)" strokeWidth="1" />
-    ))}
-    {[110, 150, 190, 230, 270, 310].map((x) => (
-      <line key={x} x1={x} y1="92" x2={x} y2="308" stroke="rgba(37,99,235,0.06)" strokeWidth="1" />
-    ))}
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % slides.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [slides.length]);
 
-    {/* Route */}
-    <path d="M130 280 Q170 240 190 200 Q210 160 250 140" stroke={ACCENT} strokeWidth="3" strokeDasharray="6 4" fill="none" strokeLinecap="round" />
+  return (
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
+      {/* Brand & Logo Badge */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: { xs: 4, lg: 6 } }}>
+        <Box 
+          sx={{ 
+            bgcolor: 'rgba(255, 255, 255, 0.95)', 
+            p: { xs: 1.2, lg: 1.6 }, 
+            borderRadius: '16px', 
+            boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(255, 255, 255, 0.2)'
+          }}
+        >
+          <Box component="img" src={logoVTC} alt="VTC Telecom" sx={{ height: { xs: 36, lg: 44 }, width: 'auto', objectFit: 'contain' }} />
+        </Box>
+        <Box>
+          <Typography sx={{ fontWeight: 900, fontSize: { xs: '1.25rem', lg: '1.45rem', xl: '1.6rem' }, color: '#ffffff', lineHeight: 1.2, letterSpacing: 0.5 }}>
+            Giám Sát Điện Tử EMS
+          </Typography>
+          <Typography sx={{ fontSize: { xs: '0.62rem', lg: '0.7rem' }, color: '#38bdf8', fontWeight: 800, letterSpacing: 1.8, textTransform: 'uppercase', mt: 0.25 }}>
+            Electronic Monitoring System
+          </Typography>
+        </Box>
+      </Box>
 
-    {/* Pin A */}
-    <g transform="translate(122, 265)">
-      <circle cx="8" cy="8" r="14" fill={ACCENT} fillOpacity="0.18" />
-      <circle cx="8" cy="8" r="9" fill={ACCENT} />
-      <circle cx="8" cy="8" r="4" fill="white" />
-    </g>
+      {/* Showcase mockup frame */}
+      <Box 
+        sx={{ 
+          position: 'relative', 
+          flex: 1, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          my: { xs: 2, lg: 4 },
+          minHeight: { xs: 260, lg: 340 }
+        }}
+      >
+        {/* Glow ambient background lights */}
+        <Box sx={{ position: 'absolute', width: { xs: 220, lg: 320 }, height: { xs: 220, lg: 320 }, borderRadius: '50%', background: 'radial-gradient(circle, rgba(14,165,233,0.22) 0%, transparent 70%)', filter: 'blur(35px)', top: '15%', left: '10%', zIndex: 0 }} />
+        <Box sx={{ position: 'absolute', width: { xs: 180, lg: 280 }, height: { xs: 180, lg: 280 }, borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)', filter: 'blur(30px)', bottom: '15%', right: '10%', zIndex: 0 }} />
 
-    {/* Pin B */}
-    <g transform="translate(232, 118)">
-      <circle cx="10" cy="10" r="18" fill="#10b981" fillOpacity="0.18" />
-      <path d="M10 2C6.13 2 3 5.13 3 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#10b981" />
-    </g>
-    <circle cx="242" cy="128" r="22" stroke="#10b981" strokeWidth="1.5" strokeOpacity="0.5" fill="none">
-      <animate attributeName="r" from="16" to="30" dur="2s" repeatCount="indefinite" />
-      <animate attributeName="opacity" from="0.5" to="0" dur="2s" repeatCount="indefinite" />
-    </circle>
+        {/* Device Monitor Frame - Enlarged */}
+        <Box
+          sx={{
+            position: 'relative',
+            zIndex: 1,
+            width: '100%',
+            maxWidth: { xs: 360, lg: 480, xl: 520 },
+            aspectRatio: '16/10',
+            bgcolor: 'rgba(15, 23, 42, 0.45)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: '20px',
+            border: '1.5px solid rgba(255, 255, 255, 0.16)',
+            boxShadow: '0 30px 60px -15px rgba(0, 0, 0, 0.5), 0 0 50px rgba(14, 165, 233, 0.15)',
+            p: 1.5,
+            overflow: 'hidden',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          {/* Inner frame */}
+          <Box sx={{ position: 'relative', width: '100%', height: '100%', borderRadius: '12px', overflow: 'hidden', bgcolor: '#0b0f19' }}>
+            {slides.map((slide, idx) => (
+              <Box
+                key={idx}
+                component="img"
+                src={slide.image}
+                alt={slide.title}
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  opacity: activeSlide === idx ? 1 : 0,
+                  transform: activeSlide === idx ? 'scale(1)' : 'scale(1.08)',
+                  transition: 'opacity 0.8s ease-in-out, transform 0.8s ease-in-out'
+                }}
+              />
+            ))}
+          </Box>
+        </Box>
+      </Box>
 
-    {/* Person */}
-    <g transform="translate(156, 170)">
-      <rect x="8" y="26" width="22" height="32" rx="6" fill={PRIMARY} />
-      <circle cx="19" cy="18" r="11" fill="#f59e0b" />
-      <path d="M8 16 Q19 6 30 16" fill="#78350f" />
-      <rect x="10" y="55" width="8" height="22" rx="4" fill={PRIMARY_DARK} />
-      <rect x="20" y="55" width="8" height="22" rx="4" fill={PRIMARY_DARK} />
-      <rect x="7" y="73" width="12" height="6" rx="3" fill={ACCENT} stroke="white" strokeWidth="1" />
-      <circle cx="13" cy="76" r="2" fill="#38bdf8" />
-      <path d="M8 30 L-4 48" stroke={PRIMARY} strokeWidth="6" strokeLinecap="round" />
-      <path d="M30 30 L42 42" stroke={PRIMARY} strokeWidth="6" strokeLinecap="round" />
-    </g>
+      {/* Slide Text Content - Enlarged */}
+      <Box sx={{ position: 'relative', zIndex: 1, mt: { xs: 2, lg: 4 }, minHeight: { xs: 90, lg: 110 } }}>
+        {slides.map((slide, idx) => (
+          <Box
+            key={idx}
+            sx={{
+              position: idx === 0 ? 'relative' : 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              opacity: activeSlide === idx ? 1 : 0,
+              transform: activeSlide === idx ? 'translateY(0)' : 'translateY(15px)',
+              transition: 'opacity 0.5s ease, transform 0.5s ease',
+              visibility: activeSlide === idx ? 'visible' : 'hidden',
+              pointerEvents: activeSlide === idx ? 'auto' : 'none'
+            }}
+          >
+            <Typography variant="h5" sx={{ fontWeight: 800, color: '#ffffff', mb: 1, fontSize: { xs: '1.2rem', lg: '1.45rem', xl: '1.6rem' }, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#0ea5e9', display: 'inline-block', boxShadow: '0 0 10px #0ea5e9' }} />
+              {slide.title}
+            </Typography>
+            <Typography sx={{ color: '#94a3b8', fontSize: { xs: '0.85rem', lg: '0.95rem', xl: '1.02rem' }, lineHeight: 1.55, fontWeight: 400 }}>
+              {slide.description}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
 
-    {/* Signal waves */}
-    <path d="M158 235 Q148 220 148 205" stroke={ACCENT} strokeWidth="1.5" fill="none" strokeOpacity="0.7">
-      <animate attributeName="opacity" values="0;1;0" dur="1.8s" repeatCount="indefinite" />
-    </path>
-    <path d="M156 235 Q140 215 140 195" stroke={ACCENT} strokeWidth="1.5" fill="none" strokeOpacity="0.5">
-      <animate attributeName="opacity" values="0;1;0" dur="1.8s" begin="0.3s" repeatCount="indefinite" />
-    </path>
-
-    {/* Info card */}
-    <rect x="88" y="108" width="110" height="52" rx="12" fill="#ffffff" filter="url(#cardShadow)" />
-    <rect x="88" y="108" width="110" height="52" rx="12" stroke="rgba(37,99,235,0.14)" strokeWidth="1" />
-    <circle cx="106" cy="125" r="8" fill="rgba(37,99,235,0.12)" />
-    <rect x="120" y="118" width="64" height="7" rx="3.5" fill="rgba(37,99,235,0.35)" />
-    <rect x="120" y="130" width="46" height="6" rx="3" fill="rgba(37,99,235,0.18)" />
-    <rect x="96" y="144" width="88" height="6" rx="3" fill="rgba(37,99,235,0.08)" />
-    <circle cx="106" cy="125" r="4" fill={ACCENT} />
-
-    {/* Satellite */}
-    <g transform="translate(296, 96)">
-      <circle cx="20" cy="20" r="18" fill="rgba(14,165,233,0.10)" />
-      <path d="M12 20 L28 20 M20 12 L20 28" stroke={ACCENT} strokeWidth="2" strokeLinecap="round" />
-      <circle cx="20" cy="20" r="4" fill={ACCENT} />
-      <circle cx="20" cy="20" r="8" stroke="#38bdf8" strokeWidth="1" fill="none" />
-    </g>
-
-    {/* Shield */}
-    <g transform="translate(298, 262)">
-      <circle cx="20" cy="20" r="18" fill="rgba(16,185,129,0.10)" />
-      <path d="M20 10 L28 14.5 L28 21 C28 25.8 24.5 30.2 20 31.5 C15.5 30.2 12 25.8 12 21 L12 14.5 Z" stroke="#10b981" strokeWidth="1.5" fill="none" />
-      <path d="M16 21 L19 24 L24 18" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </g>
-
-    <defs>
-      <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
-        <feDropShadow dx="0" dy="3" stdDeviation="5" floodColor="#2563eb" floodOpacity="0.12" />
-      </filter>
-    </defs>
-  </svg>
-);
+      {/* Slide Indicator dots */}
+      <Stack direction="row" spacing={1.5} justifyContent="center" sx={{ mt: { xs: 3, lg: 5 }, position: 'relative', zIndex: 1 }}>
+        {slides.map((_, idx) => (
+          <Box
+            key={idx}
+            onClick={() => setActiveSlide(idx)}
+            sx={{
+              width: activeSlide === idx ? 32 : 10,
+              height: 10,
+              borderRadius: 5,
+              bgcolor: activeSlide === idx ? '#0ea5e9' : 'rgba(255, 255, 255, 0.25)',
+              cursor: 'pointer',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: activeSlide === idx ? '0 0 8px rgba(14, 165, 233, 0.5)' : 'none'
+            }}
+          />
+        ))}
+      </Stack>
+    </Box>
+  );
+};
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const Login = () => {
@@ -118,86 +205,81 @@ const Login = () => {
     <Box
       sx={{
         minHeight: '100vh',
+        width: '100vw',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #eef4ff 45%, #e0f2fe 100%)',
-        position: 'relative',
+        flexDirection: { xs: 'column', md: 'row' },
         overflow: 'hidden',
-        p: { xs: 2, sm: 4 },
+        bgcolor: '#ffffff',
         fontFamily: "'Inter', sans-serif"
       }}
     >
-      {/* Soft pastel blobs */}
-      <Box sx={{ position: 'absolute', top: -120, left: -120, width: 460, height: 460, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.12) 0%, transparent 70%)', filter: 'blur(20px)' }} />
-      <Box sx={{ position: 'absolute', bottom: -140, right: -120, width: 480, height: 480, borderRadius: '50%', background: 'radial-gradient(circle, rgba(14,165,233,0.14) 0%, transparent 70%)', filter: 'blur(24px)' }} />
-      <Box sx={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(rgba(37,99,235,0.05) 1px, transparent 0)', backgroundSize: '26px 26px', pointerEvents: 'none' }} />
-
-      {/* Card */}
+      {/* LEFT: Premium product showcase */}
       <Box
         sx={{
+          flex: { md: '0 0 50%', lg: '0 0 50%' },
+          display: { xs: 'none', md: 'flex' },
+          flexDirection: 'column',
+          px: { md: 6, lg: 8, xl: 10 },
+          py: 8,
+          background: 'linear-gradient(135deg, #070a13 0%, #0f172a 50%, #1e1b4b 100%)',
           position: 'relative',
-          zIndex: 1,
-          display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          bgcolor: '#ffffff',
-          borderRadius: '28px',
-          border: '1px solid rgba(15,23,42,0.06)',
-          overflow: 'hidden',
-          boxShadow: '0 30px 70px rgba(15,23,42,0.12), 0 4px 14px rgba(37,99,235,0.06)',
-          width: '100%',
-          maxWidth: 980,
-          minHeight: { md: 560 }
+          overflow: 'hidden'
         }}
       >
-        {/* LEFT: illustration */}
+        {/* Subtle grid points and line overlays */}
+        <Box sx={{ position: 'absolute', inset: 0, opacity: 0.25, backgroundImage: `radial-gradient(rgba(255,255,255,0.15) 1.5px, transparent 0)`, backgroundSize: '24px 24px', pointerEvents: 'none' }} />
+        <Box sx={{ position: 'absolute', inset: 0, opacity: 0.1, backgroundImage: `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`, backgroundSize: '48px 48px', pointerEvents: 'none' }} />
+        
+        <ProductShowcase />
+
+        {/* Curved S-Curve separation shape */}
         <Box
           sx={{
-            flex: { md: '0 0 46%' },
-            display: { xs: 'none', md: 'flex' },
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            px: 4,
-            py: 6,
-            background: 'linear-gradient(225deg, #eff6ff 0%, #e0f2fe 100%)',
-            position: 'relative',
-            overflow: 'hidden',
-            borderRight: '1px solid rgba(15,23,42,0.05)'
+            position: 'absolute',
+            top: 0,
+            right: -1,
+            bottom: 0,
+            width: 80,
+            display: { xs: 'none', md: 'block' },
+            zIndex: 2,
+            pointerEvents: 'none'
           }}
         >
-          <Box sx={{ position: 'absolute', inset: 0, opacity: 0.5, backgroundImage: `linear-gradient(rgba(37,99,235,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(37,99,235,0.06) 1px, transparent 1px)`, backgroundSize: '40px 40px', pointerEvents: 'none' }} />
-
-          <Stack spacing={1.25} alignItems="center" sx={{ mb: 3.5, position: 'relative', zIndex: 1 }}>
-            <Box component="img" src={logoVTC} alt="VTC Telecom" sx={{ height: 48, width: 'auto', objectFit: 'contain' }} />
-            <Typography sx={{ fontWeight: 900, fontSize: '1.4rem', color: '#0f172a', letterSpacing: 0.5 }}>
-              Hệ thống Giám sát Điện tử EMS
-            </Typography>
-            <Typography sx={{ fontSize: '0.66rem', color: PRIMARY, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' }}>
-              Electronic Monitoring System
-            </Typography>
-          </Stack>
-
-          <Box sx={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', justifyContent: 'center' }}>
-            <TrackingIllustration />
-          </Box>
-
-          <Typography sx={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500, mt: 3, textAlign: 'center', position: 'relative', zIndex: 1 }}>
-            Hệ thống giám sát điện tử thời gian thực
-          </Typography>
+          <svg
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            style={{ width: '100%', height: '100%' }}
+          >
+            <path
+              d="M0,0 C45,25 30,75 0,100 L100,100 L100,0 Z"
+              fill="#ffffff"
+            />
+          </svg>
         </Box>
+      </Box>
 
-        {/* RIGHT: form */}
-        <Box
-          sx={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            px: { xs: 3, sm: 5, md: 6 },
-            py: { xs: 4, md: 6 }
-          }}
-        >
+      {/* RIGHT: form */}
+      <Box
+        sx={{
+          flex: { md: '0 0 50%', xs: '1' },
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          px: { xs: 3, sm: 8, md: 10, lg: 12, xl: 16 },
+          py: { xs: 4, md: 6 },
+          bgcolor: '#ffffff',
+          position: 'relative',
+          overflowY: 'auto',
+          minHeight: '100vh'
+        }}
+      >
+        {/* Soft decorative blobs on the right panel background */}
+        <Box sx={{ position: 'absolute', top: -120, right: -120, width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.06) 0%, transparent 70%)', filter: 'blur(20px)', zIndex: 0, pointerEvents: 'none' }} />
+        <Box sx={{ position: 'absolute', bottom: -140, left: -120, width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(14,165,233,0.08) 0%, transparent 70%)', filter: 'blur(24px)', zIndex: 0, pointerEvents: 'none' }} />
+
+        {/* Content wrapper to constrain form width */}
+        <Box sx={{ width: '100%', maxWidth: 460, position: 'relative', zIndex: 1 }}>
           {/* Mobile brand */}
           <Box sx={{ display: { xs: 'block', md: 'none' }, textAlign: 'center', mb: 3 }}>
             <Box component="img" src={logoVTC} alt="VTC Telecom" sx={{ height: 38, width: 'auto', objectFit: 'contain', mb: 1 }} />
@@ -440,13 +522,37 @@ const inputSx = {
   bgcolor: '#f8fafc',
   fontSize: 14.5,
   color: '#0f172a',
-  transition: 'all 0.2s ease',
-  '& input': { color: '#0f172a', py: 1.6, height: '1.4375em', lineHeight: 1.4375, '&::placeholder': { color: '#94a3b8', opacity: 1 } },
-  '& fieldset': { borderColor: 'rgba(15,23,42,0.1)', borderWidth: 1.5 },
-  '&:hover fieldset': { borderColor: `${alpha(PRIMARY, 0.4)} !important` },
-  '&.Mui-focused': { bgcolor: '#fff', boxShadow: `0 0 0 3px ${alpha(PRIMARY, 0.1)}` },
-  '&.Mui-focused fieldset': { borderColor: `${PRIMARY} !important`, borderWidth: '1.5px !important' },
-  '&.Mui-error fieldset': { borderColor: '#ef4444 !important' }
+  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+  '& input': { 
+    color: '#0f172a', 
+    py: 1.6, 
+    height: '1.4375em', 
+    lineHeight: 1.4375, 
+    '&::placeholder': { color: '#94a3b8', opacity: 0.8 } 
+  },
+  '& fieldset': { 
+    borderColor: 'rgba(15,23,42,0.08)', 
+    borderWidth: '1.5px',
+    transition: 'border-color 0.25s ease'
+  },
+  '&:hover': {
+    bgcolor: '#f1f5f9'
+  },
+  '&:hover fieldset': { 
+    borderColor: `${alpha(PRIMARY, 0.35)} !important` 
+  },
+  '&.Mui-focused': { 
+    bgcolor: '#fff', 
+    boxShadow: `0 8px 24px -4px ${alpha(PRIMARY, 0.12)}, 0 0 0 4px ${alpha(PRIMARY, 0.08)}`,
+    transform: 'translateY(-1px)'
+  },
+  '&.Mui-focused fieldset': { 
+    borderColor: `${PRIMARY} !important`, 
+    borderWidth: '2px !important' 
+  },
+  '&.Mui-error fieldset': { 
+    borderColor: '#ef4444 !important' 
+  }
 };
 
 export default Login;

@@ -163,11 +163,11 @@ export default function AuditLogManagement({ isDark, refreshKey }: Props) {
       </Box>
 
       {/* Bảng nhật ký */}
-      <Box sx={{ borderRadius: '16px', border: `1px solid ${cardBorder}`, background: panelBg, overflow: 'hidden' }}>
+      <Box sx={{ borderRadius: '16px', border: `1px solid ${cardBorder}`, background: panelBg, overflowX: 'auto' }}>
         {loading ? (
           <Stack alignItems="center" sx={{ py: 6 }}><CircularProgress size={24} /></Stack>
         ) : (
-          <Table size="small">
+          <Table size="small" sx={{ minWidth: 800 }}>
             <TableHead>
               <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.74rem', color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase', letterSpacing: 0.4, borderColor: cardBorder, py: 1.25, px: 2 } }}>
                 <TableCell>Thời gian</TableCell>

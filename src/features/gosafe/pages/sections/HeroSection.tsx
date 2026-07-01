@@ -57,7 +57,7 @@ const HeroSection = ({ isDark, primaryColor, secondaryColor }: HeroSectionProps)
                   variant="h1"
                   sx={{
                     fontSize: { xs: '2.5rem', sm: '3.5rem', md: '5.5rem' },
-                    fontWeight: 900,
+                    fontWeight: 700,
                     lineHeight: 0.9,
                     letterSpacing: '-0.03em',
                     mb: 2,
@@ -80,7 +80,7 @@ const HeroSection = ({ isDark, primaryColor, secondaryColor }: HeroSectionProps)
                   transition={{ delay: 0.3 }}
                   variant="h4"
                   sx={{
-                    fontWeight: 600,
+                    fontWeight: 700,
                     color: '#94a3b8',
                     mb: 3,
                     fontSize: { xs: '1.125rem', sm: '1.25rem', md: '1.75rem' }
@@ -147,7 +147,7 @@ const HeroSection = ({ isDark, primaryColor, secondaryColor }: HeroSectionProps)
                     px: 4, py: 1.8,
                     borderRadius: '50px',
                     fontSize: '1rem',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     '&:hover': { borderColor: '#fff', bgcolor: alpha('#fff', 0.1) }
                   }}
                 >
@@ -168,9 +168,9 @@ const HeroSection = ({ isDark, primaryColor, secondaryColor }: HeroSectionProps)
                   >
                     <Stack direction="row" spacing={1} alignItems="center" mb={0.5} color={primaryColor}>
                       {stat.icon}
-                      <Typography variant="h6" fontWeight={800} color="#fff">{stat.value}</Typography>
+                      <Typography variant="h6" fontWeight={700} color="#fff">{stat.value}</Typography>
                     </Stack>
-                    <Typography variant="caption" color={alpha('#fff', 0.6)} fontWeight={600}>
+                    <Typography variant="caption" color={alpha('#fff', 0.6)} fontWeight={700}>
                       {stat.label}
                     </Typography>
                   </Box>

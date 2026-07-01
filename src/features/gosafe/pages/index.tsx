@@ -167,8 +167,8 @@ const GosafeLanding = ({ viewType = 'landing' }: GosafeLandingProps) => {
 
         {viewType === 'landing' ? (
           <>
-            <SolutionsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
             <HeroSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+            <SolutionsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
             <LiveDemoSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
             <ProductsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />
             <SpecsSection isDark={isDark} primaryColor={primaryColor} secondaryColor={secondaryColor} />

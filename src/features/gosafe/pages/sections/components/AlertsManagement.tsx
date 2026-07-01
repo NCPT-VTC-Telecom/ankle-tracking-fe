@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   Box, Stack, Typography, Chip, Button, IconButton, Tooltip, TextField, MenuItem,
-  Table, TableHead, TableBody, TableRow, TableCell, CircularProgress, Grid
+  Table, TableHead, TableBody, TableRow, TableCell, CircularProgress, Grid,
+  useTheme, useMediaQuery
 } from '@mui/material';
 import { Danger, TickCircle, CloseCircle, Refresh, SearchNormal1, Setting2, Add, Notification, Clock } from 'iconsax-react';
 import { alertsApi, alertTypesApi, extractList } from 'shared/api/gosafe.management.api';
@@ -62,6 +63,9 @@ function statusMeta(status: unknown): { label: string; color: string } {
 }
 
 export default function AlertsManagement({ isDark, scopeRegionId, refreshKey }: Props) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   const [rows, setRows] = useState<AlertRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -167,12 +171,120 @@ export default function AlertsManagement({ isDark, scopeRegionId, refreshKey }: 
         </Button>
       </Stack>
 
-      {/* Table */}
-      <Box sx={{ borderRadius: '16px', border: '1px solid', borderColor: cardBorder, bgcolor: cardBg, overflow: 'hidden' }}>
+      {/* Table / Mobile List */}
+      <Box sx={{
+        borderRadius: '16px',
+        border: isMobile ? 'none' : '1px solid',
+        borderColor: cardBorder,
+        bgcolor: isMobile ? 'transparent' : cardBg,
+        overflowX: isMobile ? 'visible' : 'auto'
+      }}>
         {loading ? (
           <Stack alignItems="center" sx={{ py: 6 }}><CircularProgress size={24} /></Stack>
+        ) : isMobile ? (
+          <Stack spacing={1.75}>
+            {paged.map((r) => {
+              const lm = levelMeta(r.level);
+              const sm = statusMeta(r.status);
+              const closed = sm.label === 'Đã đóng';
+              return (
+                <Box
+                  key={r.id}
+                  sx={{
+                    p: 2,
+                    borderRadius: '16px',
+                    border: '1px solid',
+                    borderColor: r.level === '1' || r.level === 1 || String(r.level).includes('P1') ? `${lm.color}35` : cardBorder,
+                    bgcolor: r.level === '1' || r.level === 1 || String(r.level).includes('P1') 
+                      ? (isDark ? `${lm.color}15` : `${lm.color}08`)
+                      : cardBg,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 1.5
+                  }}
+                >
+                  {/* Top Line: Time & Severity Badge */}
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ color: isDark ? '#94a3b8' : '#64748b' }}>
+                      <Clock size={16} />
+                      <Typography sx={{ fontSize: '0.8rem', fontWeight: 500 }}>
+                        {r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN') : '—'}
+                      </Typography>
+                    </Stack>
+                    <Chip label={lm.label} size="small" sx={{ height: 22, fontWeight: 800, fontSize: '0.72rem', color: lm.color, bgcolor: lm.bg, borderRadius: '8px' }} />
+                  </Stack>
+
+                  {/* Mid Line: Title & Status */}
+                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+                    <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
+                      <Danger size={22} color={lm.color} variant="Bold" style={{ flexShrink: 0 }} />
+                      <Typography sx={{ fontWeight: 700, fontSize: '0.925rem', color: isDark ? '#ffffff' : '#0f172a' }}>
+                        {r.title}
+                      </Typography>
+                    </Stack>
+                    <Typography sx={{ fontSize: '0.85rem', fontWeight: 800, color: sm.color, flexShrink: 0 }}>
+                      {sm.label}
+                    </Typography>
+                  </Stack>
+
+                  {/* Subject Details */}
+                  <Box sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)', p: 1.25, borderRadius: '10px' }}>
+                    <Typography sx={{ fontSize: '0.82rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 500 }}>
+                      Đối tượng đeo: <span style={{ color: isDark ? '#ffffff' : '#0f172a', fontWeight: 700 }}>{r.offender}</span>
+                    </Typography>
+                  </Box>
+
+                  {/* Bottom Line: Actions */}
+                  {!closed && (
+                    <Stack direction="row" spacing={1.5} justifyContent="flex-end" sx={{ mt: 0.5 }}>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => handleAck(r)}
+                        startIcon={<TickCircle size={16} />}
+                        sx={{
+                          borderRadius: '10px',
+                          textTransform: 'none',
+                          fontWeight: 700,
+                          fontSize: '0.78rem',
+                          borderColor: '#ea580c',
+                          color: '#ea580c',
+                          '&:hover': { borderColor: '#d97706', bgcolor: 'rgba(234,88,12,0.05)' }
+                        }}
+                      >
+                        Nhận xử lý
+                      </Button>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={() => handleClose(r)}
+                        startIcon={<CloseCircle size={16} />}
+                        sx={{
+                          borderRadius: '10px',
+                          textTransform: 'none',
+                          fontWeight: 700,
+                          fontSize: '0.78rem',
+                          bgcolor: '#16a34a',
+                          boxShadow: 'none',
+                          '&:hover': { bgcolor: '#15803d', boxShadow: 'none' }
+                        }}
+                      >
+                        Đóng cảnh báo
+                      </Button>
+                    </Stack>
+                  )}
+                </Box>
+              );
+            })}
+            {filtered.length === 0 && (
+              <Typography align="center" color="text.secondary" sx={{ py: 4 }}>
+                {error ?? 'Không có cảnh báo nào.'}
+              </Typography>
+            )}
+          </Stack>
         ) : (
-          <Table>
+          <Table sx={{ minWidth: 800 }}>
             <TableHead>
               <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.85rem', color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase', letterSpacing: 0.4, borderColor: cardBorder, py: 2, px: 2.5 } }}>
                 <TableCell>Thời gian</TableCell>

@@ -3,11 +3,11 @@ import {
   Stack, TextField, Button, Avatar, Typography, Chip, Tooltip, IconButton, Grid,
   Box, Divider, ToggleButtonGroup, ToggleButton, Drawer, FormControl, InputLabel,
   Select, MenuItem, SelectChangeEvent, CircularProgress,
-  OutlinedInput, Checkbox, ListItemText
+  OutlinedInput, Checkbox, ListItemText, useTheme, useMediaQuery
 } from '@mui/material';
 import {
   SearchNormal1, Add, Eye, Edit, Trash, Map as MapIcon, Category, DocumentText,
-  Gps, Clock, CloseCircle, Location, ShieldSecurity, Profile2User, Building4, Activity
+  Gps, Clock, CloseCircle, Location, ShieldSecurity, Profile2User, Building4, Activity, Flash
 } from 'iconsax-react';
 import { TrackingStore } from '../../tracking/useTracking';
 import { offendersApi, devicesApi, zonesApi, extractList, extractTotal } from 'shared/api/gosafe.management.api';
@@ -79,10 +79,14 @@ const SectionHeader = ({ icon, title, accent, isDark }: { icon: React.ReactNode;
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function PrisonerManagementTable({ isDark, store, setDashboardView, refreshKey }: PrisonerManagementTableProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { devices, deviceViolations, setSelectedDeviceId, geofences } = store;
   const primaryColor = store.primaryColor;
   const { confirm, notify } = useFeedback();
   const fontFamily = '"Inter", sans-serif';
+
+  const [accumulatedItems, setAccumulatedItems] = useState<PrisonerRow[]>([]);
 
   const [mgmtDevices, setMgmtDevices] = useState<any[]>([]); // device_management (imei→id, offenderId)
   const [prisonerSearch, setPrisonerSearch] = useState('');
@@ -154,6 +158,18 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
       };
     });
   }, [offenders, devices, deviceViolations]);
+
+  useEffect(() => {
+    if (page === 1) {
+      setAccumulatedItems(paged);
+    } else {
+      setAccumulatedItems((prev) => {
+        const existingIds = new Set(prev.map(item => item.id));
+        const newItems = paged.filter(item => !existingIds.has(item.id));
+        return [...prev, ...newItems];
+      });
+    }
+  }, [paged, page]);
 
   // Thiết bị device_management chưa gán người thi hành án (offenderId null) — để gán mới.
   const freeMgmtDevices = useMemo(
@@ -275,11 +291,192 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
   const statusLabelOf = (row: PrisonerRow) =>
     row.violation ? 'Vi phạm vùng' : translateOffenderStatus(row.status);
 
+  const renderMobileList = () => {
+    const cardBg = isDark ? 'rgba(255,255,255,0.03)' : '#ffffff';
+    return (
+      <Stack spacing={1.25} sx={{ p: 2 }}>
+        {accumulatedItems.map((row) => {
+          const color = row.device?.color ?? primaryColor;
+          const alertColor = statusColorOf(row);
+
+          return (
+            <Box
+              key={row.id}
+              onClick={() => openDetail(row)}
+              sx={{
+                p: 1.5,
+                borderRadius: '12px',
+                border: '1px solid',
+                borderColor: row.violation ? '#ef444435' : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'),
+                bgcolor: row.violation 
+                  ? (isDark ? 'rgba(239,68,68,0.08)' : 'rgba(239,68,68,0.03)')
+                  : cardBg,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 1.5,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:active': { bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)' }
+              }}
+            >
+              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0, flex: 1 }}>
+                <Avatar
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '10px',
+                    bgcolor: color,
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    fontFamily,
+                    flexShrink: 0
+                  }}
+                >
+                  {row.fullName.split(' ').slice(-1)[0]?.charAt(0) ?? '?'}
+                </Avatar>
+                <Stack spacing={0.5} sx={{ minWidth: 0, flex: 1 }}>
+                  <Typography
+                    sx={{
+                      fontWeight: 700,
+                      color: isDark ? '#f8fafc' : '#0f172a',
+                      lineHeight: 1.25,
+                      fontFamily,
+                      fontSize: '0.88rem',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {row.fullName}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{
+                      fontSize: '0.72rem',
+                      fontFamily,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {row.profileCode || 'PN'} · CCCD {row.idNumber || '—'}
+                  </Typography>
+                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 0.25 }}>
+                    <Chip
+                      label={statusLabelOf(row)}
+                      size="small"
+                      className={row.violation ? 'gs-blink' : ''}
+                      sx={{
+                        height: 20,
+                        fontSize: '0.65rem',
+                        fontWeight: 700,
+                        fontFamily,
+                        borderRadius: '6px',
+                        bgcolor: `${alertColor}12`,
+                        color: alertColor,
+                        border: `1px solid ${alertColor}25`
+                      }}
+                    />
+                    {row.device ? (
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', px: 0.75, py: 0.25, borderRadius: '6px' }}>
+                        <Typography component="span" sx={{ fontSize: '0.7rem', color: row.device.status.battery < 20 ? '#ef4444' : '#22c55e', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 0.4 }}>
+                          <Flash size={12} variant="Bold" /> {row.device.status.battery}%
+                        </Typography>
+                        <Typography component="span" sx={{ fontSize: '0.7rem', color: '#1e6fd9', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 0.4 }}>
+                          <Gps size={12} variant="Bold" /> {row.device.status.satelliteCount || 0}
+                        </Typography>
+                      </Stack>
+                    ) : (
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', fontStyle: 'italic', fontFamily }}>
+                        Chưa gán
+                      </Typography>
+                    )}
+                  </Stack>
+                </Stack>
+              </Stack>
+
+              {/* Quick actions */}
+              <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                <IconButton
+                  size="small"
+                  onClick={() => openEdit(row)}
+                  sx={{
+                    border: '1px solid',
+                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
+                    borderRadius: '8px',
+                    width: 32,
+                    height: 32,
+                    color: 'text.secondary',
+                    '&:hover': { borderColor: primaryColor }
+                  }}
+                >
+                  <Edit size={14} />
+                </IconButton>
+                {row.device && (
+                  <IconButton
+                    size="small"
+                    color="primary"
+                    onClick={() => locate(row)}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: isDark ? `${primaryColor}30` : `${primaryColor}30`,
+                      bgcolor: `${primaryColor}08`,
+                      borderRadius: '8px',
+                      width: 32,
+                      height: 32,
+                      color: primaryColor,
+                      '&:hover': { bgcolor: `${primaryColor}15` }
+                    }}
+                  >
+                    <Location size={14} />
+                  </IconButton>
+                )}
+              </Stack>
+            </Box>
+          );
+        })}
+
+        {page < totalPages && (
+          <Button
+            variant="outlined"
+            fullWidth
+            onClick={() => setPage(page + 1)}
+            disabled={loading}
+            sx={{
+              mt: 1,
+              borderRadius: '12px',
+              py: 1.25,
+              fontWeight: 700,
+              textTransform: 'none',
+              fontFamily,
+              borderColor: primaryColor,
+              color: primaryColor,
+              '&:hover': {
+                borderColor: primaryColor,
+                bgcolor: `${primaryColor}10`
+              }
+            }}
+          >
+            {loading ? 'Đang tải...' : 'Xem thêm'}
+          </Button>
+        )}
+      </Stack>
+    );
+  };
+
   return (
     <Stack spacing={3}>
-      {/* ── Toolbar ── */}
-      <Stack direction="row" spacing={2} justifyContent="space-between" alignItems="center">
-        <Stack direction="row" spacing={1.5} alignItems="center">
+      {/* ── Toolbar (responsive) ── */}
+      <Stack
+        direction="row"
+        spacing={1.5}
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ px: { xs: 2, md: 0 }, pt: { xs: 1, md: 0 } }}
+      >
+        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
           <TextField
             size="small"
             placeholder="Tìm người thi hành án, CCCD, mã hồ sơ..."
@@ -289,29 +486,53 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
               startAdornment: <SearchNormal1 size={16} style={{ marginRight: 6, color: '#94a3b8' }} />,
               sx: { fontSize: '0.9rem', borderRadius: '12px' }
             }}
-            sx={{ width: 300 }}
+            sx={{ flex: { xs: 1, md: 'none' }, width: { md: 300 } }}
           />
+          {/* Chuyển chế độ xem — chỉ có ý nghĩa trên desktop (mobile luôn dùng danh sách) */}
           <ToggleButtonGroup
             value={viewMode} exclusive onChange={(_, val) => val && setViewMode(val)} size="small"
-            sx={{ height: 40, borderRadius: '12px', overflow: 'hidden', '& .MuiToggleButton-root': { border: '1px solid', borderColor: glassBdr, color: isDark ? '#94a3b8' : '#64748b', px: 1.5, '&.Mui-selected': { bgcolor: primaryColor, color: '#fff', borderColor: primaryColor } } }}
+            sx={{ height: 40, borderRadius: '12px', overflow: 'hidden', flexShrink: 0, display: { xs: 'none', md: 'flex' }, '& .MuiToggleButton-root': { border: '1px solid', borderColor: glassBdr, color: isDark ? '#94a3b8' : '#64748b', px: 1.5, '&.Mui-selected': { bgcolor: primaryColor, color: '#fff', borderColor: primaryColor } } }}
           >
             <ToggleButton value="cards"><Tooltip title="Dạng thẻ hồ sơ"><Category size={16} /></Tooltip></ToggleButton>
             <ToggleButton value="table"><Tooltip title="Dạng danh sách"><DocumentText size={16} /></Tooltip></ToggleButton>
           </ToggleButtonGroup>
-          {loading && <CircularProgress size={18} />}
+          {loading && <CircularProgress size={18} sx={{ flexShrink: 0 }} />}
+          {/* Nút thêm rút gọn (mobile) */}
+          <IconButton
+            onClick={openAdd}
+            aria-label="Thêm người thi hành án"
+            sx={{
+              display: { xs: 'inline-flex', md: 'none' },
+              flexShrink: 0,
+              width: 40,
+              height: 40,
+              borderRadius: '12px',
+              color: '#fff',
+              background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
+              boxShadow: `0 4px 16px ${primaryColor}40`,
+              '&:hover': { background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, filter: 'brightness(1.05)' }
+            }}
+          >
+            <Add size={20} />
+          </IconButton>
         </Stack>
 
+        {/* Nút thêm đầy đủ (desktop) */}
         <Button
           variant="contained" startIcon={<Add size={20} />} onClick={openAdd}
-          sx={{ fontWeight: 700, textTransform: 'none', fontSize: '0.9rem', borderRadius: '12px', py: 1.2, px: 2.5, background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, boxShadow: `0 4px 16px ${primaryColor}40`, '&:hover': { boxShadow: `0 6px 24px ${primaryColor}50` } }}
+          sx={{ display: { xs: 'none', md: 'inline-flex' }, flexShrink: 0, fontWeight: 700, textTransform: 'none', fontSize: '0.9rem', borderRadius: '12px', py: 1.2, px: 2.5, background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, boxShadow: `0 4px 16px ${primaryColor}40`, '&:hover': { boxShadow: `0 6px 24px ${primaryColor}50` } }}
         >
           Thêm người thi hành án
         </Button>
       </Stack>
 
-      {/* ── Card view ── */}
-      {viewMode === 'cards' && (
-        <Grid container spacing={3}>
+      {/* ── Card/Table / Mobile List view ── */}
+      {isMobile ? (
+        renderMobileList()
+      ) : (
+        <>
+          {viewMode === 'cards' && (
+            <Grid container spacing={3}>
           {paged.map((row) => {
             const color = row.device?.color ?? primaryColor;
             const alertColor = statusColorOf(row);
@@ -627,8 +848,8 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
 
       {/* ── Table view ── */}
       {viewMode === 'table' && (
-        <Box sx={{ borderRadius: '16px', border: `1px solid ${glassBdr}`, background: isDark ? 'rgba(9,13,31,0.5)' : 'rgba(255,255,255,0.7)', backdropFilter: glassBlur, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <Box sx={{ borderRadius: '16px', border: `1px solid ${glassBdr}`, background: isDark ? 'rgba(9,13,31,0.5)' : 'rgba(255,255,255,0.7)', backdropFilter: glassBlur, overflowX: 'auto' }}>
+          <table style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
                 {['', 'Họ tên người thi hành án', 'CCCD', 'Loại đối tượng', 'Hình phạt', 'Mãn hạn', 'Thiết bị', 'Cán bộ', 'Trạng thái', ''].map((h) => (
@@ -688,6 +909,8 @@ export default function PrisonerManagementTable({ isDark, store, setDashboardVie
       )}
 
       <PaginationBar page={page} totalPages={totalPages} total={total} shownCount={paged.length} onChange={setPage} label="người thi hành án" />
+        </>
+      )}
 
       {/* ══ Add/Edit drawer ══ */}
       <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}

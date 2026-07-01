@@ -101,11 +101,11 @@ const SimManagement = ({ isDark, isSuperAdmin = false, refreshKey }: Props) => {
         )}
       </Stack>
 
-      <Box sx={{ borderRadius: '16px', border: '1px solid', borderColor: cardBorder, bgcolor: cardBg, overflow: 'hidden' }}>
+      <Box sx={{ borderRadius: '16px', border: '1px solid', borderColor: cardBorder, bgcolor: cardBg, overflowX: 'auto' }}>
         {loading ? (
           <Stack alignItems="center" sx={{ py: 6 }}><CircularProgress size={24} /></Stack>
         ) : (
-          <Table>
+          <Table sx={{ minWidth: 700 }}>
             <TableHead>
               <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.85rem', color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase', letterSpacing: 0.4, borderColor: cardBorder, py: 2, px: 2.5 } }}>
                 <TableCell>Số thuê bao</TableCell>

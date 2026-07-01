@@ -153,7 +153,7 @@ const SolutionGroup = ({ group, isDark, primaryColor, secondaryColor }: any) => 
           <Typography
             variant="h2"
             sx={{
-              fontWeight: 800,
+              fontWeight: 700,
               color: isDark ? '#fff' : '#0f172a',
               fontSize: { xs: '2.5rem', md: '4rem' },
               lineHeight: 1.1,
@@ -241,7 +241,7 @@ const TitleHero = ({ isDark, primaryColor }: { isDark: boolean; primaryColor: st
         <Typography
           variant="h1"
           sx={{
-            fontWeight: 800,
+            fontWeight: 700,
             fontSize: { xs: '3rem', md: '5rem', lg: '6rem' },
             lineHeight: 1.1,
             mb: 3,
@@ -267,43 +267,6 @@ const TitleHero = ({ isDark, primaryColor }: { isDark: boolean; primaryColor: st
         >
           <FormattedMessage id="gosafe-solutions-subtitle" defaultMessage="Smart monitoring system and mobile application" />
         </Typography>
-
-        <Stack direction="row" spacing={2} justifyContent="center" alignItems="center" sx={{ mb: 10 }}>
-          {/* gs-cta-btn: border-radius 100px, padding, font, cursor, transition */}
-          <Box
-            component={motion.button}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="gs-cta-btn"
-            onClick={() => {
-              const el = document.getElementById('contact-form');
-              el ? el.scrollIntoView({ behavior: 'smooth' }) : window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-            }}
-            sx={{
-              bgcolor: primaryColor,
-              color: '#fff',
-              border: 'none',
-              boxShadow: `0 10px 30px -10px ${alpha(primaryColor, 0.6)}`
-            }}
-          >
-            <FormattedMessage id="gosafe-solutions-cta-contact" defaultMessage="Contact Sales" />
-          </Box>
-
-          <Box
-            component={motion.button}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="gs-cta-btn"
-            onClick={() => window.scrollBy({ top: window.innerHeight * 0.9, behavior: 'smooth' })}
-            sx={{
-              bgcolor: 'transparent',
-              color: isDark ? '#fff' : '#0f172a',
-              border: `1px solid ${isDark ? alpha('#fff', 0.2) : alpha('#000', 0.2)}`
-            }}
-          >
-            <FormattedMessage id="gosafe-solutions-cta-learn" defaultMessage="Learn More" />
-          </Box>
-        </Stack>
       </motion.div>
     </Container>
 
@@ -324,7 +287,7 @@ const TitleHero = ({ isDark, primaryColor }: { isDark: boolean; primaryColor: st
         }}
       >
         {/* gs-dashboard-frame__img: width/height 100%, object-fit cover */}
-        <img src={oneStopSolution} loading="lazy" className="gs-dashboard-frame__img" alt="Dashboard" />
+        <img src={liveMonitoring} loading="lazy" className="gs-dashboard-frame__img" alt="Dashboard" />
         {/* gs-dashboard-frame__overlay: absolute fill, gradient */}
         <Box className="gs-dashboard-frame__overlay gs-absolute-fill" />
       </Box>

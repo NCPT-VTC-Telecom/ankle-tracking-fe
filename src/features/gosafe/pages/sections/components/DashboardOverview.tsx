@@ -169,8 +169,8 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
       : `linear-gradient(135deg, ${accentColor}24 0%, ${accentColor}0a 60%), #ffffff`,
     backdropFilter: 'blur(16px)',
     WebkitBackdropFilter: 'blur(16px)',
-    p: 2.25,
-    pl: 2.75,
+    p: { xs: 1.5, sm: 2.25 },
+    pl: { xs: 1.75, sm: 2.75 },
     height: '100%',
     boxShadow: `0 6px 22px ${accentColor}1f`,
     position: 'relative' as const,
@@ -279,10 +279,10 @@ export default function DashboardOverview({ isDark, store, setDashboardView, sco
                 </Box>
               </Stack>
               <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ mt: 0.5 }}>
-                <Typography sx={{ fontSize: '34px', fontWeight: 700, color: k.color, lineHeight: 1 }}>{k.value}</Typography>
+                <Typography sx={{ fontSize: { xs: '26px', sm: '34px' }, fontWeight: 700, color: k.color, lineHeight: 1 }}>{k.value}</Typography>
                 {k.unit && <Typography sx={{ fontSize: '13px', fontWeight: 500, color: txtSecondary }}>{k.unit}</Typography>}
               </Stack>
-              <Typography sx={{ fontSize: '12.5px', color: txtSecondary, mt: 0.75, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.sub}</Typography>
+              <Typography sx={{ fontSize: { xs: '11px', sm: '12.5px' }, color: txtSecondary, mt: 0.75, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.sub}</Typography>
 
               {/* Custom visual element based on card index */}
               {i === 0 && (

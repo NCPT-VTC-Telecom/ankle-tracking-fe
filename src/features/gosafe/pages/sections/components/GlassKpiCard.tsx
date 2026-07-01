@@ -24,11 +24,12 @@ interface GlassKpiCardProps {
  */
 export default function GlassKpiCard({ label, value, sub, color, icon, isDark = false, live, blink, footer }: GlassKpiCardProps) {
   const numericValue = typeof value === 'number' ? value : Number(String(value).replace(/[^\d.-]/g, ''));
+  const fontFamily = '"Inter", sans-serif';
   return (
     <Box
       sx={{
-        p: 3,
-        pl: 3.5,
+        p: { xs: 1.75, sm: 3 },
+        pl: { xs: 2.25, sm: 3.5 },
         height: '100%',
         borderRadius: '16px',
         border: `1px solid ${isDark ? `${color}33` : `${color}33`}`,
@@ -56,15 +57,15 @@ export default function GlassKpiCard({ label, value, sub, color, icon, isDark = 
       }}
     >
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-        <Box sx={{ minWidth: 0 }}>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography
             variant="caption"
-            sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, fontSize: '0.78rem', color: isDark ? '#94a3b8' : '#64748b' }}
+            sx={{ fontWeight: 700, fontFamily, textTransform: 'uppercase', letterSpacing: 0.6, fontSize: { xs: '0.7rem', sm: '0.78rem' }, color: isDark ? '#94a3b8' : '#64748b' }}
           >
             {label}
           </Typography>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75 }}>
-            <Typography variant="h3" sx={{ fontWeight: 700, color, lineHeight: 1 }}>
+          <Stack direction="row" spacing={{ xs: 0.5, sm: 1 }} alignItems="center" sx={{ mt: 0.75 }}>
+            <Typography sx={{ fontWeight: 700, fontFamily, color, lineHeight: 1, fontSize: { xs: '24px', sm: '32px' } }}>
               {value}
             </Typography>
             {live && (
@@ -75,7 +76,7 @@ export default function GlassKpiCard({ label, value, sub, color, icon, isDark = 
             )}
           </Stack>
           {sub && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75, fontSize: '0.8rem' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: { xs: 0.5, sm: 0.75 }, fontSize: { xs: '0.74rem', sm: '0.8rem' }, fontFamily }}>
               {sub}
             </Typography>
           )}
@@ -84,10 +85,15 @@ export default function GlassKpiCard({ label, value, sub, color, icon, isDark = 
           sx={{
             background: `linear-gradient(135deg, ${color}, ${color}cc)`,
             color: '#fff',
-            width: 52,
-            height: 52,
+            fontFamily,
+            width: { xs: 38, sm: 52 },
+            height: { xs: 38, sm: 52 },
             boxShadow: `0 6px 18px ${color}55`,
-            flexShrink: 0
+            flexShrink: 0,
+            '& svg': {
+              width: { xs: 18, sm: 24 },
+              height: { xs: 18, sm: 24 }
+            }
           }}
         >
           {icon}

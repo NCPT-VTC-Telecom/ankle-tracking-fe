@@ -12,7 +12,10 @@ import {
   Tooltip,
   Popover,
   Switch,
-  FormControlLabel
+  FormControlLabel,
+  useTheme,
+  useMediaQuery,
+  Drawer
 } from '@mui/material';
 import {
   Notification,
@@ -31,8 +34,7 @@ import {
   Calendar,
   Refresh,
   DocumentText,
-  Simcard,
-  Home2
+  Simcard
 } from 'iconsax-react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -165,6 +167,11 @@ export default function TrackingSection({
   }, [isSuperAdmin, user]);
 
   // Map page sidebar collapsible & overflow menu state
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
   const [isMapSidebarCollapsed, setIsMapSidebarCollapsed] = useState(false);
   const [mapMenuAnchorEl, setMapMenuAnchorEl] = useState<null | HTMLElement>(null);
   const handleMapMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) =>
@@ -205,7 +212,7 @@ export default function TrackingSection({
     devices: { crumb: 'Quản lý thiết bị', title: 'Thông tin các thiết bị' },
     sim: { crumb: 'Quản lý SIM', title: 'Quản lý SIM' },
     providers: { crumb: 'Nhà cung cấp', title: 'Nhà cung cấp / nhà mạng' },
-    prisoners: { crumb: 'Thông tin phạm nhân', title: 'Hồ sơ giám sát phạm nhân' },
+    prisoners: { crumb: 'Thông tin người thi hành án', title: 'Hồ sơ giám sát người thi hành án' },
     alerts: { crumb: 'Quản lý cảnh báo', title: 'Trung tâm cảnh báo' },
     compliance: { crumb: 'Lịch trình bắt buộc', title: 'Quy tắc tuân thủ & lịch bắt buộc' },
     regions: { crumb: 'Quản lý địa bàn', title: 'Quản lý địa bàn' },
@@ -227,157 +234,247 @@ export default function TrackingSection({
           position: 'relative'
         }}
       >
-        {/* Floating Notification FAB & Popovers */}
-        <Box sx={{ position: 'absolute', top: 0, right: 0, pointerEvents: 'none', zIndex: 1100 }}>
-          <Box sx={{ pointerEvents: 'auto' }}>
-            <IconButton
-              onClick={handleBellOpen}
-              className={
-                totalViolating > 0
-                  ? 'gs-fab-violation'
-                  : lowBatteryCount > 0
-                  ? 'gs-fab-lowbat'
-                  : undefined
-              }
-              sx={{
-                position: 'fixed',
-                top: 20,
-                right: 24,
-                width: 52,
-                height: 52,
-                bgcolor: isDark ? '#1e293b' : '#ffffff',
-                color:
-                  totalViolating > 0
-                    ? '#ef4444'
-                    : lowBatteryCount > 0
-                    ? '#f59e0b'
-                    : isDark
-                    ? '#f8fafc'
-                    : '#475569',
-                boxShadow: isDark
-                  ? '0 8px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08)'
-                  : '0 8px 30px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04)',
-                border: '1px solid',
-                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-                '&:hover': {
-                  bgcolor: isDark ? '#334155' : '#f8fafc',
-                  transform: 'scale(1.05)',
-                  boxShadow: isDark
-                    ? '0 12px 36px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.12)'
-                    : '0 12px 36px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06)'
-                },
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-              }}
-            >
-              <Badge
-                badgeContent={statusAlertCount + totalViolating}
-                color="error"
+        {/* Top Mobile Header (Mobile only) */}
+        {isMobile && (
+          <Box
+            sx={{
+              height: 56,
+              width: '100%',
+              bgcolor: isDark ? 'rgba(15, 23, 42, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+              backdropFilter: 'blur(20px)',
+              borderBottom: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              px: 2,
+              zIndex: 100,
+              flexShrink: 0
+            }}
+          >
+            {/* Logo */}
+            <Stack direction="row" spacing={1} alignItems="center" onClick={() => navigate('/gosafe')} sx={{ cursor: 'pointer' }}>
+              <Box
+                component="img"
+                src={logoVTC}
+                alt="VTC Telecom"
                 sx={{
-                  '& .MuiBadge-badge': {
-                    fontFamily: '"Inter", sans-serif',
-                    fontWeight: 800,
-                    fontSize: '0.7rem',
-                    height: 18,
-                    minWidth: 18,
-                    borderRadius: '9px',
-                    border: `2px solid ${isDark ? '#1e293b' : '#ffffff'}`
-                  }
+                  height: 26,
+                  width: 'auto',
+                  objectFit: 'contain',
+                  filter: 'brightness(0) invert(1)'
+                }}
+              />
+              <Typography
+                sx={{
+                  fontFamily: '"Inter", sans-serif',
+                  fontWeight: 700,
+                  fontSize: '0.875rem',
+                  color: isDark ? '#ffffff' : '#0f172a'
                 }}
               >
-                <Notification size={24} />
-              </Badge>
-            </IconButton>
+                GoSafe EMS
+              </Typography>
+            </Stack>
 
-            <Popover
-              open={Boolean(bellAnchorEl)}
-              anchorEl={bellAnchorEl}
-              onClose={handleBellClose}
-              anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'right'
-              }}
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'right'
-              }}
-              PaperProps={{
-                sx: {
-                  width: 360,
-                  maxHeight: 500,
-                  mt: 1.5,
-                  p: 2,
-                  borderRadius: '12px',
-                  boxShadow: isDark
-                    ? '0 12px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08)'
-                    : '0 12px 40px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06)',
-                  bgcolor: isDark ? '#0f172a' : '#ffffff',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  overflow: 'hidden'
-                }
+            {/* Current View Title */}
+            <Typography
+              sx={{
+                fontFamily: '"Inter", sans-serif',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                color: '#38bdf8',
+                display: { xs: 'none', sm: 'block' }
               }}
             >
-              <Box sx={{ overflowY: 'auto', flexGrow: 1 }}>
-                <NotificationList store={store} />
-              </Box>
-            </Popover>
+              {viewMeta.crumb}
+            </Typography>
 
-            <Menu
-              anchorEl={profileAnchorEl}
-              open={Boolean(profileAnchorEl)}
-              onClose={handleProfileClose}
-              PaperProps={{
-                sx: {
-                  mt: 1,
-                  minWidth: 180,
-                  borderRadius: 2,
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-                  border: '1px solid',
-                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-                  bgcolor: isDark ? '#0f172a' : '#ffffff'
-                }
-              }}
-            >
-              <MenuItem
-                onClick={() => {
-                  handleProfileClose();
-                  setProfileDialogOpen(true);
+            {/* Actions: Notification & Profile */}
+            <Stack direction="row" spacing={1} alignItems="center">
+              <IconButton onClick={handleBellOpen} size="small" sx={{ color: isDark ? '#ffffff' : '#475569' }}>
+                <Badge badgeContent={statusAlertCount + totalViolating} color="error">
+                  <Notification size={20} />
+                </Badge>
+              </IconButton>
+              <Avatar
+                onClick={handleProfileOpen}
+                sx={{
+                  width: 30,
+                  height: 30,
+                  bgcolor: primaryColor,
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: '0.75rem',
+                  cursor: 'pointer'
                 }}
-                sx={{ py: 1, px: 2, gap: 1.2, fontSize: '0.85rem' }}
               >
-                <Profile2User size={18} />
-                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                  Hồ sơ cá nhân
-                </Typography>
-              </MenuItem>
-              <MenuItem
-                onClick={() => {
-                  handleProfileClose();
-                  setConfigDialogOpen(true);
-                }}
-                sx={{ py: 1, px: 2, gap: 1.2, fontSize: '0.85rem' }}
-              >
-                <Cpu size={18} />
-                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                  Cấu hình hệ thống
-                </Typography>
-              </MenuItem>
-              <Divider />
-              <MenuItem
-                onClick={() => {
-                  handleProfileClose();
-                  logout();
-                }}
-                sx={{ py: 1, px: 2, color: 'error.main', gap: 1.2, fontSize: '0.85rem' }}
-              >
-                <Logout size={18} />
-                <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
-                  Đăng xuất
-                </Typography>
-              </MenuItem>
-            </Menu>
+                {user?.fullname
+                  ? user.fullname
+                      .split(' ')
+                      .map((n: string) => n[0])
+                      .join('')
+                      .slice(0, 2)
+                      .toUpperCase()
+                  : 'US'}
+              </Avatar>
+            </Stack>
           </Box>
-        </Box>
+        )}
+
+        {/* Floating Notification FAB (Desktop only) */}
+        {!isMobile && (
+          <Box sx={{ position: 'absolute', top: 0, right: 0, pointerEvents: 'none', zIndex: 1100 }}>
+            <Box sx={{ pointerEvents: 'auto' }}>
+              <IconButton
+                onClick={handleBellOpen}
+                className={
+                  totalViolating > 0
+                    ? 'gs-fab-violation'
+                    : lowBatteryCount > 0
+                    ? 'gs-fab-lowbat'
+                    : undefined
+                }
+                sx={{
+                  position: 'fixed',
+                  top: 20,
+                  right: 24,
+                  width: 52,
+                  height: 52,
+                  bgcolor: isDark ? '#1e293b' : '#ffffff',
+                  color:
+                    totalViolating > 0
+                      ? '#ef4444'
+                      : lowBatteryCount > 0
+                      ? '#f59e0b'
+                      : isDark
+                      ? '#f8fafc'
+                      : '#475569',
+                  boxShadow: isDark
+                    ? '0 8px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08)'
+                    : '0 8px 30px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04)',
+                  border: '1px solid',
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                  '&:hover': {
+                    bgcolor: isDark ? '#334155' : '#f8fafc',
+                    transform: 'scale(1.05)',
+                    boxShadow: isDark
+                      ? '0 12px 36px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.12)'
+                      : '0 12px 36px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06)'
+                  },
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              >
+                <Badge
+                  badgeContent={statusAlertCount + totalViolating}
+                  color="error"
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      fontFamily: '"Inter", sans-serif',
+                      fontWeight: 800,
+                      fontSize: '0.7rem',
+                      height: 18,
+                      minWidth: 18,
+                      borderRadius: '9px',
+                      border: `2px solid ${isDark ? '#1e293b' : '#ffffff'}`
+                    }
+                  }}
+                >
+                  <Notification size={24} />
+                </Badge>
+              </IconButton>
+            </Box>
+          </Box>
+        )}
+
+        {/* Bell Popover & Profile Menu (shared by desktop & mobile) */}
+        <Popover
+          open={Boolean(bellAnchorEl)}
+          anchorEl={bellAnchorEl}
+          onClose={handleBellClose}
+          anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'right'
+          }}
+          transformOrigin={{
+            vertical: 'top',
+            horizontal: 'right'
+          }}
+          PaperProps={{
+            sx: {
+              width: 360,
+              maxHeight: 500,
+              mt: 1.5,
+              p: 2,
+              borderRadius: '12px',
+              boxShadow: isDark
+                ? '0 12px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08)'
+                : '0 12px 40px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06)',
+              bgcolor: isDark ? '#0f172a' : '#ffffff',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }
+          }}
+        >
+          <Box sx={{ overflowY: 'auto', flexGrow: 1 }}>
+            <NotificationList store={store} />
+          </Box>
+        </Popover>
+
+        <Menu
+          anchorEl={profileAnchorEl}
+          open={Boolean(profileAnchorEl)}
+          onClose={handleProfileClose}
+          PaperProps={{
+            sx: {
+              mt: 1,
+              minWidth: 180,
+              borderRadius: 2,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+              border: '1px solid',
+              borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+              bgcolor: isDark ? '#0f172a' : '#ffffff'
+            }
+          }}
+        >
+          <MenuItem
+            onClick={() => {
+              handleProfileClose();
+              setProfileDialogOpen(true);
+            }}
+            sx={{ py: 1, px: 2, gap: 1.2, fontSize: '0.85rem' }}
+          >
+            <Profile2User size={18} />
+            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+              Hồ sơ cá nhân
+            </Typography>
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              handleProfileClose();
+              setConfigDialogOpen(true);
+            }}
+            sx={{ py: 1, px: 2, gap: 1.2, fontSize: '0.85rem' }}
+          >
+            <Cpu size={18} />
+            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+              Cấu hình hệ thống
+            </Typography>
+          </MenuItem>
+          <Divider />
+          <MenuItem
+            onClick={() => {
+              handleProfileClose();
+              logout();
+            }}
+            sx={{ py: 1, px: 2, color: 'error.main', gap: 1.2, fontSize: '0.85rem' }}
+          >
+            <Logout size={18} />
+            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
+              Đăng xuất
+            </Typography>
+          </MenuItem>
+        </Menu>
 
         {/* Cảnh báo "ra ngoài vùng" KHÔNG còn glow/banner toàn màn hình — chuyển vào
             badge + glow của FAB chuông (xem .gs-fab-violation) vì có thể có nhiều thiết bị
@@ -420,7 +517,7 @@ export default function TrackingSection({
                   },
                   {
                     id: 'prisoners' as const,
-                    label: 'Thông tin phạm nhân',
+                    label: 'Người thi hành án',
                     icon: <Profile2User size={19} variant="Bold" />,
                     superOnly: false
                   },
@@ -505,94 +602,143 @@ export default function TrackingSection({
               <Box
                 sx={{
                   position: 'relative',
-                  width: 290,
+                  width: isSidebarCollapsed ? 72 : 290,
                   flexShrink: 0,
                   zIndex: 99,
-                  display: 'flex',
+                  display: isMobile ? 'none' : 'flex',
                   flexDirection: 'column',
                   overflow: 'hidden',
                   background: glassBase,
                   borderRight: `1px solid ${glassBorder}`,
-                  boxShadow: '10px 0 40px rgba(0,0,0,0.15)'
+                  boxShadow: '10px 0 40px rgba(0,0,0,0.15)',
+                  transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
                 }}
               >
                 {/* ── Sidebar Header: Logo & Title (bấm để về Trang giới thiệu) ── */}
-                <Tooltip title="Về Trang giới thiệu" placement="right">
-                  <Stack
-                    direction="row"
-                    spacing={1.5}
-                    alignItems="center"
-                    onClick={() => navigate('/gosafe')}
+                <Box
+                  sx={{
+                    px: isSidebarCollapsed ? 1.5 : 2.5,
+                    py: 2.2,
+                    borderBottom: `1px solid ${glassBorder}`,
+                    background: 'rgba(0, 0, 0, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
+                    position: 'relative',
+                    transition: 'all 0.25s'
+                  }}
+                >
+                  <Tooltip title="Về Trang giới thiệu" placement="right">
+                    <Stack
+                      direction="row"
+                      spacing={1.5}
+                      alignItems="center"
+                      onClick={() => navigate('/gosafe')}
+                      sx={{
+                        cursor: 'pointer',
+                        minWidth: 0,
+                        flexGrow: 1,
+                        display: isSidebarCollapsed ? 'none' : 'flex'
+                      }}
+                    >
+                      <Box
+                        component="img"
+                        src={logoVTC}
+                        alt="VTC Telecom"
+                        sx={{
+                          height: 32,
+                          width: 'auto',
+                          objectFit: 'contain',
+                          filter: 'brightness(0) invert(1)'
+                        }}
+                      />
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography
+                          sx={{
+                            fontFamily: '"Inter", sans-serif',
+                            fontWeight: 700,
+                            fontSize: '1.05rem',
+                            color: '#ffffff',
+                            lineHeight: 1.2,
+                            letterSpacing: '0.02em'
+                          }}
+                        >
+                          Hệ thống
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontFamily: '"Inter", sans-serif',
+                            fontWeight: 600,
+                            fontSize: '0.72rem',
+                            color: 'rgba(255, 255, 255, 0.6)',
+                            lineHeight: 1.1,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            mt: 0.2
+                          }}
+                        >
+                          Giám sát EMS
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Tooltip>
+
+                  {isSidebarCollapsed && (
+                    <Tooltip title="Về Trang giới thiệu" placement="right">
+                      <Box
+                        component="img"
+                        src={logoVTC}
+                        alt="VTC Telecom"
+                        onClick={() => navigate('/gosafe')}
+                        sx={{
+                          height: 32,
+                          width: 'auto',
+                          cursor: 'pointer',
+                          objectFit: 'contain',
+                          filter: 'brightness(0) invert(1)'
+                        }}
+                      />
+                    </Tooltip>
+                  )}
+
+                  {/* Collapse Toggle Button */}
+                  <IconButton
+                    size="small"
+                    onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                     sx={{
-                      px: 3,
-                      py: 2.5,
-                      cursor: 'pointer',
-                      borderBottom: `1px solid ${glassBorder}`,
-                      background: 'rgba(0, 0, 0, 0.1)',
-                      transition: 'background 0.2s',
-                      '&:hover': { background: 'rgba(0, 0, 0, 0.2)' },
-                      '&:hover .gs-home-icon': { opacity: 1 }
+                      ml: isSidebarCollapsed ? 0 : 1,
+                      color: 'rgba(255,255,255,0.7)',
+                      bgcolor: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '8px',
+                      width: 28,
+                      height: 28,
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        bgcolor: 'rgba(255,255,255,0.15)',
+                        color: '#ffffff',
+                      }
                     }}
                   >
-                    <Box
-                      component="img"
-                      src={logoVTC}
-                      alt="VTC Telecom"
-                      sx={{
-                        height: 32,
-                        width: 'auto',
-                        objectFit: 'contain',
-                        filter: 'brightness(0) invert(1)'
-                      }}
-                    />
-                    <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-                      <Typography
-                        sx={{
-                          fontFamily: '"Inter", sans-serif',
-                          fontWeight: 700, // Inter Bold bình thường
-                          fontSize: '1.05rem',
-                          color: '#ffffff',
-                          lineHeight: 1.2,
-                          letterSpacing: '0.02em'
-                        }}
-                      >
-                        Hệ thống
-                      </Typography>
-                      <Typography
-                        sx={{
-                          fontFamily: '"Inter", sans-serif',
-                          fontWeight: 600,
-                          fontSize: '0.72rem',
-                          color: 'rgba(255, 255, 255, 0.6)',
-                          lineHeight: 1.1,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          mt: 0.2
-                        }}
-                      >
-                        Giám sát Điện tử EMS
-                      </Typography>
-                    </Box>
-                    <Home2
-                      size={18}
-                      color="#ffffff"
-                      variant="Bold"
-                      className="gs-home-icon"
-                      style={{ opacity: 0.45, transition: 'opacity 0.2s', flexShrink: 0 }}
-                    />
-                  </Stack>
-                </Tooltip>
+                    {isSidebarCollapsed ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    )}
+                  </IconButton>
+                </Box>
 
                 {/* ── Nav Sections & Items ── */}
                 <Box
                   sx={{
                     flexGrow: 1,
                     overflowY: 'auto',
-                    px: 1.5,
+                    px: isSidebarCollapsed ? 1 : 1.5,
                     py: 2.5,
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 3,
+                    transition: 'all 0.25s',
                     '&::-webkit-scrollbar': { width: 4 },
                     '&::-webkit-scrollbar-thumb': {
                       bgcolor: 'rgba(255,255,255,0.08)',
@@ -603,27 +749,31 @@ export default function TrackingSection({
                   {visibleSections.map((section) => (
                     <Stack key={section.title} spacing={0.75}>
                       {/* Section Title */}
-                      <Typography
-                        sx={{
-                          fontFamily: '"Inter", sans-serif',
-                          fontSize: '0.68rem',
-                          fontWeight: 700, // Inter bold bình thường
-                          color: txtMuted,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.12em',
-                          px: 1.5,
-                          mb: 0.5
-                        }}
-                      >
-                        {section.title}
-                      </Typography>
+                      {!isSidebarCollapsed && (
+                        <Typography
+                          sx={{
+                            fontFamily: '"Inter", sans-serif',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            color: txtMuted,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.12em',
+                            px: 1.5,
+                            mb: 0.5
+                          }}
+                        >
+                          {section.title}
+                        </Typography>
+                      )}
+                      {isSidebarCollapsed && (
+                        <Divider sx={{ mx: 1, my: 0.5, borderColor: 'rgba(255,255,255,0.06)' }} />
+                      )}
 
                       {/* Section Items */}
                       {section.items.map((item) => {
                         const active = dashboardView === item.id;
-                        return (
+                        const itemContent = (
                           <Box
-                            key={item.id}
                             onClick={() => {
                               setDashboardView(item.id);
                             }}
@@ -633,8 +783,8 @@ export default function TrackingSection({
                               height: 44,
                               borderRadius: '10px',
                               cursor: 'pointer',
-                              px: 2,
-                              justifyContent: 'flex-start',
+                              px: isSidebarCollapsed ? 0 : 2,
+                              justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
                               position: 'relative',
                               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                               background: active ? activeBg : 'transparent',
@@ -649,7 +799,7 @@ export default function TrackingSection({
                             }}
                           >
                             {/* Left Active Glow Indicator Line */}
-                            {active && (
+                            {active && !isSidebarCollapsed && (
                               <Box
                                 sx={{
                                   position: 'absolute',
@@ -677,19 +827,29 @@ export default function TrackingSection({
                             </Box>
 
                             {/* Label */}
-                            <Typography
-                              sx={{
-                                fontFamily: '"Inter", sans-serif',
-                                ml: 2,
-                                fontSize: '0.85rem',
-                                fontWeight: active ? 500 : 400, // Inter thường cho các list
-                                color: active ? '#ffffff' : txtSecondary,
-                                whiteSpace: 'nowrap'
-                              }}
-                            >
-                              {item.label}
-                            </Typography>
+                            {!isSidebarCollapsed && (
+                              <Typography
+                                sx={{
+                                  fontFamily: '"Inter", sans-serif',
+                                  ml: 2,
+                                  fontSize: '0.85rem',
+                                  fontWeight: active ? 700 : 400,
+                                  color: active ? '#ffffff' : txtSecondary,
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                {item.label}
+                              </Typography>
+                            )}
                           </Box>
+                        );
+
+                        return isSidebarCollapsed ? (
+                          <Tooltip key={item.id} title={item.label} placement="right" arrow>
+                            {itemContent}
+                          </Tooltip>
+                        ) : (
+                          <Box key={item.id}>{itemContent}</Box>
                         );
                       })}
                     </Stack>
@@ -699,18 +859,20 @@ export default function TrackingSection({
                 {/* ── Bottom Sidebar Container ── */}
                 <Box
                   sx={{
-                    px: 2.5,
+                    px: isSidebarCollapsed ? 1.5 : 2.5,
                     py: 2,
                     zIndex: 2,
                     borderTop: `1px solid ${rowBorder}`,
                     background: 'rgba(0, 0, 0, 0.15)',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 2
+                    gap: 2,
+                    alignItems: isSidebarCollapsed ? 'center' : 'stretch',
+                    transition: 'all 0.25s'
                   }}
                 >
                   {/* Scope Selector (Cấp trung ương) */}
-                  {isSuperAdmin && (
+                  {isSuperAdmin && !isSidebarCollapsed && (
                     <Box
                       sx={{
                         display: 'flex',
@@ -763,92 +925,109 @@ export default function TrackingSection({
                   )}
 
                   {/* User Profile */}
-                  <Stack
-                    direction="row"
-                    spacing={1.5}
-                    alignItems="center"
-                    onClick={handleProfileOpen}
-                    sx={{
-                      cursor: 'pointer',
-                      p: 1,
-                      borderRadius: '10px',
-                      '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.05)' }
-                    }}
-                  >
-                    <Avatar
-                      sx={{
-                        width: 36,
-                        height: 36,
-                        bgcolor: primaryColor,
-                        color: '#fff',
-                        fontWeight: 700,
-                        fontSize: '0.9rem',
-                        fontFamily: '"Inter", sans-serif',
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
-                      }}
-                    >
-                      {user?.fullname
-                        ? user.fullname
-                            .split(' ')
-                            .map((n: string) => n[0])
-                            .join('')
-                            .slice(0, 2)
-                            .toUpperCase()
-                        : user?.name
-                        ? user.name.slice(0, 2).toUpperCase()
-                        : 'US'}
-                    </Avatar>
-                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                      <Typography
+                  {(() => {
+                    const profileContent = (
+                      <Stack
+                        direction={isSidebarCollapsed ? 'column' : 'row'}
+                        spacing={isSidebarCollapsed ? 0 : 1.5}
+                        alignItems="center"
+                        onClick={handleProfileOpen}
                         sx={{
-                          fontFamily: '"Inter", sans-serif',
-                          fontWeight: 700,
-                          lineHeight: 1.2,
-                          fontSize: '0.85rem',
-                          color: '#ffffff',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
+                          cursor: 'pointer',
+                          p: 1,
+                          borderRadius: '10px',
+                          justifyContent: 'center',
+                          '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.05)' }
                         }}
                       >
-                        {user?.fullname || user?.name || 'Người dùng'}
-                      </Typography>
-                      <Typography
-                        sx={{
-                          fontFamily: '"Inter", sans-serif',
-                          color: 'rgba(255, 255, 255, 0.5)',
-                          display: 'block',
-                          lineHeight: 1.1,
-                          fontSize: '0.72rem',
-                          fontWeight: 500,
-                          mt: 0.25,
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
-                        }}
-                      >
-                        {user?.role ||
-                          (user?.username === 'gosafe_admin'
-                            ? 'Quản trị viên GoSafe'
-                            : 'Quản trị viên')}
-                      </Typography>
-                    </Box>
-                  </Stack>
+                        <Avatar
+                          sx={{
+                            width: 36,
+                            height: 36,
+                            bgcolor: primaryColor,
+                            color: '#fff',
+                            fontWeight: 700,
+                            fontSize: '0.9rem',
+                            fontFamily: '"Inter", sans-serif',
+                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+                          }}
+                        >
+                          {user?.fullname
+                            ? user.fullname
+                                .split(' ')
+                                .map((n: string) => n[0])
+                                .join('')
+                                .slice(0, 2)
+                                .toUpperCase()
+                            : user?.name
+                            ? user.name.slice(0, 2).toUpperCase()
+                            : 'US'}
+                        </Avatar>
+                        {!isSidebarCollapsed && (
+                          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                            <Typography
+                              sx={{
+                                fontFamily: '"Inter", sans-serif',
+                                fontWeight: 700,
+                                lineHeight: 1.2,
+                                fontSize: '0.85rem',
+                                color: '#ffffff',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}
+                            >
+                              {user?.fullname || user?.name || 'Người dùng'}
+                            </Typography>
+                            <Typography
+                              sx={{
+                                fontFamily: '"Inter", sans-serif',
+                                color: 'rgba(255, 255, 255, 0.5)',
+                                display: 'block',
+                                lineHeight: 1.1,
+                                fontSize: '0.72rem',
+                                fontWeight: 500,
+                                mt: 0.25,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}
+                            >
+                              {user?.role ||
+                                (user?.username === 'gosafe_admin'
+                                  ? 'Quản trị viên GoSafe'
+                                  : 'Quản trị viên')}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Stack>
+                    );
+
+                    return isSidebarCollapsed ? (
+                      <Tooltip title={`${user?.fullname || user?.name || 'Người dùng'} (${user?.role || 'Quản trị'})`} placement="right" arrow>
+                        {profileContent}
+                      </Tooltip>
+                    ) : (
+                      profileContent
+                    );
+                  })()}
 
                   {/* Version Footer */}
-                  <Typography
-                    sx={{
-                      fontFamily: '"Inter", sans-serif',
-                      fontSize: '0.65rem',
-                      color: txtMuted,
-                      fontWeight: 600,
-                      letterSpacing: '0.02em',
-                      px: 1,
-                      mt: -0.5
-                    }}
-                  >
-                    v2.0 · VTC Telecom · EMS
-                  </Typography>
+                  {!isSidebarCollapsed && (
+                    <Typography
+                      sx={{
+                        fontFamily: '"Inter", sans-serif',
+                        fontSize: '0.65rem',
+                        color: txtMuted,
+                        fontWeight: 600,
+                        letterSpacing: '0.02em',
+                        px: 1,
+                        mt: -0.5
+                      }}
+                    >
+                      v2.0 · VTC Telecom · EMS
+                    </Typography>
+                  )}
                 </Box>
               </Box>
             );
@@ -877,7 +1056,9 @@ export default function TrackingSection({
                   sx={{
                     position: 'absolute',
                     bottom: 16,
-                    left: isMapSidebarCollapsed ? 16 : 452,
+                    left: isMapSidebarCollapsed ? 16 : { xs: 16, sm: 452 },
+                    // Trên điện thoại, panel phủ kín bản đồ → ẩn thanh điều khiển này khi panel đang mở.
+                    display: { xs: isMapSidebarCollapsed ? 'flex' : 'none', sm: 'flex' },
                     zIndex: 10,
                     bgcolor: isDark ? 'rgba(15, 23, 42, 0.92)' : 'rgba(255, 255, 255, 0.92)',
                     backdropFilter: 'blur(16px)',
@@ -887,7 +1068,6 @@ export default function TrackingSection({
                     border: '1px solid',
                     borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.1)',
                     boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-                    display: 'flex',
                     alignItems: 'center',
                     gap: 2,
                     transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
@@ -1120,7 +1300,10 @@ export default function TrackingSection({
                     top: 16,
                     left: 16,
                     bottom: 16,
-                    width: 420,
+                    // Responsive: điện thoại (xs) chiếm hết bề ngang (trừ lề); từ sm trở lên cố định 420px.
+                    width: { xs: 'auto', sm: 420 },
+                    right: { xs: 16, sm: 'auto' },
+                    maxWidth: 'calc(100vw - 32px)',
                     zIndex: 5,
                     bgcolor: isDark ? 'rgba(9, 13, 31, 0.85)' : 'rgba(255, 255, 255, 0.85)',
                     backdropFilter: 'blur(20px)',
@@ -1132,7 +1315,7 @@ export default function TrackingSection({
                     flexDirection: 'column',
                     overflow: 'hidden',
                     transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    transform: isMapSidebarCollapsed ? 'translateX(-436px)' : 'none'
+                    transform: isMapSidebarCollapsed ? 'translateX(calc(-100% - 24px))' : 'none'
                   }}
                 >
                   {/* Sidebar contents */}
@@ -1141,7 +1324,7 @@ export default function TrackingSection({
                     <TextField
                       fullWidth
                       size="small"
-                      placeholder="Tên, IMEI, phạm nhân..."
+                      placeholder="Tên, IMEI, đối tượng..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       sx={{
@@ -1255,7 +1438,9 @@ export default function TrackingSection({
                   sx={{
                     position: 'absolute',
                     top: '50%',
-                    left: isMapSidebarCollapsed ? 16 : 436,
+                    // Nút thu gọn bám mép phải của panel: điện thoại (xs) bám mép màn hình, từ sm cố định 436px.
+                    left: isMapSidebarCollapsed ? 16 : { xs: 'auto', sm: 436 },
+                    right: isMapSidebarCollapsed ? 'auto' : { xs: 4, sm: 'auto' },
                     transform: 'translateY(-50%)',
                     width: 24,
                     height: 48,
@@ -1433,6 +1618,146 @@ export default function TrackingSection({
             )}
           </Box>
         </Box>
+
+        {/* Mobile Bottom Navigation Bar */}
+        {isMobile && (
+          <Box
+            sx={{
+              position: 'fixed',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 64,
+              bgcolor: isDark ? 'rgba(15, 23, 42, 0.92)' : 'rgba(255, 255, 255, 0.92)',
+              backdropFilter: 'blur(20px)',
+              borderTop: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`,
+              boxShadow: '0 -4px 20px rgba(0,0,0,0.1)',
+              display: 'flex',
+              justifyContent: 'space-around',
+              alignItems: 'center',
+              zIndex: 1000,
+              px: 1
+            }}
+          >
+            {[
+              { id: 'overview' as const, label: 'Tổng quan', icon: <Category size={22} variant="Bold" /> },
+              { id: 'tracking' as const, label: 'Bản đồ', icon: <MapIcon size={22} variant="Bold" /> },
+              { id: 'prisoners' as const, label: 'Đối tượng', icon: <Profile2User size={22} variant="Bold" /> },
+              { id: 'alerts' as const, label: 'Cảnh báo', icon: <Danger size={22} variant="Bold" /> },
+              { id: 'more' as const, label: 'Thêm', icon: <HambergerMenu size={22} /> }
+            ].map((tab) => {
+              const active = tab.id === 'more' 
+                ? ['devices', 'sim', 'providers', 'regions', 'users', 'compliance', 'audit'].includes(dashboardView)
+                : dashboardView === tab.id;
+              
+              return (
+                <Box
+                  key={tab.id}
+                  onClick={() => {
+                    if (tab.id === 'more') {
+                      setMobileDrawerOpen(true);
+                    } else {
+                      setDashboardView(tab.id);
+                    }
+                  }}
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: active ? '#38bdf8' : (isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'),
+                    transition: 'color 0.2s',
+                    flex: 1,
+                    py: 0.5
+                  }}
+                >
+                  {tab.icon}
+                  <Typography
+                    sx={{
+                      fontFamily: '"Inter", sans-serif',
+                      fontSize: '0.65rem',
+                      fontWeight: active ? 700 : 500,
+                      mt: 0.5
+                    }}
+                  >
+                    {tab.label}
+                  </Typography>
+                </Box>
+              );
+            })}
+          </Box>
+        )}
+
+        {/* Mobile slide-up Drawer for extra menu options */}
+        <Drawer
+          anchor="bottom"
+          open={mobileDrawerOpen}
+          onClose={() => setMobileDrawerOpen(false)}
+          PaperProps={{
+            sx: {
+              borderTopLeftRadius: '24px',
+              borderTopRightRadius: '24px',
+              bgcolor: isDark ? 'rgba(9, 13, 31, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(20px)',
+              borderTop: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'}`,
+              maxHeight: '75vh',
+              p: 2.5,
+              overflowY: 'auto'
+            }
+          }}
+        >
+          <Box sx={{ width: '100%', mb: 2 }}>
+            <Box sx={{ width: 40, height: 4, bgcolor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)', borderRadius: 2, mx: 'auto', mb: 2 }} />
+            <Typography variant="h6" sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: '1rem', color: isDark ? '#ffffff' : '#0f172a', textAlign: 'center', mb: 2 }}>
+              Tất cả chức năng
+            </Typography>
+            <Divider sx={{ mb: 2, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
+          </Box>
+          <Stack spacing={1.5} sx={{ pb: 4 }}>
+            {[
+              { id: 'compliance', label: 'Lịch trình bắt buộc', icon: <Calendar size={20} /> },
+              { id: 'devices', label: 'Quản lý thiết bị', icon: <Cpu size={20} />, superOnly: true },
+              { id: 'sim', label: 'Quản lý SIM', icon: <Simcard size={20} />, superOnly: true },
+              { id: 'providers', label: 'Nhà cung cấp / nhà mạng', icon: <Buildings2 size={20} />, superOnly: true },
+              { id: 'regions', label: 'Quản lý địa bàn', icon: <Buildings2 size={20} />, superOnly: true },
+              { id: 'users', label: 'Người dùng & phân quyền', icon: <SecuritySafe size={20} />, superOnly: true },
+              { id: 'audit', label: 'Nhật ký hệ thống', icon: <DocumentText size={20} />, superOnly: true }
+            ]
+              .filter((item) => isSuperAdmin || !item.superOnly)
+              .map((item) => {
+                const active = dashboardView === item.id;
+                return (
+                  <Stack
+                    key={item.id}
+                    direction="row"
+                    spacing={2}
+                    alignItems="center"
+                    onClick={() => {
+                      setDashboardView(item.id as any);
+                      setMobileDrawerOpen(false);
+                    }}
+                    sx={{
+                      p: 1.5,
+                      borderRadius: '12px',
+                      cursor: 'pointer',
+                      bgcolor: active ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
+                      border: `1px solid ${active ? 'rgba(56, 189, 248, 0.3)' : 'transparent'}`,
+                      color: active ? '#38bdf8' : (isDark ? '#e2e8f0' : '#475569'),
+                      '&:hover': {
+                        bgcolor: 'rgba(56, 189, 248, 0.08)'
+                      }
+                    }}
+                  >
+                    {item.icon}
+                    <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: active ? 700 : 500, fontSize: '0.9rem' }}>
+                      {item.label}
+                    </Typography>
+                  </Stack>
+                );
+              })}
+          </Stack>
+        </Drawer>
 
         {/* Dialogs: Add/Edit Device, Delete, Geofence assign, geofence info, etc. */}
         <TrackingDialogs store={store} />

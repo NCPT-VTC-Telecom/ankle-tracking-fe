@@ -198,9 +198,9 @@ function UsersTab({ isDark, refreshKey }: { isDark: boolean; refreshKey?: number
         </Button>
       </Stack>
 
-      <Box sx={{ borderRadius: '16px', border: '1px solid', borderColor: cardBorder, bgcolor: cardBg, overflow: 'hidden' }}>
+      <Box sx={{ borderRadius: '16px', border: '1px solid', borderColor: cardBorder, bgcolor: cardBg, overflowX: 'auto' }}>
         {loading ? <Stack alignItems="center" sx={{ py: 6 }}><CircularProgress size={24} /></Stack> : (
-          <Table size="small">
+          <Table size="small" sx={{ minWidth: 750 }}>
             <TableHead>
               <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase', borderColor: cardBorder } }}>
                 <TableCell>Họ tên</TableCell><TableCell>Tài khoản</TableCell><TableCell>Vai trò</TableCell><TableCell>Trạng thái</TableCell><TableCell align="right">Hành động</TableCell>
@@ -672,9 +672,9 @@ function RolesTab({ isDark, refreshKey }: { isDark: boolean; refreshKey?: number
           Thêm vai trò
         </Button>
       </Stack>
-      <Box sx={{ borderRadius: '16px', border: '1px solid', borderColor: cardBorder, bgcolor: cardBg, overflow: 'hidden' }}>
+      <Box sx={{ borderRadius: '16px', border: '1px solid', borderColor: cardBorder, bgcolor: cardBg, overflowX: 'auto' }}>
         {loading ? <Stack alignItems="center" sx={{ py: 6 }}><CircularProgress size={24} /></Stack> : (
-          <Table size="small">
+          <Table size="small" sx={{ minWidth: 750 }}>
             <TableHead>
               <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', textTransform: 'uppercase', borderColor: cardBorder } }}>
                 <TableCell>Vai trò</TableCell><TableCell>Mô tả</TableCell><TableCell>Số quyền</TableCell><TableCell align="right">Hành động</TableCell>

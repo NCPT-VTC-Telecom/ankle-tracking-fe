@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import {
   Stack, TextField, Button, Box, Typography, Chip, Tooltip, IconButton, Grid, Avatar,
   LinearProgress, Dialog, DialogContent, DialogActions, Menu, MenuItem,
-  ListItemIcon, ListItemText, Divider
+  ListItemIcon, ListItemText, Divider, useTheme, useMediaQuery
 } from '@mui/material';
 import {
   SearchNormal1, Add, Wifi, Gps, Edit, Trash, InfoCircle, Cpu,
@@ -65,6 +65,9 @@ const CARRIER_COLOR: Record<string, string> = {
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function DeviceManagementTable({ isDark, store, setDashboardView, refreshKey }: DeviceManagementTableProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const fontFamily = '"Inter", sans-serif';
   const {
     devices: liveDevices, geofences, deviceViolations,
     openEditDevice, setAddDeviceOpen, setRemoveConfirmId,
@@ -168,6 +171,158 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView,
   const glassBdr   = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
   const glassBlur  = 'blur(20px) saturate(1.6)';
   const panelBg    = isDark ? 'rgba(9,13,31,0.5)'  : 'rgba(255,255,255,0.7)';
+
+  const renderMobileList = () => {
+    return (
+      <Stack spacing={1.75} sx={{ p: 2 }}>
+        {paged.map((dev) => {
+          const isViolating = deviceViolations[dev.id];
+          const conn = dev.status.connectionStatus;
+          const isOnline = conn === 'online';
+          const statusColor = isViolating ? '#ef4444' : isOnline ? '#22c55e' : conn === 'offline' ? '#64748b' : '#f59e0b';
+          const statusLabel = isViolating ? 'Vi phạm' : isOnline ? 'Trực tuyến' : conn === 'offline' ? 'Ngoại tuyến' : 'Chập chờn';
+
+          return (
+            <Box
+              key={dev.id}
+              sx={{
+                p: 2,
+                borderRadius: '16px',
+                border: '1px solid',
+                borderColor: isViolating ? '#ef444435' : glassBdr,
+                bgcolor: isViolating ? (isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.04)') : (isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.6)'),
+                boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1.5
+              }}
+            >
+              {/* Top Line: Device Name/Model & Status */}
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Stack direction="row" spacing={1.25} alignItems="center">
+                  <Avatar
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      bgcolor: dev.color,
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: '0.78rem'
+                    }}
+                  >
+                    {dev.name.slice(0, 2).toUpperCase()}
+                  </Avatar>
+                  <Box>
+                    <Typography sx={{ fontWeight: 700, fontSize: '0.925rem', color: isDark ? '#f8fafc' : '#0f172a', fontFamily }}>
+                      {dev.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontFamily }}>
+                      {dev.deviceType}
+                    </Typography>
+                  </Box>
+                </Stack>
+
+                <Chip
+                  label={statusLabel}
+                  size="small"
+                  sx={{
+                    height: 22,
+                    fontWeight: 800,
+                    fontSize: '0.72rem',
+                    color: statusColor,
+                    bgcolor: `${statusColor}15`,
+                    borderRadius: '8px',
+                    fontFamily
+                  }}
+                />
+              </Stack>
+
+              <Divider sx={{ borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }} />
+
+              {/* Mid Section: Details */}
+              <Grid container spacing={1.5}>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 600, fontFamily }}>
+                    Số IMEI
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.82rem', fontWeight: 500, fontFamily: 'monospace' }}>
+                    {dev.uniqueId}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 600, fontFamily }}>
+                    SIM liên kết
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.82rem', fontWeight: 500, fontFamily }}>
+                    {dev.phoneNumber || '—'}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 600, fontFamily }}>
+                    Trạng thái thiết bị
+                  </Typography>
+                  <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 0.25 }}>
+                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5, color: dev.status.battery < 20 ? '#ef4444' : '#22c55e', fontFamily }}>
+                      <Flash size={16} variant="Bold" /> {dev.status.battery}%
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5, color: '#1e6fd9', fontFamily }}>
+                      <Gps size={16} variant="Bold" /> {dev.status.satelliteCount || 0}
+                    </Typography>
+                  </Stack>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 600, fontFamily }}>
+                    Đối tượng đeo
+                  </Typography>
+                  {dev.subject ? (
+                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: '#38bdf8', fontFamily }}>
+                      {dev.subject.fullName}
+                    </Typography>
+                  ) : (
+                    <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary', fontStyle: 'italic', fontFamily }}>
+                      Chưa gán
+                    </Typography>
+                  )}
+                </Grid>
+              </Grid>
+
+              {/* Actions footer of card */}
+              <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ mt: 0.5 }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setDetailDevice(dev)}
+                  startIcon={<InfoCircle size={15} />}
+                  sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 700, fontSize: '0.78rem', fontFamily }}
+                >
+                  Chi tiết
+                </Button>
+                <IconButton
+                  size="small"
+                  onClick={(e) => setMenuAnchor({ el: e.currentTarget, devId: dev.id })}
+                  sx={{
+                    border: '1px solid',
+                    borderColor: glassBdr,
+                    borderRadius: '10px',
+                    width: 32,
+                    height: 32,
+                    color: 'text.secondary'
+                  }}
+                >
+                  <More size={16} />
+                </IconButton>
+              </Stack>
+            </Box>
+          );
+        })}
+        {filteredDeviceTable.length === 0 && (
+          <Typography align="center" color="text.secondary" sx={{ py: 4, fontStyle: 'italic', fontFamily }}>
+            Không tìm thấy thiết bị nào phù hợp
+          </Typography>
+        )}
+      </Stack>
+    );
+  };
 
   return (
     <Stack spacing={3}>
@@ -314,8 +469,9 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView,
           </Stack>
         </Box>
 
-        {/* ── Table ── */}
-        <Box sx={{ overflowX: 'auto' }}>
+        {/* ── Table / Mobile List ── */}
+        {isMobile ? renderMobileList() : (
+          <Box sx={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <colgroup>
               <col style={{ width: '18%' }} />
@@ -535,6 +691,7 @@ export default function DeviceManagementTable({ isDark, store, setDashboardView,
             </tbody>
           </table>
         </Box>
+        )}
       </Box>
 
       <PaginationBar page={page} totalPages={totalPages} total={total} shownCount={paged.length} onChange={setPage} label="thiết bị" />

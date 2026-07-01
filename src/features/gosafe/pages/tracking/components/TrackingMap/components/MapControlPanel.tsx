@@ -1,5 +1,6 @@
-import { Box, Typography, Stack, Divider, Grid, Button, Switch, FormControlLabel } from '@mui/material';
-import { Map, Eye, Location } from 'iconsax-react';
+import { Box, Typography, Stack, Divider, Grid, Button, Switch, FormControlLabel, IconButton, Tooltip } from '@mui/material';
+import { Map, Eye, Location, CloseCircle } from 'iconsax-react';
+import { useState } from 'react';
 import { LAYER_PREVIEWS, type MapLayer } from './tileConfig';
 
 interface Props {
@@ -42,6 +43,9 @@ export default function MapControlPanel({
   glassBlur,
   txtColor,
 }: Props) {
+  // Thu gọn: mặc định chỉ hiện 1 icon nhỏ ở góc dưới phải; bấm để mở bảng đầy đủ.
+  const [open, setOpen] = useState(false);
+
   const toggles: Array<{ label: string; value: boolean; setter: (v: boolean) => void }> = [
     { label: 'Vùng cấm (Geofences)', value: showGeofences, setter: setShowGeofences },
     { label: 'Nhãn tên vùng', value: showGfLabels, setter: setShowGfLabels },
@@ -49,15 +53,54 @@ export default function MapControlPanel({
     { label: 'Vòng tròn độ chính xác GPS', value: showAccuracyCircles, setter: setShowAccuracyCircles },
   ];
 
+  // ── Trạng thái thu gọn: chỉ 1 icon nhỏ ở góc dưới phải (web + mobile) ──
+  if (!open) {
+    return (
+      <Tooltip title="Lớp bản đồ & hiển thị" placement="left">
+        <Box
+          className="gs-glass-panel"
+          onClick={() => setOpen(true)}
+          sx={{
+            position: 'absolute',
+            bottom: { xs: 80, sm: 16 }, // xs: nằm trên thanh điều hướng mobile (64px)
+            right: 16,
+            zIndex: 1000,
+            width: 52,
+            height: 52,
+            borderRadius: '14px',
+            bgcolor: glassBg,
+            backdropFilter: glassBlur,
+            WebkitBackdropFilter: glassBlur,
+            boxShadow: `0 8px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.12)`,
+            border: `1px solid ${glassBdr}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: txtColor,
+            transition: 'transform 0.2s, box-shadow 0.2s',
+            '&:hover': { transform: 'scale(1.06)', boxShadow: `0 10px 28px rgba(0,0,0,0.3)` }
+          }}
+        >
+          <Map size="24" variant="Bold" color={primaryColor} />
+        </Box>
+      </Tooltip>
+    );
+  }
+
   return (
     <Box
       className="gs-glass-panel"
       sx={{
         position: 'absolute',
-        bottom: 16,
+        bottom: { xs: 80, sm: 16 }, // xs: nằm trên thanh điều hướng mobile (64px)
         right: 16,
         zIndex: 1000,
-        width: 320,
+        // Responsive: điện thoại chiếm gần hết bề ngang; từ sm cố định 320px.
+        width: { xs: 'calc(100vw - 32px)', sm: 320 },
+        maxWidth: 'calc(100vw - 32px)',
+        maxHeight: { xs: 'calc(100vh - 200px)', sm: 'calc(100vh - 120px)' },
+        overflowY: 'auto',
         bgcolor: glassBg,
         backdropFilter: glassBlur,
         WebkitBackdropFilter: glassBlur,
@@ -71,12 +114,22 @@ export default function MapControlPanel({
         color: txtColor,
       }}
     >
-      {/* Tile layer selector */}
-      <Stack direction="row" spacing={0.75} alignItems="center">
-        <Map size="16" variant="Bold" color={primaryColor} />
-        <Typography variant="caption" sx={{ fontWeight: 500, fontSize: '0.8rem', letterSpacing: 0.8, textTransform: 'uppercase' }}>
-          Lớp bản đồ
-        </Typography>
+      {/* Tile layer selector + nút thu gọn */}
+      <Stack direction="row" spacing={0.75} alignItems="center" justifyContent="space-between">
+        <Stack direction="row" spacing={0.75} alignItems="center">
+          <Map size="16" variant="Bold" color={primaryColor} />
+          <Typography variant="caption" sx={{ fontWeight: 500, fontSize: '0.8rem', letterSpacing: 0.8, textTransform: 'uppercase' }}>
+            Lớp bản đồ
+          </Typography>
+        </Stack>
+        <IconButton
+          size="small"
+          onClick={() => setOpen(false)}
+          aria-label="Thu gọn lớp bản đồ"
+          sx={{ color: txtColor, opacity: 0.6, p: 0.25, '&:hover': { opacity: 1 } }}
+        >
+          <CloseCircle size="18" />
+        </IconButton>
       </Stack>
 
       <Grid container spacing={1}>
