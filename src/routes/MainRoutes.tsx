@@ -12,6 +12,7 @@ const MaintenanceUnderConstruction = Loadable(lazy(() => import('features/mainte
 const MaintenanceComingSoon = Loadable(lazy(() => import('features/maintenance/pages/coming-soon/coming-soon2')));
 
 const GosafeLanding = Loadable(lazy(() => import('features/gosafe/pages')));
+const GosafeSimulator = Loadable(lazy(() => import('features/gosafe/pages/simulator')));
 
 // GoSafe-only: bỏ MainLayout + dashboard/statistic (WiFi cũ). Sau đăng nhập điều
 // hướng tới /gosafe/tracking (APP_DEFAULT_PATH).
@@ -47,6 +48,16 @@ const MainRoutes = {
     {
       path: '/gosafe',
       element: <GosafeLanding viewType="landing" />
+    },
+    {
+      // Route riêng cho GPS Simulator — có AuthGuard nhưng KHÔNG nằm trong sidebar.
+      // Khai báo trước /gosafe/:view; react-router v6 vẫn ưu tiên segment tĩnh nên an toàn.
+      path: '/gosafe/simulator',
+      element: (
+        <AuthGuard>
+          <GosafeSimulator />
+        </AuthGuard>
+      )
     },
     {
       // :view = overview | tracking | prisoners | devices | alerts | compliance | regions | users

@@ -60,6 +60,14 @@ export default defineConfig(({ mode }) => {
                     target: 'https://gosafe.vtctelecom.com.vn',
                     changeOrigin: true,
                     secure: true,
+                    // Backend chỉ chấp nhận Origin nằm trong whitelist; với origin lạ
+                    // (vd http://localhost:3001) nó trả về 500. changeOrigin chỉ đổi Host,
+                    // KHÔNG đổi Origin — nên phải ghi đè Origin thủ công về domain backend.
+                    configure: (proxy) => {
+                        proxy.on('proxyReq', (proxyReq) => {
+                            proxyReq.setHeader('origin', 'https://gosafe.vtctelecom.com.vn');
+                        });
+                    },
                 },
             },
         },
